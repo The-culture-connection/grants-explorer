@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import AlgorithmPage from "@/pages/Algorithm";
+import IndexingToolPage from "@/pages/IndexingTool";
 
 // Configure QueryClient with reasonable defaults for a dashboard
 const queryClient = new QueryClient({
@@ -22,6 +23,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/algorithm" component={AlgorithmPage} />
+      <Route path="/indexing" component={IndexingToolPage} />
       <Route component={NotFound} />
     </Switch>
   );

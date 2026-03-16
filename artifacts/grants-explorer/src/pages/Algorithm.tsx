@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   CheckCircle2, XCircle, FlaskConical, ChevronRight, Zap, Database,
   Building2, Target, Globe, DollarSign, Calendar, ExternalLink, Eye, EyeOff,
-  AlertTriangle, Info, Filter, Search, BarChart3, Code,
+  AlertTriangle, Info, Filter, Search, BarChart3, Code, Layers, RefreshCw,
 } from "lucide-react";
 
 import { SOURCE_CONFIGS } from "@/lib/algorithm/sources";
@@ -198,6 +198,32 @@ function MatchCard({ result, index }: { result: MatchResult; index: number }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const API = `${BASE}/api`;
+
+function dbRecordToOpportunity(rec: any): NormalizedOpportunity {
+  const geo = Array.isArray(rec.geography) ? rec.geography : (typeof rec.geography === "string" ? (() => { try { return JSON.parse(rec.geography); } catch { return [rec.geography]; } })() : []);
+  return {
+    id: rec.id,
+    source: rec.source,
+    source_raw: rec.source,
+    title: rec.title ?? "Untitled",
+    description: "",
+    agency: rec.agency ?? "",
+    funding_type: (rec.funding_type ?? "grant") as any,
+    status: (rec.status ?? "active") as any,
+    open_date: rec.open_date ?? undefined,
+    close_date: rec.close_date ?? undefined,
+    min_award: rec.min_award ?? undefined,
+    max_award: rec.max_award ?? undefined,
+    eligibility: [],
+    categories: [],
+    keywords: [],
+    geography: geo,
+    url: rec.url ?? "",
+  };
+}
+
 export default function AlgorithmPage() {
   // ── Org state ───────────────────────────────────────────────────────────
   const [selectedMockId, setSelectedMockId] = useState<string>(MOCK_ORGANIZATIONS[0].id);
@@ -209,17 +235,43 @@ export default function AlgorithmPage() {
     ? (MOCK_ORGANIZATIONS.find((o) => o.id === selectedMockId) ?? MOCK_ORGANIZATIONS[0])
     : customOrg;
 
+  // ── Indexed store state ─────────────────────────────────────────────────
+  const [poolSource, setPoolSource] = useState<"mock" | "indexed">("mock");
+  const [indexedStats, setIndexedStats] = useState<{ total: number; active: number; historical: number } | null>(null);
+  const [indexedPool, setIndexedPool] = useState<NormalizedOpportunity[]>([]);
+  const [indexedLoading, setIndexedLoading] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/indexing/stats`)
+      .then((r) => r.json())
+      .then((d) => setIndexedStats(d))
+      .catch(() => {});
+  }, []);
+
+  const loadIndexedPool = async () => {
+    setIndexedLoading(true);
+    try {
+      const r = await fetch(`${API}/indexing/records/for-algorithm`);
+      const d = await r.json();
+      const opps = (d.records ?? []).map(dbRecordToOpportunity);
+      setIndexedPool(opps);
+      setPoolSource("indexed");
+    } catch {}
+    setIndexedLoading(false);
+  };
+
   // ── Opportunity pool state ───────────────────────────────────────────────
   const [poolFilter, setPoolFilter] = useState({ source: "", keyword: "", fundingType: "" });
   const [showExcluded, setShowExcluded] = useState(false);
 
-  const { active: activePool, excluded: excludedPool } = useMemo(
+  const { active: mockActivePool, excluded: excludedPool } = useMemo(
     () => filterToActiveOpportunities(ALL_MOCK_OPPORTUNITIES),
     []
   );
+  const activePool = poolSource === "indexed" ? indexedPool : mockActivePool;
 
   const filteredPool = useMemo(() => {
-    const pool = showExcluded ? ALL_MOCK_OPPORTUNITIES : activePool;
+    const pool = (poolSource === "indexed") ? indexedPool : (showExcluded ? ALL_MOCK_OPPORTUNITIES : mockActivePool);
     return pool.filter((opp) => {
       if (poolFilter.source && opp.source !== poolFilter.source) return false;
       if (poolFilter.fundingType && opp.funding_type !== poolFilter.fundingType) return false;
@@ -230,7 +282,7 @@ export default function AlgorithmPage() {
       }
       return true;
     });
-  }, [showExcluded, activePool, poolFilter]);
+  }, [showExcluded, mockActivePool, poolFilter, poolSource, indexedPool]);
 
   // ── Match results state ──────────────────────────────────────────────────
   const [matchResults, setMatchResults] = useState<MatchResult[] | null>(null);
@@ -242,13 +294,18 @@ export default function AlgorithmPage() {
   const runAlgorithm = () => {
     setIsRunning(true);
     setTimeout(() => {
-      const { active, excluded } = filterToActiveOpportunities(ALL_MOCK_OPPORTUNITIES);
+      const pool = poolSource === "indexed" ? indexedPool : ALL_MOCK_OPPORTUNITIES;
+      const { active, excluded } = poolSource === "indexed"
+        ? { active: indexedPool, excluded: [] }
+        : filterToActiveOpportunities(ALL_MOCK_OPPORTUNITIES);
       const allScored = active.map((opp) => scoreMatch(activeOrg, opp));
       const eligible = allScored.filter((r) => r.passes_eligibility);
-      const top = getTopMatches(activeOrg, ALL_MOCK_OPPORTUNITIES, 10);
+      const top = poolSource === "indexed"
+        ? getTopMatches(activeOrg, indexedPool, 10)
+        : getTopMatches(activeOrg, pool, 10);
 
       setRunStats({
-        total: ALL_MOCK_OPPORTUNITIES.length,
+        total: pool.length,
         active: active.length,
         excluded: excluded.length,
         eligible: eligible.length,
@@ -264,12 +321,15 @@ export default function AlgorithmPage() {
       {/* Top Nav */}
       <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Back to Explorer
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+              ← Explorer
+            </Link>
+            <span className="text-border text-xs">|</span>
+            <Link href="/indexing" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Database className="h-3.5 w-3.5" /> Indexing Tool
+            </Link>
+          </div>
           <div className="flex items-center gap-2 font-semibold text-sm text-foreground">
             <FlaskConical className="h-4 w-4 text-primary" />
             Algorithm V1 Testing Center
@@ -287,6 +347,57 @@ export default function AlgorithmPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        {/* ── Indexed Pool Banner ────────────────────────────────────────── */}
+        <Card className={`border ${poolSource === "indexed" ? "border-primary/30 bg-primary/5" : "border-border/50 bg-muted/20"}`}>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Layers className="h-5 w-5 text-primary shrink-0" />
+                <div>
+                  <div className="font-semibold text-sm">Opportunity Pool Source</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Currently using: <strong>{poolSource === "indexed" ? `Full Indexed Store (${indexedPool.length.toLocaleString()} active records)` : "Mock Dataset (26 records)"}</strong>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                {indexedStats && (
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                      {indexedStats.active.toLocaleString()} indexed active
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
+                      {indexedStats.historical.toLocaleString()} historical excluded
+                    </span>
+                  </div>
+                )}
+                {poolSource === "indexed" ? (
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                    onClick={() => setPoolSource("mock")}>
+                    Switch to Mock
+                  </Button>
+                ) : (
+                  <Button size="sm" className="h-7 text-xs gap-1"
+                    onClick={loadIndexedPool}
+                    disabled={indexedLoading || (indexedStats?.active ?? 0) === 0}>
+                    {indexedLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Database className="h-3 w-3" />}
+                    {indexedStats?.active ? `Load ${indexedStats.active.toLocaleString()} Indexed Records` : "No Indexed Records Yet"}
+                  </Button>
+                )}
+                {(indexedStats?.active ?? 0) === 0 && poolSource === "mock" && (
+                  <Link href="/indexing">
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-primary border-primary/40">
+                      <Database className="h-3 w-3" /> Go to Indexing Tool
+                    </Button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* ─── Section 1: Source Status Panel ─────────────────────────────── */}
         <section>

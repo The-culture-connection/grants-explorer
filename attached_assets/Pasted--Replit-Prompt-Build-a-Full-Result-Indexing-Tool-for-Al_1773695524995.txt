@@ -1,0 +1,416 @@
+# Replit Prompt — Build a Full Result Indexing Tool for Algorithm Testing
+
+Build an internal developer tool in this Replit app called **Indexing Tool** that allows me to ingest, paginate through, normalize, store, and inspect **all available results** from my funding data sources instead of only using the first 26 results.
+
+## Main problem to solve
+
+Right now the app is only using a small subset of records, around 26 results, which is not enough for accurate algorithm testing.
+
+I need a tool that:
+
+* fetches **all pages / all batches** of results from each source
+* keeps requesting data until there are no more results
+* stores the normalized records in a central indexed store
+* prevents duplicates
+* lets me inspect how many total records were fetched from each source
+* makes the full indexed dataset available to the Algorithm V1 testing page
+
+## Scope of indexing
+
+I am using these 11 total sources:
+
+### Active opportunity sources to index for V1 testing
+
+* Simpler Grants
+* Grants.gov Search
+* SAM.gov Opportunities
+* SBIR
+* 360Giving
+* California Grants Portal
+* World Bank Procurement
+* TED (EU)
+
+### Historical / intelligence sources that may also be indexed but must be flagged separately
+
+* USAspending
+* NIH RePORTER
+* NSF Awards
+
+The indexing tool should support all 11 sources, but it must classify each record as either:
+
+* `active_opportunity`
+* `historical_intelligence`
+
+This way the Algorithm V1 page can pull only active opportunities.
+
+## Primary objective
+
+Build a reusable indexing pipeline that retrieves **all results**, not just the first page, and stores them in a unified normalized structure for downstream matching tests.
+
+## What to build
+
+Create a page or internal route called **Indexing Tool** with the following sections.
+
+---
+
+# 1. Source Configuration Panel
+
+For each source, show:
+
+* source name
+* source type
+* whether it is active-opportunity or historical-intelligence
+* base endpoint
+* pagination type
+* whether credentials are needed
+* current indexed count
+* last indexed timestamp
+* indexing status
+
+Supported pagination types should include:
+
+* page number pagination
+* offset + limit pagination
+* cursor pagination
+* next page token pagination
+* unknown/custom pagination
+
+Add a place to define source-specific pagination rules.
+
+Example config shape:
+
+```ts
+{
+  sourceKey: 'simpler_grants',
+  displayName: 'Simpler Grants',
+  classification: 'active_opportunity',
+  paginationType: 'page',
+  pageParam: 'page',
+  pageSizeParam: 'pageSize',
+  pageSize: 100,
+  resultPath: 'data',
+  hasMorePath: 'hasNext',
+  nextTokenPath: null,
+  enabled: true
+}
+```
+
+---
+
+# 2. Full Index Runner
+
+Add controls to:
+
+* run indexing for one source
+* run indexing for all sources
+* stop indexing safely
+* reset indexed data for one source
+* reset all indexed data
+
+For each run, display live progress:
+
+* source being indexed
+* current page / batch
+* records fetched this batch
+* total records fetched
+* duplicates skipped
+* errors encountered
+* estimated completion status if possible
+
+Add clear logs in the UI.
+
+---
+
+# 3. Storage Layer
+
+Create a central indexed storage system.
+
+If the app already has a database, use it.
+If not, create a simple local persistent store that works in Replit for testing.
+
+Preferred order:
+
+1. existing database if already present
+2. SQLite or lightweight server-side DB
+3. JSON file persistence only if needed for a prototype
+
+Store records in a normalized unified schema.
+
+## Indexed record schema
+
+Each indexed record should contain:
+
+```ts
+{
+  id: string,
+  source: string,
+  sourceRecordId: string,
+  classification: 'active_opportunity' | 'historical_intelligence',
+  title: string,
+  description: string,
+  agency: string | null,
+  fundingType: string | null,
+  status: string | null,
+  openDate: string | null,
+  closeDate: string | null,
+  minAward: number | null,
+  maxAward: number | null,
+  eligibility: string[],
+  categories: string[],
+  keywords: string[],
+  geography: string[],
+  url: string | null,
+  rawPayload: any,
+  normalizedAt: string,
+  dedupeKey: string
+}
+```
+
+## Dedupe requirements
+
+Prevent duplicates across reruns.
+Create a `dedupeKey` using a combination like:
+
+* source + sourceRecordId
+  or
+* source + title + closeDate
+  if source record IDs are inconsistent.
+
+On re-index:
+
+* skip exact duplicates
+* optionally update changed records
+* preserve counts for inserted vs updated vs skipped
+
+---
+
+# 4. Source-Specific Pagination Engine
+
+Create a modular indexing engine that can handle different pagination styles.
+
+Build helper functions like:
+
+* `fetchSourcePage(sourceConfig, pageState)`
+* `extractResults(response, sourceConfig)`
+* `extractNextPageState(response, sourceConfig, pageState)`
+* `hasMoreResults(response, sourceConfig, pageState)`
+* `normalizeRecord(rawRecord, sourceKey)`
+* `upsertIndexedRecords(records)`
+* `runSourceIndex(sourceKey)`
+* `runAllIndexing()`
+
+## Required behavior
+
+The indexer must continue requesting pages until:
+
+* no results remain
+* there is no next page token
+* the returned batch is empty
+* or a max safety limit is reached
+
+Add configurable safety limits like:
+
+* max pages per source
+* max records per run
+* retry attempts per request
+
+These should be configurable but not so low that they stop at 26 results.
+
+Default testing values should be generous, for example:
+
+* max pages: 1000
+* max records: 100000
+* retries: 3
+
+---
+
+# 5. Indexed Data Viewer
+
+Create a table to inspect indexed records.
+
+Features:
+
+* filter by source
+* filter by classification
+* search by keyword
+* filter by date
+* show total indexed count
+* show active-opportunity count
+* show historical-intelligence count
+* show duplicates skipped
+* show normalization errors
+
+Display key fields:
+
+* source
+* title
+* classification
+* status
+* close date
+* funding type
+* geography
+* dedupe status
+
+Add a drawer or modal to inspect raw payload and normalized JSON.
+
+---
+
+# 6. Algorithm Integration
+
+Update the Algorithm V1 testing page so it can load opportunities from the full indexed store instead of only from a tiny in-memory sample.
+
+Important rule:
+
+* Algorithm V1 must only pull records where `classification = active_opportunity`
+* It must exclude `historical_intelligence` records from matching results
+
+Add a count banner on the Algorithm page showing:
+
+* total indexed records
+* indexed active opportunities used for matching
+* indexed historical records excluded
+
+---
+
+# 7. Debugging the “26 results only” issue
+
+Add explicit instrumentation to detect why only 26 records are being used.
+
+I want debug output for:
+
+* API response batch size
+* current page or cursor
+* whether a next page token exists
+* whether the loop stopped because of an empty array
+* whether there is a front-end limit such as `.slice(0, 26)`
+* whether server code has a hidden `limit=25` or `limit=26`
+* whether the database query only returns the first page
+* whether table rendering is capped
+
+Add a diagnostics panel called:
+**Why indexing stopped**
+
+For each source run, show the exact stop reason, such as:
+
+* no more pages
+* next token missing
+* batch empty
+* manual stop
+* max page safety hit
+* API error
+* hidden UI limit detected
+
+---
+
+# 8. Recommended file organization
+
+Use a clean structure like:
+
+```txt
+/src
+  /pages
+    Algorithm.tsx
+    IndexingTool.tsx
+  /components
+    SourceStatusPanel.tsx
+    IndexRunner.tsx
+    IndexedDataTable.tsx
+    DiagnosticsPanel.tsx
+  /lib
+    /indexing
+      sourceConfigs.ts
+      pagination.ts
+      normalize.ts
+      dedupe.ts
+      storage.ts
+      runIndexer.ts
+```
+
+If the project uses a different structure, adapt to it but keep indexing logic modular.
+
+---
+
+# 9. Source configuration requirements
+
+Create a separate source config file that defines for each source:
+
+* source key
+* display name
+* classification
+* active flag
+* endpoint
+* credentials needed
+* pagination method
+* result extraction path
+* normalization function mapping
+
+Include configs for all 11 sources.
+
+Do not hardcode only one pagination strategy.
+
+---
+
+# 10. Seed / test fallback mode
+
+If live APIs fail or credentials are missing, provide a fallback mode with mock paginated responses so I can still test that indexing works across many pages.
+
+Create mock batches that simulate:
+
+* multiple pages
+* duplicates across pages
+* empty final page
+* retry on temporary failure
+
+This fallback should prove the indexer can get beyond 26 results.
+
+---
+
+# 11. Performance requirements
+
+The tool should be practical for large result sets.
+
+Include:
+
+* batched writes to storage
+* dedupe before insert when possible
+* retry with exponential backoff on failures
+* avoid freezing the UI
+* show progress updates during long runs
+
+---
+
+# 12. Deliverables
+
+Generate all code needed for:
+
+* the Indexing Tool page
+* source config definitions for all 11 sources
+* pagination engine
+* unified normalization pipeline
+* dedupe/upsert logic
+* indexed data viewer
+* diagnostics panel
+* integration with Algorithm V1 page
+
+## Final requirement
+
+Prioritize correctness and visibility over polish.
+This is an internal testing tool.
+I want to be able to see exactly:
+
+* how many total records exist per source
+* how many were successfully indexed
+* why indexing stopped
+* and how to make the Algorithm page use the full indexed opportunity pool instead of only 26 records.
+
+Also, while implementing, search the codebase for likely hidden limiting logic such as:
+
+* `limit: 25`
+* `limit: 26`
+* `pageSize: 25`
+* `.slice(0, 26)`
+* `.take(25)`
+* frontend table pagination defaults
+* database query limits
+
+Fix those where appropriate, but keep safety caps configurable.

@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { SourceTabs } from "@/components/SourceTabs";
-import { LayoutDashboard, ShieldCheck, FlaskConical } from "lucide-react";
+import { LayoutDashboard, ShieldCheck, FlaskConical, Database } from "lucide-react";
 
 export default function Home() {
   return (
@@ -13,13 +13,22 @@ export default function Home() {
             <LayoutDashboard className="h-4 w-4 text-primary" />
             Grants Explorer
           </div>
-          <Link
-            href="/algorithm"
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary border border-border/60 hover:border-primary/40 px-3 py-1.5 rounded-lg transition-all"
-          >
-            <FlaskConical className="h-3.5 w-3.5" />
-            Algorithm V1
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/indexing"
+              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary border border-border/60 hover:border-primary/40 px-3 py-1.5 rounded-lg transition-all"
+            >
+              <Database className="h-3.5 w-3.5" />
+              Indexing Tool
+            </Link>
+            <Link
+              href="/algorithm"
+              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary border border-border/60 hover:border-primary/40 px-3 py-1.5 rounded-lg transition-all"
+            >
+              <FlaskConical className="h-3.5 w-3.5" />
+              Algorithm V1
+            </Link>
+          </div>
         </div>
       </nav>
       {/* Hero Section */}
