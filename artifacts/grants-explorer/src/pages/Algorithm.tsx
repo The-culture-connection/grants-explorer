@@ -202,7 +202,12 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
 
 function dbRecordToOpportunity(rec: any): NormalizedOpportunity {
-  const geo = Array.isArray(rec.geography) ? rec.geography : (typeof rec.geography === "string" ? (() => { try { return JSON.parse(rec.geography); } catch { return [rec.geography]; } })() : []);
+  let geoRaw: any[] = [];
+  if (Array.isArray(rec.geography)) geoRaw = rec.geography;
+  else if (typeof rec.geography === "string" && rec.geography) {
+    try { geoRaw = JSON.parse(rec.geography); } catch { geoRaw = [rec.geography]; }
+  }
+  const geo: string[] = geoRaw.filter((g: any) => g != null).map((g: any) => String(g));
   return {
     id: rec.id,
     source: rec.source,

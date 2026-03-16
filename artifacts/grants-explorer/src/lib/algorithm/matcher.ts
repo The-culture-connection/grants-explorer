@@ -133,8 +133,8 @@ export function scoreEligibilityFit(org: OrgProfile, opp: NormalizedOpportunity)
  * Checks if org geography overlaps with opp geography.
  */
 export function scoreGeographyFit(org: OrgProfile, opp: NormalizedOpportunity): number {
-  const orgGeo = org.geography.map((g) => g.toLowerCase());
-  const oppGeo = opp.geography.map((g) => g.toLowerCase());
+  const orgGeo = (org.geography ?? []).filter((g) => g != null).map((g) => String(g).toLowerCase());
+  const oppGeo = (opp.geography ?? []).filter((g) => g != null).map((g) => String(g).toLowerCase());
 
   if (
     oppGeo.includes("global") ||
