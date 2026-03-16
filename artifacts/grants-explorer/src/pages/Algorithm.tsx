@@ -343,6 +343,10 @@ export default function AlgorithmPage() {
             <Link href="/indexing" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
               <Database className="h-3.5 w-3.5" /> Indexing Tool
             </Link>
+            <span className="text-border text-xs">|</span>
+            <Link href="/audit" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <BarChart3 className="h-3.5 w-3.5" /> Algorithm Audit
+            </Link>
           </div>
           <div className="flex items-center gap-2 font-semibold text-sm text-foreground">
             <FlaskConical className="h-4 w-4 text-primary" />

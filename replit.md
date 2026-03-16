@@ -53,11 +53,31 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 ### `artifacts/grants-explorer` (`@workspace/grants-explorer`)
 
-React + Vite web app at `/`. Grants Explorer showing funding opportunities from 8 public APIs via tabs.
+React + Vite web app. Multi-page tool for grant discovery, algorithm testing, and ML audit workflows.
 
-- 8 tabs: Grants.gov, SBIR/STTR, NSF Awards, NIH RePORTER, USASpending, California Grants, 360Giving (UKRI), World Bank
-- Each tab has a keyword search bar and shows results as cards
-- Backend proxy routes handle CORS and data normalization
+**Routes:**
+- `/` — Home: 11-source live grant explorer with tabs per source, keyword search, result cards
+- `/algorithm` — Algorithm V1 Testing Center: rules-based funding-match engine, org profile selector, live scoring against indexed DB, score breakdown + explainability
+- `/indexing` — Indexing Tool: full-result ingestion from all 11 sources into PostgreSQL, per-source pagination control, record inspector, algorithm integration view
+- `/audit` — Algorithm Audit: internal debug tool for evaluating match quality against real data — scoring traces, failure analysis, weight editor, algorithm comparison lab, keyword audit, eligibility audit, gold-standard eval set builder, recommendations engine
+
+**Source classification:**
+- Active opportunity sources (8): simpler_grants, grants_gov, sam_gov, sbir, threesixtygiving, california_grants, world_bank, ted_eu
+- Historical/intelligence sources excluded from ranking (3): usaspending, nih_reporter, nsf_awards
+
+**Audit library** (`src/lib/audit/`):
+- `types.ts` — WeightConfig, AlgorithmVariant, FeedbackLabel, EvalLabel, ScoreTrace, ALGORITHM_VARIANTS, DEFAULT_WEIGHTS
+- `scoreTrace.ts` — `buildScoreTrace()`, `runVariantScoring()` — weight-configurable scoring with human-readable audit trail
+- `metrics.ts` — `computeAuditMetrics()` — precision@5, precision@10, recall, score distribution, by-source counts
+- `comparison.ts` — `runComparison()` — multi-variant side-by-side ranking table with rise/fall flags
+- `recommendations.ts` — `generateRecommendations()`, `classifyFailureCases()` — behavior-driven improvement suggestions
+- `keywords.ts` — `extractKeywordAudit()`, `expandWithSynonyms()`, SYNONYM_GROUPS, STOPWORDS
+
+**Algorithm library** (`src/lib/algorithm/`):
+- `types.ts` — OrgProfile, NormalizedOpportunity, MatchResult, ScoreBreakdown
+- `matcher.ts` — `scoreMatch()`, `getTopMatches()`, `passesEligibility()`, individual scorers (mission, eligibility, geo, funding, maturity)
+- `sources.ts` — SOURCE_CONFIGS, `isActiveOpportunitySource()`
+- `mockData.ts` — MOCK_ORGANIZATIONS (3 sample orgs for testing)
 
 ### `artifacts/api-server` (`@workspace/api-server`)
 

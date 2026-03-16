@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "wouter";
 import { SourceTabs } from "@/components/SourceTabs";
-import { LayoutDashboard, ShieldCheck, FlaskConical, Database } from "lucide-react";
+import { LayoutDashboard, ShieldCheck, FlaskConical, Database, BookOpen } from "lucide-react";
 
 export default function Home() {
   return (
@@ -27,6 +27,13 @@ export default function Home() {
             >
               <FlaskConical className="h-3.5 w-3.5" />
               Algorithm V1
+            </Link>
+            <Link
+              href="/audit"
+              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary border border-border/60 hover:border-primary/40 px-3 py-1.5 rounded-lg transition-all"
+            >
+              <BookOpen className="h-3.5 w-3.5" />
+              Algorithm Audit
             </Link>
           </div>
         </div>

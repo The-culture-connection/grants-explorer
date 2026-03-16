@@ -1,0 +1,426 @@
+# Replit Prompt — Audit and Improve the Funding Match Algorithm
+
+Build an internal developer page in this Replit app called **Algorithm Audit** that audits the current funding-match algorithm using real indexed data and helps identify exactly why the algorithm is underperforming.
+
+## Main objective
+
+The current algorithm is working with real data, but the match quality is not strong enough.
+
+I need an audit tool that can:
+
+* evaluate the current algorithm against real opportunities and real organization profiles
+* show where the scoring logic is too weak, too broad, or too strict
+* detect false positives and false negatives
+* reveal which scoring components are driving bad rankings
+* help me compare the current algorithm against improved variants
+* generate actionable recommendations for V2
+
+This page is for **internal debugging and model improvement**, not for customers.
+
+## Data rules
+
+The audit tool must use the indexed data store already created in the app.
+
+### Include only active opportunity records for match evaluation:
+
+* Simpler Grants
+* Grants.gov Search
+* SAM.gov Opportunities
+* SBIR
+* 360Giving
+* California Grants Portal
+* World Bank Procurement
+* TED (EU)
+
+### Exclude these from match ranking because they are historical/intelligence sources:
+
+* USAspending
+* NIH RePORTER
+* NSF Awards
+
+Historical/intelligence sources may still be used for future analysis panels, but they must not appear as current match opportunities in the audit rankings.
+
+## What to build
+
+Create a page/route called **Algorithm Audit** with the following sections.
+
+---
+
+# 1. Audit Overview Dashboard
+
+Show summary metrics for the current algorithm.
+
+Display:
+
+* total active opportunities available for evaluation
+* total organizations available for testing
+* total matches generated
+* average match score
+* median match score
+* score distribution histogram
+* match count by source
+* match count by organization type
+* match count by funding type
+* % of opportunities filtered out by eligibility gate
+
+Add a visible label showing which scoring version is being audited, for example:
+
+* `V1 Current`
+* `V1 Adjusted`
+* `V2 Experimental`
+
+---
+
+# 2. Test Organization Audit Panel
+
+Allow the auditor to select or load an organization profile and evaluate the current algorithm in detail.
+
+Support:
+
+* dropdown of saved organizations
+* manual organization entry/edit
+* loading of existing mock organizations
+
+For the selected organization, show:
+
+* normalized profile JSON
+* top 20 matches from the current algorithm
+* score breakdown for each match
+* eligibility pass/fail reason
+* explanation reasons
+* risk notes
+
+For each match, add audit controls:
+
+* Mark as Good Match
+* Mark as Weak Match
+* Mark as Bad Match
+* Mark as Unsure
+
+Store this feedback locally in the app for analysis.
+
+---
+
+# 3. Ranking Quality Review Panel
+
+Create a panel that helps review whether the ranking order makes sense.
+
+For a selected organization, show:
+
+* top 20 matches in ranked order
+* a side-by-side comparison of rank position vs score
+* ability to drag and reorder manually into a better ranking
+* highlight large disagreements between user feedback and current rank
+
+Add metrics such as:
+
+* precision@5
+* precision@10
+* average audit rating for top 10
+* percentage of bad matches appearing in top 10
+
+If enough feedback exists, calculate simple ranking quality stats.
+
+---
+
+# 4. Score Breakdown Inspector
+
+For each match result, show a detailed expandable scoring card.
+
+Display:
+
+* final score out of 100
+* mission/topic fit subscore
+* eligibility fit subscore
+* geography fit subscore
+* funding size fit subscore
+* maturity fit subscore
+* keywords/terms that matched
+* categories that matched
+* geography logic applied
+* funding range logic applied
+* source name
+* raw normalized opportunity JSON
+
+Also show a human-readable audit trace like:
+
+* `Eligibility passed because applicant type includes nonprofit`
+* `Mission score increased due to overlap in maternal health, community education, health equity`
+* `Geography score reduced because opportunity is California-specific and org is national but not California-based`
+* `Funding fit reduced because expected award size may exceed organization capacity`
+
+This is critical. I need to understand exactly **why** a score happened.
+
+---
+
+# 5. Failure Analysis Panel
+
+Build a panel specifically for diagnosing bad algorithm behavior.
+
+Show likely failure buckets such as:
+
+* false positives: high-scoring matches that appear irrelevant
+* false negatives: low-scoring or missed matches that should have ranked higher
+* overly broad keyword matches
+* missing synonym support
+* bad geography assumptions
+* weak eligibility parsing
+* funding-size miscalibration
+* maturity penalties that are too strong or too weak
+* source normalization issues
+* duplicate opportunities affecting rankings
+
+For each bucket, show example records pulled from real data.
+
+Examples:
+
+* “Opportunity ranked high only because it matched on one generic term like community”
+* “Org is a nonprofit but contract opportunity was not filtered properly”
+* “Relevant maternal health grant scored too low because phrase matching missed birth equity”
+
+---
+
+# 6. Current Rules Audit
+
+Inspect the current scoring logic and make it visible in the app.
+
+Display the actual active weighting model, for example:
+
+* mission/topic fit: 35
+* eligibility fit: 25
+* geography fit: 15
+* funding size fit: 15
+* maturity fit: 10
+
+Add controls to temporarily adjust weights from the UI and rerun the ranking.
+
+Allow testing of alternative weights without changing production defaults.
+
+For example, let me change:
+
+* mission/topic fit from 35 to 45
+* eligibility fit from 25 to 30
+* funding size fit from 15 to 5
+
+Then compare before vs after.
+
+---
+
+# 7. Algorithm Comparison Lab
+
+Create a comparison tool where I can run multiple scoring variants side by side.
+
+Required variants:
+
+* Current V1
+* V1 Adjusted Weights
+* V1 With Better Keyword Normalization
+* V1 With Synonym Expansion
+* V1 With Stricter Eligibility Parsing
+* V1 With Relaxed Geography Logic
+
+For a selected organization, display a table comparing the top 10 matches across versions.
+
+Columns:
+
+* opportunity title
+* source
+* score in V1 current
+* score in adjusted version
+* rank delta
+* audit label if available
+
+Highlight:
+
+* opportunities that rise significantly
+* opportunities that drop significantly
+* bad matches that still remain high
+* previously missed good matches that improve
+
+---
+
+# 8. Text / Keyword Audit Tools
+
+Build tools to inspect the language matching layer.
+
+Show:
+
+* extracted keywords from organization profile
+* extracted keywords from opportunities
+* normalized tokens
+* removed stopwords
+* stemmed or lemmatized tokens if used
+* synonym expansions applied
+
+Add a panel for custom synonym dictionaries.
+
+Seed example synonym groups like:
+
+* maternal health = pregnancy care = birth outcomes = birth equity
+* workforce development = job training = career readiness
+* small business = entrepreneurship = founder support
+* community development = neighborhood revitalization
+* public health = health equity = health education
+
+Add a button:
+**Recompute scores with synonym expansion**
+
+This should help audit whether language mismatch is hurting relevance.
+
+---
+
+# 9. Eligibility Audit Panel
+
+This should focus only on eligibility parsing quality.
+
+For a selected opportunity, show:
+
+* raw eligibility text
+* parsed eligibility tags
+* parsed applicant types
+* parsed geography constraints
+* parsed exclusions
+
+For a selected organization, show whether it should pass or fail.
+
+Add explicit pass/fail explanations.
+
+Also surface suspected parsing errors such as:
+
+* unknown applicant type
+* ambiguous nonprofit/small business language
+* missing 501(c)(3) detection
+* university/research-only opportunities being treated as general nonprofit opportunities
+
+---
+
+# 10. Evaluation Set Builder
+
+Create a small gold-standard evaluation workflow.
+
+Let me build a labeled dataset of real examples.
+
+For selected organizations, allow me to label opportunities as:
+
+* strong fit
+* possible fit
+* weak fit
+* not a fit
+
+Store these labels in a local table or JSON store.
+
+Then compute evaluation metrics such as:
+
+* precision@5
+* precision@10
+* recall on labeled relevant items
+* mean score of strong-fit labels
+* false positive count in top 10
+
+This should become the benchmark set for improving the algorithm over time.
+
+---
+
+# 11. Recommendation Engine for Improvements
+
+After running the audit, generate a recommendation panel that identifies likely improvement priorities.
+
+Examples of recommendations:
+
+* Increase mission/topic weight because relevant opportunities are ranking below weak generic matches
+* Tighten nonprofit vs small business eligibility parsing
+* Add synonym expansion for maternal health, workforce, and climate terms
+* Downweight generic terms like community, support, innovation
+* Add phrase matching for multi-word concepts
+* Add stronger geography penalties for state-limited opportunities
+* Add source-specific normalization fixes
+
+Recommendations should be based on observed audit behavior, not generic filler.
+
+---
+
+# 12. Debug and Transparency Requirements
+
+This audit page must be extremely transparent.
+
+Add:
+
+* raw normalized org JSON viewer
+* raw normalized opportunity JSON viewer
+* scoring trace for every subscore
+* explanation of why an opportunity was excluded
+* count of duplicate opportunities removed before scoring
+* count of opportunities eliminated by source classification
+* count of opportunities eliminated by missing dates or closed status if applicable
+
+---
+
+# 13. Suggested helper functions
+
+Create modular utilities like:
+
+* `auditAlgorithmVersion(versionKey, org, opportunities)`
+* `compareAlgorithmVersions(org, opportunities, versions)`
+* `buildScoreTrace(org, opp, config)`
+* `classifyFailureCase(org, opp, scoreTrace, auditFeedback)`
+* `computeAuditMetrics(labels, rankedResults)`
+* `extractKeywordAudit(text)`
+* `parseEligibilityAudit(opportunity)`
+* `generateRecommendations(auditSession)`
+
+---
+
+# 14. UI and file organization
+
+Use clean modular files, for example:
+
+```txt
+/src
+  /pages
+    AlgorithmAudit.tsx
+  /components
+    AuditOverview.tsx
+    RankingReviewPanel.tsx
+    ScoreBreakdownInspector.tsx
+    FailureAnalysisPanel.tsx
+    EligibilityAuditPanel.tsx
+    AlgorithmComparisonLab.tsx
+    EvaluationSetBuilder.tsx
+    RecommendationPanel.tsx
+  /lib
+    /audit
+      metrics.ts
+      scoreTrace.ts
+      failureAnalysis.ts
+      recommendations.ts
+      comparison.ts
+```
+
+Adapt to the existing project structure if needed.
+
+---
+
+# 15. Deliverables
+
+Generate all code needed for:
+
+* the Algorithm Audit page
+* score breakdown and trace utilities
+* manual labeling workflow
+* comparison lab for alternate scoring variants
+* ranking quality metrics
+* failure analysis panel
+* recommendation generator
+* integration with the indexed data store and current algorithm
+
+## Final requirement
+
+This tool should help me answer these questions clearly:
+
+* Why are irrelevant matches ranking too high?
+* Why are strong matches being missed or ranked too low?
+* Which score components are helping vs hurting?
+* What rule or normalization changes should I make next?
+* How can I compare V1 against better variations before changing production logic?
+
+Prioritize correctness, transparency, and useful debugging insight over visual polish.

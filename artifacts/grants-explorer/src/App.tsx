@@ -6,6 +6,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
 import AlgorithmPage from "@/pages/Algorithm";
 import IndexingToolPage from "@/pages/IndexingTool";
+import AlgorithmAuditPage from "@/pages/AlgorithmAudit";
 
 // Configure QueryClient with reasonable defaults for a dashboard
 const queryClient = new QueryClient({
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/algorithm" component={AlgorithmPage} />
       <Route path="/indexing" component={IndexingToolPage} />
+      <Route path="/audit" component={AlgorithmAuditPage} />
       <Route component={NotFound} />
     </Switch>
   );

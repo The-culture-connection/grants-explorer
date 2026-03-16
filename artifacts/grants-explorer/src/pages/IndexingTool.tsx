@@ -10,7 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import {
   Database, Play, Square, RotateCcw, RefreshCw, CheckCircle2, XCircle,
   Clock, AlertTriangle, BarChart3, Filter, Search, ChevronLeft, ChevronRight,
-  LayoutDashboard, FlaskConical, Zap, Info, Eye, EyeOff, Layers,
+  LayoutDashboard, FlaskConical, Zap, Info, Eye, EyeOff, Layers, BookOpen,
 } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -247,6 +247,10 @@ export default function IndexingToolPage() {
             <span className="text-border">|</span>
             <Link href="/algorithm" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
               <FlaskConical className="h-3.5 w-3.5" /> Algorithm V1
+            </Link>
+            <span className="text-border">|</span>
+            <Link href="/audit" className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <BookOpen className="h-3.5 w-3.5" /> Algorithm Audit
             </Link>
           </div>
           <div className="flex items-center gap-2 font-semibold text-sm text-foreground">
