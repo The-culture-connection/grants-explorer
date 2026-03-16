@@ -29,7 +29,7 @@ export default function Home() {
             </h1>
             
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl">
-              A unified interface to search, filter, and track public grants across 9 major governmental and institutional databases in real-time.
+              A unified interface to search, filter, and track public grants across 11 major governmental and institutional databases in real-time.
             </p>
           </div>
         </div>

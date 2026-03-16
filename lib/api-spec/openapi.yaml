@@ -186,6 +186,52 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NsfResult"
+  /grants/samgov:
+    get:
+      operationId: getSamGov
+      tags: [grants]
+      summary: Fetch SAM.gov opportunities
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: SAM.gov results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SamGovResult"
+  /grants/tedeu:
+    get:
+      operationId: getTedEu
+      tags: [grants]
+      summary: Fetch TED EU tenders/grants
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: TED EU results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TedEuResult"
   /grants/simplergrants:
     get:
       operationId: getSimplerGrants
@@ -351,6 +397,34 @@ components:
         - source
         - items
     NsfResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    SamGovResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    TedEuResult:
       type: object
       properties:
         source:

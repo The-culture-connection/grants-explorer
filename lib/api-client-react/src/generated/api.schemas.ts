@@ -65,6 +65,18 @@ export interface NsfResult {
   items: GrantItem[];
 }
 
+export interface SamGovResult {
+  source: string;
+  total?: number;
+  items: GrantItem[];
+}
+
+export interface TedEuResult {
+  source: string;
+  total?: number;
+  items: GrantItem[];
+}
+
 export interface SimplerGrantsResult {
   source: string;
   total?: number;
@@ -108,6 +120,16 @@ export type GetNihParams = {
 };
 
 export type GetNsfParams = {
+  keyword?: string;
+  rows?: number;
+};
+
+export type GetSamGovParams = {
+  keyword?: string;
+  rows?: number;
+};
+
+export type GetTedEuParams = {
   keyword?: string;
   rows?: number;
 };

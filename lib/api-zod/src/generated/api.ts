@@ -198,6 +198,58 @@ export const GetNsfResponse = zod.object({
 });
 
 /**
+ * @summary Fetch SAM.gov opportunities
+ */
+export const GetSamGovQueryParams = zod.object({
+  keyword: zod.coerce.string().optional(),
+  rows: zod.coerce.number().optional(),
+});
+
+export const GetSamGovResponse = zod.object({
+  source: zod.string(),
+  total: zod.number().optional(),
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      description: zod.string().optional(),
+      amount: zod.string().optional(),
+      deadline: zod.string().optional(),
+      agency: zod.string().optional(),
+      url: zod.string().optional(),
+      status: zod.string().optional(),
+      extra: zod.record(zod.string(), zod.unknown()).optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary Fetch TED EU tenders/grants
+ */
+export const GetTedEuQueryParams = zod.object({
+  keyword: zod.coerce.string().optional(),
+  rows: zod.coerce.number().optional(),
+});
+
+export const GetTedEuResponse = zod.object({
+  source: zod.string(),
+  total: zod.number().optional(),
+  items: zod.array(
+    zod.object({
+      id: zod.string(),
+      title: zod.string(),
+      description: zod.string().optional(),
+      amount: zod.string().optional(),
+      deadline: zod.string().optional(),
+      agency: zod.string().optional(),
+      url: zod.string().optional(),
+      status: zod.string().optional(),
+      extra: zod.record(zod.string(), zod.unknown()).optional(),
+    }),
+  ),
+});
+
+/**
  * @summary Fetch Simpler Grants opportunities
  */
 export const GetSimplerGrantsQueryParams = zod.object({

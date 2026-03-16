@@ -9,6 +9,8 @@ import {
   GetNsfResponse,
   GetWorldBankResponse,
   GetSimplerGrantsResponse,
+  GetSamGovResponse,
+  GetTedEuResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -406,6 +408,146 @@ router.get("/grants/worldbank", async (req, res): Promise<void> => {
     const result = GetWorldBankResponse.parse({
       source: "World Bank",
       total: Number((data as any).total?.value ?? (data as any).total ?? items.length),
+      items,
+    });
+    res.json(result);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ error: message });
+  }
+});
+
+router.get("/grants/samgov", async (req, res): Promise<void> => {
+  const keyword = getKeyword(req.query.keyword);
+  const rows = getRows(req.query.rows);
+  const apiKey = process.env.SAM_GOV_API_KEY;
+
+  if (!apiKey) {
+    res.status(500).json({ error: "SAM_GOV_API_KEY environment variable is not set" });
+    return;
+  }
+
+  try {
+    // SAM.gov requires date range within 1 year
+    const now = new Date();
+    const from = new Date(now);
+    from.setDate(from.getDate() - 90);
+    const fmt = (d: Date) =>
+      `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
+
+    const params = new URLSearchParams({
+      limit: String(rows),
+      api_key: apiKey,
+      postedFrom: fmt(from),
+      postedTo: fmt(now),
+      ptype: "o,k,p,r,s,g,i,a,u",
+    });
+    if (keyword && keyword !== "research") {
+      params.set("keyword", keyword);
+    }
+
+    const url = `https://api.sam.gov/opportunities/v2/search?${params.toString()}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`SAM.gov responded ${response.status}: ${errText.slice(0, 200)}`);
+    }
+    const data = await response.json() as Record<string, unknown>;
+
+    const rawItems = Array.isArray((data as any).opportunitiesData) ? (data as any).opportunitiesData : [];
+    const items = rawItems.slice(0, rows).map((opp: any) => ({
+      id: String(opp.noticeId ?? Math.random()),
+      title: opp.title ?? "Untitled",
+      description: opp.typeOfSetAsideDescription
+        ? `${opp.type ?? ""} — ${opp.typeOfSetAsideDescription}`
+        : opp.type ?? "",
+      amount: undefined,
+      deadline: opp.responseDeadLine ?? opp.archiveDate ?? undefined,
+      agency: opp.fullParentPathName
+        ? String(opp.fullParentPathName).split(".")[0]
+        : undefined,
+      url: opp.noticeId
+        ? `https://sam.gov/opp/${opp.noticeId}/view`
+        : undefined,
+      status: opp.active === "Yes" ? "Active" : opp.active ?? undefined,
+    }));
+
+    const result = GetSamGovResponse.parse({
+      source: "SAM.gov",
+      total: (data as any).totalRecords ?? items.length,
+      items,
+    });
+    res.json(result);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ error: message });
+  }
+});
+
+router.get("/grants/tedeu", async (req, res): Promise<void> => {
+  const keyword = getKeyword(req.query.keyword);
+  const rows = Math.max(getRows(req.query.rows), 1);
+
+  try {
+    // Build query: TED EU expert search uses YYYYMMDD format for dates
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const dateFmt = (d: Date) =>
+      `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const queryStr = keyword && keyword !== "research"
+      ? `TI ~ "${keyword}"`
+      : `DT >= ${dateFmt(thirtyDaysAgo)}`;
+
+    const payload = {
+      query: queryStr,
+      fields: ["ND", "TI", "DT", "AU", "CY"],
+      limit: rows,
+      page: 1,
+    };
+
+    const response = await fetch("https://api.ted.europa.eu/v3/notices/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      const errText = await response.text().catch(() => "");
+      throw new Error(`TED EU responded ${response.status}: ${errText.slice(0, 200)}`);
+    }
+    const data = await response.json() as Record<string, unknown>;
+
+    const rawItems = Array.isArray((data as any).notices) ? (data as any).notices : [];
+
+    function pickLang(obj: unknown): string | undefined {
+      if (!obj || typeof obj !== "object") return undefined;
+      const o = obj as Record<string, unknown>;
+      const val = o["eng"] ?? o["fre"] ?? o["deu"] ?? Object.values(o)[0];
+      if (Array.isArray(val)) return val[0] ? String(val[0]) : undefined;
+      return val ? String(val) : undefined;
+    }
+
+    const items = rawItems.slice(0, rows).map((notice: any) => {
+      const nd = notice.ND ?? notice.nd;
+      const title = pickLang(notice.TI) ?? pickLang(notice.ti) ?? "Untitled Notice";
+      const authority = pickLang(notice.AU) ?? pickLang(notice.au) ?? undefined;
+      const country = Array.isArray(notice.CY) ? notice.CY[0] : notice.CY ?? undefined;
+      const date = Array.isArray(notice.DT) ? notice.DT[0] : notice.DT ?? undefined;
+
+      return {
+        id: String(nd ?? Math.random()),
+        title,
+        description: authority ? `Contracting authority: ${authority}` : "",
+        amount: undefined,
+        deadline: date ? new Date(date).toLocaleDateString("en-GB") : undefined,
+        agency: country ?? authority ?? "EU",
+        url: nd ? `https://ted.europa.eu/en/notice/-/detail/${nd}` : undefined,
+        status: "Published",
+      };
+    });
+
+    const totalPages = (data as any).totalNoticeCount ?? (data as any).total ?? items.length;
+    const result = GetTedEuResponse.parse({
+      source: "TED EU",
+      total: typeof totalPages === "number" ? totalPages : items.length,
       items,
     });
     res.json(result);

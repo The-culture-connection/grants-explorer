@@ -19,8 +19,10 @@ import type {
   GetGrantsGovParams,
   GetNihParams,
   GetNsfParams,
+  GetSamGovParams,
   GetSbirParams,
   GetSimplerGrantsParams,
+  GetTedEuParams,
   GetThreeSixtyGivingParams,
   GetUsaSpendingParams,
   GetWorldBankParams,
@@ -28,8 +30,10 @@ import type {
   HealthStatus,
   NihResult,
   NsfResult,
+  SamGovResult,
   SbirResult,
   SimplerGrantsResult,
+  TedEuResult,
   ThreeSixtyGivingResult,
   UsaSpendingResult,
   WorldBankResult,
@@ -751,6 +755,194 @@ export function useGetNsf<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetNsfQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch SAM.gov opportunities
+ */
+export const getGetSamGovUrl = (params?: GetSamGovParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/grants/samgov?${stringifiedParams}`
+    : `/api/grants/samgov`;
+};
+
+export const getSamGov = async (
+  params?: GetSamGovParams,
+  options?: RequestInit,
+): Promise<SamGovResult> => {
+  return customFetch<SamGovResult>(getGetSamGovUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSamGovQueryKey = (params?: GetSamGovParams) => {
+  return [`/api/grants/samgov`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetSamGovQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSamGov>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetSamGovParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSamGov>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSamGovQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSamGov>>> = ({
+    signal,
+  }) => getSamGov(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSamGov>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSamGovQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSamGov>>
+>;
+export type GetSamGovQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch SAM.gov opportunities
+ */
+
+export function useGetSamGov<
+  TData = Awaited<ReturnType<typeof getSamGov>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetSamGovParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSamGov>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSamGovQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch TED EU tenders/grants
+ */
+export const getGetTedEuUrl = (params?: GetTedEuParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/grants/tedeu?${stringifiedParams}`
+    : `/api/grants/tedeu`;
+};
+
+export const getTedEu = async (
+  params?: GetTedEuParams,
+  options?: RequestInit,
+): Promise<TedEuResult> => {
+  return customFetch<TedEuResult>(getGetTedEuUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTedEuQueryKey = (params?: GetTedEuParams) => {
+  return [`/api/grants/tedeu`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetTedEuQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTedEu>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTedEuParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTedEu>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTedEuQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTedEu>>> = ({
+    signal,
+  }) => getTedEu(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTedEu>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTedEuQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTedEu>>
+>;
+export type GetTedEuQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch TED EU tenders/grants
+ */
+
+export function useGetTedEu<
+  TData = Awaited<ReturnType<typeof getTedEu>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTedEuParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTedEu>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTedEuQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

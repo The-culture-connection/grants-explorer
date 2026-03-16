@@ -9,6 +9,8 @@ import {
   useGetNsf, 
   useGetWorldBank,
   useGetSimplerGrants,
+  useGetSamGov,
+  useGetTedEu,
 } from "@workspace/api-client-react";
 import { GrantList } from "./GrantList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,6 +20,8 @@ import { useDebounce } from "use-debounce";
 
 const SOURCES = [
   { id: "simplergrants", label: "Simpler Grants" },
+  { id: "samgov", label: "SAM.gov" },
+  { id: "tedeu", label: "TED EU" },
   { id: "grantsgov", label: "Grants.gov" },
   { id: "sbir", label: "SBIR/STTR" },
   { id: "nsf", label: "NSF Awards" },
@@ -36,6 +40,8 @@ export function SourceTabs() {
   const queryParams = { keyword: debouncedKeyword, rows: 12 };
 
   const simplerGrantsQuery = useGetSimplerGrants(queryParams, { query: { enabled: activeTab === "simplergrants" } });
+  const samGovQuery = useGetSamGov(queryParams, { query: { enabled: activeTab === "samgov" } });
+  const tedEuQuery = useGetTedEu(queryParams, { query: { enabled: activeTab === "tedeu" } });
   const grantsGovQuery = useGetGrantsGov(queryParams, { query: { enabled: activeTab === "grantsgov" } });
   const sbirQuery = useGetSbir(queryParams, { query: { enabled: activeTab === "sbir" } });
   const nsfQuery = useGetNsf(queryParams, { query: { enabled: activeTab === "nsf" } });
@@ -48,6 +54,8 @@ export function SourceTabs() {
   const getQueryForTab = (tabId: string) => {
     switch (tabId) {
       case "simplergrants": return simplerGrantsQuery;
+      case "samgov": return samGovQuery;
+      case "tedeu": return tedEuQuery;
       case "grantsgov": return grantsGovQuery;
       case "sbir": return sbirQuery;
       case "nsf": return nsfQuery;
