@@ -1,0 +1,320 @@
+# Replit Prompt — Algorithm V1 Testing Center
+
+Build a page in this Replit app called **Algorithm** that acts as the **testing center for Algorithm V1** of a funding-match engine.
+
+## Goal
+
+Create a developer-facing testing page where I can:
+
+* load and inspect normalized funding opportunities
+* load and inspect normalized organization profiles
+* run a V1 rules-based matching algorithm
+* see the top matches for a selected organization
+* see **why** each match scored the way it did
+* ensure that the matcher only uses sources that provide **active opportunities**, not historical award-only sources
+
+## Important source rule
+
+I am connected to **11 total sources**, but the V1 matcher must only pull matchable records from sources that provide **active opportunities**.
+
+### Include these active-opportunity sources only:
+
+* Simpler Grants
+* Grants.gov Search
+* SAM.gov Opportunities
+* SBIR
+* 360Giving
+* California Grants Portal
+* World Bank Procurement
+* TED (EU)
+
+### Do NOT use these in V1 matching results because they are training/intelligence or historical data sources:
+
+* USAspending
+* NIH RePORTER
+* NSF Awards
+
+These 3 sources may exist in the database for later analytics, but they must be excluded from the active opportunity test matcher and excluded from the displayed match results.
+
+## Technical stack assumptions
+
+Use the existing Replit project stack if possible. If not obvious, default to:
+
+* frontend: React
+* backend: Node/Express or serverless-compatible functions already used in the project
+* styling: simple clean dashboard styling
+* state: local component state is fine for V1
+
+## What to build
+
+Create a page/route called **Algorithm**.
+
+The page should have 4 main sections:
+
+### 1. Source Status Panel
+
+Show all 11 sources with a status badge:
+
+* Active Opportunity Source
+* Excluded from V1 Matching
+
+For each source, show:
+
+* source name
+* category
+* included/excluded flag
+* record count if available
+
+This panel should make it visually obvious that only the 8 active-opportunity sources are used in V1.
+
+### 2. Organization Tester Panel
+
+Allow me to test the matcher using either:
+
+* a manually entered organization profile form, or
+* a dropdown that loads a saved mock organization
+
+The organization profile fields should include:
+
+* organization name
+* org type
+* mission
+* program areas
+* population served
+* geography
+* annual budget
+* years in operation
+* has_501c3
+* is_small_business
+* keywords
+
+Add 3 mock organizations for testing:
+
+#### Mock Org 1
+
+* name: Empower Birth Initiative
+* org type: nonprofit
+* mission: Improve maternal health outcomes for Black women through education, advocacy, and community-based support.
+* program areas: maternal health, health equity, community education
+* population served: Black women, pregnant people, families
+* geography: Ohio, United States
+* annual budget: 350000
+* years in operation: 3
+* has_501c3: true
+* is_small_business: false
+* keywords: maternal health, birth equity, pregnancy, community health, advocacy
+
+#### Mock Org 2
+
+* name: GreenWorks Youth Lab
+* org type: nonprofit
+* mission: Prepare youth for climate and clean energy careers through workforce training and STEM programs.
+* program areas: workforce development, climate, STEM education, youth training
+* population served: youth, students, underserved communities
+* geography: California, United States
+* annual budget: 1200000
+* years in operation: 7
+* has_501c3: true
+* is_small_business: false
+* keywords: climate, clean energy, workforce, youth development, STEM
+
+#### Mock Org 3
+
+* name: CivicData Solutions
+* org type: small_business
+* mission: Build data tools that help public agencies improve service delivery and operational efficiency.
+* program areas: govtech, data systems, public sector innovation
+* population served: public agencies, local governments
+* geography: United States
+* annual budget: 900000
+* years in operation: 2
+* has_501c3: false
+* is_small_business: true
+* keywords: SaaS, data analytics, government technology, procurement, civic tech
+
+### 3. Opportunity Pool Viewer
+
+Show the normalized opportunity pool that is actually being used for V1 matching.
+
+This viewer must:
+
+* only show records from the 8 active-opportunity sources
+* allow filtering by source
+* allow filtering by funding type
+* allow filtering by geography
+* allow search by keyword
+
+Display these normalized fields for each opportunity:
+
+* id
+* source
+* title
+* description
+* agency
+* funding_type
+* status
+* open_date
+* close_date
+* min_award
+* max_award
+* eligibility
+* categories
+* keywords
+* geography
+* url
+
+Add a visible note if any excluded source records were intentionally filtered out.
+
+### 4. Match Results Panel
+
+Add a button labeled:
+**Run Algorithm V1**
+
+When clicked, run the V1 rules-based matcher against the currently selected organization and the currently loaded active opportunity pool.
+
+Return the top 10 matches sorted by descending score.
+
+For each match, show:
+
+* opportunity title
+* source
+* final score out of 100
+* eligibility result
+* mission/topic fit score
+* geography fit score
+* funding size fit score
+* maturity fit score
+* reasons list
+* risks list
+* opportunity link
+
+## Matching logic for V1
+
+Implement a rules-based weighted scoring algorithm.
+
+### Step 1. Active source filter
+
+Before matching, filter all opportunities so that only these sources remain:
+
+* simpler_grants
+  n- grants_gov
+* sam_gov_opportunities
+* sbir
+* 360giving
+* california_grants_portal
+* world_bank_procurement
+* ted_eu
+
+If source names are stored differently, create a source normalization map.
+
+### Step 2. Eligibility gate
+
+If the organization clearly does not meet basic eligibility, the score should be 0 and the opportunity should be excluded from top matches.
+
+Examples:
+
+* nonprofit-only grants exclude small businesses
+* small business opportunities exclude nonprofits
+* geography restrictions should be respected when explicit
+
+Create a helper like:
+
+* passesEligibility(org, opp)
+
+### Step 3. Weighted scoring
+
+Use this V1 score model:
+
+* mission/topic fit: 35 points
+* eligibility fit: 25 points
+* geography fit: 15 points
+* funding size fit: 15 points
+* organization maturity fit: 10 points
+
+Final score should total 0–100.
+
+### Step 4. Explainability
+
+Every match result must include:
+
+* reasons: array of positive fit explanations
+* risks: array of caution notes
+
+Examples of reasons:
+
+* Eligible nonprofit applicant type
+* Strong topic overlap in maternal health and community education
+* Geographic fit for U.S.-based applicants
+* Award size appears realistic for the organization’s scale
+
+Examples of risks:
+
+* Opportunity appears highly competitive
+* Funding size may exceed current organization capacity
+* Opportunity may require prior federal grant management experience
+
+## Suggested helper functions
+
+Create clear modular helpers:
+
+* normalizeSourceName(source)
+* isActiveOpportunitySource(source)
+* normalizeOpportunity(raw)
+* normalizeOrganization(raw)
+* passesEligibility(org, opp)
+* scoreMissionFit(org, opp)
+* scoreGeographyFit(org, opp)
+* scoreFundingFit(org, opp)
+* scoreMaturityFit(org, opp)
+* scoreMatch(org, opp)
+* getTopMatches(org, opportunities, limit = 10)
+
+## Seed test data
+
+If live data is not yet ready, seed at least 20 normalized mock opportunities across the included 8 active sources.
+Make the mock opportunities varied across:
+
+* healthcare
+* education
+* workforce development
+* technology
+* procurement
+* research
+* community development
+* environment
+
+Also seed at least 6 records from the excluded sources and verify that they never appear in match results.
+
+## UI behavior requirements
+
+* Make the page easy to debug
+* Show intermediate counts:
+
+  * total records loaded
+  * active-source records included
+  * excluded-source records removed
+  * eligible matches after filtering
+* Add a debug accordion to inspect scoring details for each result
+* Add a toggle to show raw normalized JSON for selected org or opportunity
+
+## Output expectations
+
+I want this page to function as a **testing center**, not a polished customer-facing page.
+Prioritize:
+
+* correctness
+* transparency
+* easy debugging
+* easy iteration
+
+## Deliverables
+
+Please generate all code needed for:
+
+* the Algorithm page
+* any helper utilities for V1 scoring
+* mock data for organizations and opportunities
+* the active-source filtering logic
+* the match results UI
+
+Use clear file organization and comments so I can extend this later into V2 with embeddings and historical-intelligence features.

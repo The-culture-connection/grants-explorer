@@ -1,10 +1,27 @@
 import React from "react";
+import { Link } from "wouter";
 import { SourceTabs } from "@/components/SourceTabs";
-import { LayoutDashboard, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, ShieldCheck, FlaskConical } from "lucide-react";
 
 export default function Home() {
   return (
     <div className="min-h-screen w-full bg-background selection:bg-primary/20 selection:text-primary">
+      {/* Top Nav */}
+      <nav className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-12 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 font-semibold text-sm text-foreground">
+            <LayoutDashboard className="h-4 w-4 text-primary" />
+            Grants Explorer
+          </div>
+          <Link
+            href="/algorithm"
+            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-primary border border-border/60 hover:border-primary/40 px-3 py-1.5 rounded-lg transition-all"
+          >
+            <FlaskConical className="h-3.5 w-3.5" />
+            Algorithm V1
+          </Link>
+        </div>
+      </nav>
       {/* Hero Section */}
       <div className="relative overflow-hidden border-b border-border/40">
         {/* Background Image & Overlay */}
