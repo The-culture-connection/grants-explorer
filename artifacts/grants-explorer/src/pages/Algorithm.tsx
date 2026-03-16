@@ -12,12 +12,12 @@ import { Separator } from "@/components/ui/separator";
 import {
   CheckCircle2, XCircle, FlaskConical, ChevronRight, Zap, Database,
   Building2, Target, Globe, DollarSign, Calendar, ExternalLink, Eye, EyeOff,
-  AlertTriangle, Info, Filter, Search, BarChart3, Code, Layers, RefreshCw,
+  AlertTriangle, Filter, Search, BarChart3, RefreshCw, Code,
 } from "lucide-react";
 
 import { SOURCE_CONFIGS } from "@/lib/algorithm/sources";
-import { MOCK_ORGANIZATIONS, ALL_MOCK_OPPORTUNITIES, MOCK_OPPORTUNITIES_ACTIVE } from "@/lib/algorithm/mockData";
-import { filterToActiveOpportunities, getTopMatches, scoreMatch } from "@/lib/algorithm/matcher";
+import { MOCK_ORGANIZATIONS } from "@/lib/algorithm/mockData";
+import { getTopMatches, scoreMatch } from "@/lib/algorithm/matcher";
 import type { OrgProfile, NormalizedOpportunity, MatchResult } from "@/lib/algorithm/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -240,43 +240,65 @@ export default function AlgorithmPage() {
     ? (MOCK_ORGANIZATIONS.find((o) => o.id === selectedMockId) ?? MOCK_ORGANIZATIONS[0])
     : customOrg;
 
-  // ── Indexed store state ─────────────────────────────────────────────────
-  const [poolSource, setPoolSource] = useState<"mock" | "indexed">("mock");
-  const [indexedStats, setIndexedStats] = useState<{ total: number; active: number; historical: number } | null>(null);
-  const [indexedPool, setIndexedPool] = useState<NormalizedOpportunity[]>([]);
-  const [indexedLoading, setIndexedLoading] = useState(false);
+  // ── Real opportunity pool (loaded from DB on mount) ──────────────────────
+  const [pool, setPool] = useState<NormalizedOpportunity[]>([]);
+  const [poolLoading, setPoolLoading] = useState(true);
+  const [poolError, setPoolError] = useState<string | null>(null);
+  const [poolStats, setPoolStats] = useState<{
+    total: number; active: number; historical: number;
+    bySource: Record<string, number>;
+  } | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/indexing/stats`)
-      .then((r) => r.json())
-      .then((d) => setIndexedStats(d))
-      .catch(() => {});
+    async function loadPool() {
+      setPoolLoading(true);
+      setPoolError(null);
+      try {
+        const [statsRes, recordsRes] = await Promise.all([
+          fetch(`${API}/indexing/stats`),
+          fetch(`${API}/indexing/records/for-algorithm`),
+        ]);
+        const stats = await statsRes.json();
+        const data = await recordsRes.json();
+        setPoolStats(stats);
+        setPool((data.records ?? []).map(dbRecordToOpportunity));
+      } catch {
+        setPoolError("Failed to load opportunity pool from database.");
+      }
+      setPoolLoading(false);
+    }
+    loadPool();
   }, []);
 
-  const loadIndexedPool = async () => {
-    setIndexedLoading(true);
-    try {
-      const r = await fetch(`${API}/indexing/records/for-algorithm`);
-      const d = await r.json();
-      const opps = (d.records ?? []).map(dbRecordToOpportunity);
-      setIndexedPool(opps);
-      setPoolSource("indexed");
-    } catch {}
-    setIndexedLoading(false);
+  const refreshPool = () => {
+    setPool([]);
+    setPoolStats(null);
+    setMatchResults(null);
+    setRunStats(null);
+    async function reload() {
+      setPoolLoading(true);
+      setPoolError(null);
+      try {
+        const [statsRes, recordsRes] = await Promise.all([
+          fetch(`${API}/indexing/stats`),
+          fetch(`${API}/indexing/records/for-algorithm`),
+        ]);
+        const stats = await statsRes.json();
+        const data = await recordsRes.json();
+        setPoolStats(stats);
+        setPool((data.records ?? []).map(dbRecordToOpportunity));
+      } catch {
+        setPoolError("Failed to load opportunity pool from database.");
+      }
+      setPoolLoading(false);
+    }
+    reload();
   };
 
-  // ── Opportunity pool state ───────────────────────────────────────────────
+  // ── Opportunity pool filters ─────────────────────────────────────────────
   const [poolFilter, setPoolFilter] = useState({ source: "", keyword: "", fundingType: "" });
-  const [showExcluded, setShowExcluded] = useState(false);
-
-  const { active: mockActivePool, excluded: excludedPool } = useMemo(
-    () => filterToActiveOpportunities(ALL_MOCK_OPPORTUNITIES),
-    []
-  );
-  const activePool = poolSource === "indexed" ? indexedPool : mockActivePool;
 
   const filteredPool = useMemo(() => {
-    const pool = (poolSource === "indexed") ? indexedPool : (showExcluded ? ALL_MOCK_OPPORTUNITIES : mockActivePool);
     return pool.filter((opp) => {
       if (poolFilter.source && opp.source !== poolFilter.source) return false;
       if (poolFilter.fundingType && opp.funding_type !== poolFilter.fundingType) return false;
@@ -287,35 +309,22 @@ export default function AlgorithmPage() {
       }
       return true;
     });
-  }, [showExcluded, mockActivePool, poolFilter, poolSource, indexedPool]);
+  }, [pool, poolFilter]);
 
   // ── Match results state ──────────────────────────────────────────────────
   const [matchResults, setMatchResults] = useState<MatchResult[] | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [runStats, setRunStats] = useState<{
-    total: number; active: number; excluded: number; eligible: number; scored: number;
+    total: number; eligible: number; scored: number;
   } | null>(null);
 
   const runAlgorithm = () => {
     setIsRunning(true);
     setTimeout(() => {
-      const pool = poolSource === "indexed" ? indexedPool : ALL_MOCK_OPPORTUNITIES;
-      const { active, excluded } = poolSource === "indexed"
-        ? { active: indexedPool, excluded: [] }
-        : filterToActiveOpportunities(ALL_MOCK_OPPORTUNITIES);
-      const allScored = active.map((opp) => scoreMatch(activeOrg, opp));
+      const allScored = pool.map((opp) => scoreMatch(activeOrg, opp));
       const eligible = allScored.filter((r) => r.passes_eligibility);
-      const top = poolSource === "indexed"
-        ? getTopMatches(activeOrg, indexedPool, 10)
-        : getTopMatches(activeOrg, pool, 10);
-
-      setRunStats({
-        total: pool.length,
-        active: active.length,
-        excluded: excluded.length,
-        eligible: eligible.length,
-        scored: top.length,
-      });
+      const top = getTopMatches(activeOrg, pool, 10);
+      setRunStats({ total: pool.length, eligible: eligible.length, scored: top.length });
       setMatchResults(top);
       setIsRunning(false);
     }, 600);
@@ -353,49 +362,43 @@ export default function AlgorithmPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        {/* ── Indexed Pool Banner ────────────────────────────────────────── */}
-        <Card className={`border ${poolSource === "indexed" ? "border-primary/30 bg-primary/5" : "border-border/50 bg-muted/20"}`}>
+        {/* ── Pool Status Bar ────────────────────────────────────────────── */}
+        <Card className="border-border/50 bg-muted/20">
           <CardContent className="p-4">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <Layers className="h-5 w-5 text-primary shrink-0" />
+                <Database className="h-5 w-5 text-primary shrink-0" />
                 <div>
-                  <div className="font-semibold text-sm">Opportunity Pool Source</div>
+                  <div className="font-semibold text-sm">Live Opportunity Pool</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    Currently using: <strong>{poolSource === "indexed" ? `Full Indexed Store (${indexedPool.length.toLocaleString()} active records)` : "Mock Dataset (26 records)"}</strong>
+                    {poolLoading
+                      ? "Loading from database…"
+                      : poolError
+                      ? poolError
+                      : `${pool.length.toLocaleString()} active opportunities loaded from ${Object.keys(poolStats?.bySource ?? {}).length} sources`}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                {indexedStats && (
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
-                      {indexedStats.active.toLocaleString()} indexed active
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
-                      {indexedStats.historical.toLocaleString()} historical excluded
-                    </span>
+                {!poolLoading && !poolError && poolStats && (
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
+                    {SOURCE_CONFIGS.filter((s) => s.status === "active" && (poolStats.bySource[s.id] ?? 0) > 0).map((s) => (
+                      <span key={s.id} className="flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
+                        {s.id}: {(poolStats.bySource[s.id] ?? 0).toLocaleString()}
+                      </span>
+                    ))}
                   </div>
                 )}
-                {poolSource === "indexed" ? (
-                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
-                    onClick={() => setPoolSource("mock")}>
-                    Switch to Mock
-                  </Button>
-                ) : (
-                  <Button size="sm" className="h-7 text-xs gap-1"
-                    onClick={loadIndexedPool}
-                    disabled={indexedLoading || (indexedStats?.active ?? 0) === 0}>
-                    {indexedLoading ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Database className="h-3 w-3" />}
-                    {indexedStats?.active ? `Load ${indexedStats.active.toLocaleString()} Indexed Records` : "No Indexed Records Yet"}
-                  </Button>
-                )}
-                {(indexedStats?.active ?? 0) === 0 && poolSource === "mock" && (
+                {poolLoading && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
+                <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                  onClick={refreshPool} disabled={poolLoading}>
+                  <RefreshCw className="h-3 w-3" /> Refresh
+                </Button>
+                {!poolLoading && pool.length === 0 && (
                   <Link href="/indexing">
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 text-primary border-primary/40">
-                      <Database className="h-3 w-3" /> Go to Indexing Tool
+                    <Button size="sm" className="h-7 text-xs gap-1">
+                      <Database className="h-3 w-3" /> Run Indexing Tool First
                     </Button>
                   </Link>
                 )}
@@ -448,7 +451,7 @@ export default function AlgorithmPage() {
                     </p>
                   )}
                   <div className="text-xs text-muted-foreground mt-2 font-mono">
-                    {MOCK_OPPORTUNITIES_ACTIVE.filter((o) => o.source === src.id).length} mock records
+                    {poolLoading ? "loading…" : `${(poolStats?.bySource?.[src.id] ?? 0).toLocaleString()} indexed records`}
                   </div>
                 </CardContent>
               </Card>
@@ -467,7 +470,7 @@ export default function AlgorithmPage() {
 
           <Tabs value={orgMode} onValueChange={(v) => setOrgMode(v as "mock" | "custom")}>
             <TabsList className="mb-4">
-              <TabsTrigger value="mock">Use Mock Organization</TabsTrigger>
+              <TabsTrigger value="mock">Sample Organizations</TabsTrigger>
               <TabsTrigger value="custom">Manual Entry</TabsTrigger>
             </TabsList>
 
@@ -612,32 +615,13 @@ export default function AlgorithmPage() {
             </div>
             <div className="flex items-center gap-3 flex-wrap">
               <Badge variant="outline" className="text-xs font-mono">
-                {activePool.length} active
+                {pool.length.toLocaleString()} total active
               </Badge>
-              <Badge variant="outline" className="text-xs font-mono text-red-600 border-red-200">
-                {excludedPool.length} excluded
+              <Badge variant="outline" className="text-xs font-mono text-primary border-primary/30">
+                {filteredPool.length.toLocaleString()} matching filters
               </Badge>
-              <label className="flex items-center gap-1.5 text-xs cursor-pointer text-muted-foreground hover:text-foreground">
-                <input
-                  type="checkbox"
-                  checked={showExcluded}
-                  onChange={(e) => setShowExcluded(e.target.checked)}
-                  className="rounded"
-                />
-                Show excluded sources
-              </label>
             </div>
           </div>
-
-          {showExcluded && (
-            <div className="mb-4 flex items-start gap-2 text-xs bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-lg">
-              <Info className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>
-                <strong>{excludedPool.length} records from excluded sources</strong> (USASpending, NIH RePORTER, NSF Awards) are
-                visible below for inspection but are intentionally filtered out of all V1 match operations.
-              </span>
-            </div>
-          )}
 
           {/* Filters */}
           <div className="flex flex-wrap gap-3 mb-4 p-3 bg-muted/30 rounded-xl border border-border/40">
@@ -687,57 +671,70 @@ export default function AlgorithmPage() {
             </Button>
           </div>
 
-          <div className="text-xs text-muted-foreground mb-3 font-mono">
-            Showing {filteredPool.length} of {showExcluded ? ALL_MOCK_OPPORTUNITIES.length : activePool.length} records
-          </div>
-
-          <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-            {filteredPool.map((opp) => {
-              const isExcluded = !activePool.find((a) => a.id === opp.id);
-              return (
-                <Card key={opp.id} className={`border ${isExcluded ? "border-red-200 bg-red-50/30" : "border-border/50"}`}>
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap mb-1">
-                          <Badge variant={isExcluded ? "destructive" : "outline"} className="text-xs">
-                            {opp.source_raw}
-                          </Badge>
-                          <Badge variant="secondary" className="text-xs capitalize">
-                            {opp.funding_type.replace("_", " ")}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs capitalize">{opp.status}</Badge>
-                          {isExcluded && (
-                            <Badge className="text-xs bg-red-100 text-red-700 border-red-300">
-                              EXCLUDED
+          {poolLoading && (
+            <div className="text-center py-12 text-muted-foreground">
+              <RefreshCw className="h-8 w-8 mx-auto mb-2 animate-spin opacity-40" />
+              <p className="text-sm">Loading opportunities from database…</p>
+            </div>
+          )}
+          {poolError && !poolLoading && (
+            <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 px-4 py-3 rounded-lg">
+              <AlertTriangle className="h-4 w-4 shrink-0" /> {poolError}
+            </div>
+          )}
+          {!poolLoading && !poolError && pool.length === 0 && (
+            <div className="text-center py-12 text-muted-foreground">
+              <Database className="h-10 w-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">No opportunities indexed yet.</p>
+              <Link href="/indexing">
+                <Button size="sm" className="mt-3 gap-1"><Database className="h-3 w-3" /> Go to Indexing Tool</Button>
+              </Link>
+            </div>
+          )}
+          {!poolLoading && !poolError && pool.length > 0 && (
+            <>
+              <div className="text-xs text-muted-foreground mb-3 font-mono">
+                Showing {filteredPool.length.toLocaleString()} of {pool.length.toLocaleString()} records
+              </div>
+              <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                {filteredPool.map((opp) => (
+                  <Card key={opp.id} className="border border-border/50">
+                    <CardContent className="p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <Badge variant="outline" className="text-xs">{opp.source_raw}</Badge>
+                            <Badge variant="secondary" className="text-xs capitalize">
+                              {opp.funding_type.replace("_", " ")}
                             </Badge>
+                            <Badge variant="outline" className="text-xs capitalize">{opp.status}</Badge>
+                          </div>
+                          <div className="font-medium text-sm line-clamp-1">{opp.title}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{opp.agency}</div>
+                        </div>
+                        <div className="text-xs text-right shrink-0">
+                          <div className="font-medium text-foreground">{fmt(opp.min_award)} – {fmt(opp.max_award)}</div>
+                          {opp.close_date && (
+                            <div className="text-muted-foreground">Due {opp.close_date}</div>
                           )}
                         </div>
-                        <div className="font-medium text-sm line-clamp-1">{opp.title}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{opp.agency}</div>
                       </div>
-                      <div className="text-xs text-right shrink-0">
-                        <div className="font-medium text-foreground">{fmt(opp.min_award)} – {fmt(opp.max_award)}</div>
-                        {opp.close_date && (
-                          <div className="text-muted-foreground">Due {opp.close_date}</div>
-                        )}
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {opp.geography.map((g, i) => (
+                          <span key={i} className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
+                            <Globe className="h-2.5 w-2.5" />{g}
+                          </span>
+                        ))}
+                        {opp.categories.slice(0, 3).map((c, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs h-5">{c}</Badge>
+                        ))}
                       </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {opp.geography.map((g, i) => (
-                        <span key={i} className="inline-flex items-center gap-0.5 text-xs text-muted-foreground">
-                          <Globe className="h-2.5 w-2.5" />{g}
-                        </span>
-                      ))}
-                      {opp.categories.slice(0, 3).map((c, i) => (
-                        <Badge key={i} variant="secondary" className="text-xs h-5">{c}</Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
         </section>
 
         <Separator />
@@ -756,13 +753,13 @@ export default function AlgorithmPage() {
                   <div className="text-sm font-medium mb-1">Ready to match against:</div>
                   <div className="text-base font-bold">{activeOrg.name || "Custom Organization"}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">
-                    {activeOrg.org_type} · {activePool.length} active opportunities in pool
+                    {activeOrg.org_type} · {pool.length.toLocaleString()} opportunities in pool
                   </div>
                 </div>
                 <Button
                   size="lg"
                   onClick={runAlgorithm}
-                  disabled={isRunning}
+                  disabled={isRunning || poolLoading || pool.length === 0}
                   className="shrink-0 gap-2 px-8"
                 >
                   <Zap className={`h-4 w-4 ${isRunning ? "animate-pulse" : ""}`} />
@@ -773,17 +770,15 @@ export default function AlgorithmPage() {
           </Card>
 
           {runStats && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-6">
               {[
-                { label: "Total Records", value: runStats.total, color: "text-foreground" },
-                { label: "Active-Source Records", value: runStats.active, color: "text-emerald-600" },
-                { label: "Excluded Records", value: runStats.excluded, color: "text-red-500" },
-                { label: "Eligible Matches", value: runStats.eligible, color: "text-blue-600" },
-                { label: "Top Results", value: runStats.scored, color: "text-primary" },
+                { label: "Opportunities Scored", value: runStats.total, color: "text-foreground" },
+                { label: "Passed Eligibility", value: runStats.eligible, color: "text-blue-600" },
+                { label: "Top Matches Returned", value: runStats.scored, color: "text-primary" },
               ].map(({ label, value, color }) => (
                 <Card key={label} className="border-border/50">
                   <CardContent className="p-3 text-center">
-                    <div className={`text-2xl font-bold ${color}`}>{value}</div>
+                    <div className={`text-2xl font-bold ${color}`}>{value.toLocaleString()}</div>
                     <div className="text-xs text-muted-foreground mt-0.5 leading-tight">{label}</div>
                   </CardContent>
                 </Card>
