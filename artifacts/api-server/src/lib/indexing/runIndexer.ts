@@ -115,15 +115,19 @@ async function* fetchSimplerGrants(keyword: string): AsyncGenerator<any[]> {
   let page = 1;
   const pageSize = 100;
   while (true) {
-    const resp = await fetchWithRetry(() => fetch("https://simpler.grants.gov/api/v1/opportunities/search", {
+    const resp = await fetchWithRetry(() => fetch("https://api.simpler.grants.gov/v1/opportunities/search", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-API-KEY": apiKey },
       body: JSON.stringify({
         query: keyword,
-        pagination: { page_offset: page, page_size: pageSize, sort_by: "opportunity_id", order_by: "ascending" },
+        pagination: { page_offset: page, page_size: pageSize, order_by: "opportunity_id", sort_direction: "ascending" },
       }),
     }));
-    if (!resp.ok) { yield []; return; }
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.log(`[indexer:simpler_grants] HTTP ${resp.status}: ${text.slice(0, 200)}`);
+      return;
+    }
     const data = await resp.json() as any;
     const items: any[] = Array.isArray(data.data) ? data.data : [];
     if (items.length === 0) return;
@@ -160,8 +164,8 @@ async function* fetchSamGov(keyword: string): AsyncGenerator<any[]> {
   let offset = 0;
   const limit = 100;
   const today = new Date();
-  const postedFrom = new Date(today);
-  postedFrom.setFullYear(today.getFullYear() - 1);
+  // SAM.gov requires postedFrom and postedTo within the same calendar year
+  const postedFrom = new Date(today.getFullYear(), 0, 1); // Jan 1 of current year
   const fmt = (d: Date) => `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 
   while (true) {
@@ -174,7 +178,11 @@ async function* fetchSamGov(keyword: string): AsyncGenerator<any[]> {
       offset: String(offset),
     });
     const resp = await fetchWithRetry(() => fetch(`https://api.sam.gov/opportunities/v2/search?${params}`));
-    if (!resp.ok) { yield []; return; }
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.log(`[indexer:sam_gov] HTTP ${resp.status}: ${text.slice(0, 200)}`);
+      return;
+    }
     const data = await resp.json() as any;
     const items: any[] = Array.isArray(data.opportunitiesData) ? data.opportunitiesData : [];
     if (items.length === 0) return;
@@ -185,55 +193,26 @@ async function* fetchSamGov(keyword: string): AsyncGenerator<any[]> {
   }
 }
 
-async function* fetchSbir(keyword: string): AsyncGenerator<any[]> {
-  let start = 0;
-  const rows = 100;
-  while (true) {
-    const resp = await fetchWithRetry(() => fetch(
-      `https://www.sbir.gov/api/solicitations.json?keyword=${encodeURIComponent(keyword)}&rows=${rows}&start=${start}`,
-      { headers: { Accept: "application/json", "User-Agent": "grants-explorer/1.0" } }
-    ));
-    if (!resp.ok) return;
-    const data = await resp.json() as any;
-    const items: any[] = Array.isArray(data) ? data : (Array.isArray(data.solicitations) ? data.solicitations : []);
-    if (items.length === 0) return;
-    yield items;
-    start += items.length;
-    if (items.length < rows) return;
-  }
+async function* fetchSbir(_keyword: string): AsyncGenerator<any[]> {
+  // SBIR.gov public API is currently unavailable (returns 403/404).
+  // Source disabled until a working endpoint is confirmed.
+  console.log("[indexer:sbir] API unavailable — sbir.gov public JSON endpoint returns 403. Skipping.");
+  return;
 }
 
-async function* fetchThreeSixtyGiving(keyword: string): AsyncGenerator<any[]> {
-  let skip = 0;
-  const limit = 100;
-  while (true) {
-    const url = `https://api.threesixtygiving.org/api/v1/grants/?skip=${skip}&limit=${limit}&title__contains=${encodeURIComponent(keyword)}`;
-    const resp = await fetchWithRetry(() => fetch(url, { headers: { Accept: "application/json" } }));
-    if (!resp.ok) return;
-    const data = await resp.json() as any;
-    const items: any[] = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-    if (items.length === 0) return;
-    yield items;
-    skip += items.length;
-    if (items.length < limit) return;
-    if (data.count && skip >= data.count) return;
-  }
+async function* fetchThreeSixtyGiving(_keyword: string): AsyncGenerator<any[]> {
+  // 360Giving public API (api.threesixtygiving.org) is currently returning 404 for all endpoints.
+  // Source disabled until their API is restored or a new endpoint is available.
+  console.log("[indexer:threesixtygiving] API unavailable — api.threesixtygiving.org returns 404. Skipping.");
+  return;
 }
 
-async function* fetchCaGrants(keyword: string): AsyncGenerator<any[]> {
-  let page = 1;
-  const perPage = 100;
-  while (true) {
-    const url = `https://api.grantsportal.ca.gov/api/v1/grants?search=${encodeURIComponent(keyword)}&page=${page}&per_page=${perPage}&status=Published`;
-    const resp = await fetchWithRetry(() => fetch(url, { headers: { Accept: "application/json" } }));
-    if (!resp.ok) return;
-    const data = await resp.json() as any;
-    const items: any[] = Array.isArray(data.data) ? data.data : (Array.isArray(data.grants) ? data.grants : (Array.isArray(data) ? data : []));
-    if (items.length === 0) return;
-    yield items;
-    page++;
-    if (items.length < perPage) return;
-  }
+async function* fetchCaGrants(_keyword: string): AsyncGenerator<any[]> {
+  // California Grants Portal (grantsportal.ca.gov) does not have a public JSON API.
+  // The grants.ca.gov website is WordPress-based with no programmatic access endpoint.
+  // Source disabled until an official API is available.
+  console.log("[indexer:california_grants] No public API available — grantsportal.ca.gov DNS does not resolve. Skipping.");
+  return;
 }
 
 async function* fetchWorldBank(keyword: string): AsyncGenerator<any[]> {
@@ -256,30 +235,29 @@ async function* fetchWorldBank(keyword: string): AsyncGenerator<any[]> {
 
 async function* fetchTedEu(keyword: string): AsyncGenerator<any[]> {
   let page = 1;
-  const pageSize = 50;
-  const today = new Date();
-  const dateFrom = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate() - 36500; // approx 1 year ago
   while (true) {
     const resp = await fetchWithRetry(() => fetch("https://api.ted.europa.eu/v3/notices/search", {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        query: `TI ~ "${keyword}" OR ND >= ${Math.max(20250101, dateFrom)}`,
-        fields: ["ND", "TI", "DF", "CY", "CA", "IREF", "IA", "PC"],
+        query: `TI ~ "${keyword}"`,
+        fields: ["BT-21-Procedure", "BT-05(a)-notice", "BT-02-notice"],
         page,
-        pageSize,
         scope: 1,
-        language: "en",
       }),
     }));
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      const text = await resp.text().catch(() => "");
+      console.log(`[indexer:ted_eu] HTTP ${resp.status}: ${text.slice(0, 200)}`);
+      return;
+    }
     const data = await resp.json() as any;
     const items: any[] = Array.isArray(data.notices) ? data.notices : [];
     if (items.length === 0) return;
     yield items;
     const total = data.totalNoticeCount ?? 0;
-    const fetched = (page - 1) * pageSize + items.length;
-    if (fetched >= total || items.length < pageSize) return;
+    const fetched = page * items.length;
+    if (fetched >= total || items.length < 10) return;
     page++;
   }
 }

@@ -12,11 +12,11 @@ export interface WeightConfig {
 }
 
 export const DEFAULT_WEIGHTS: WeightConfig = {
-  mission_topic_fit: 35,
-  eligibility_fit: 25,
-  geography_fit: 15,
-  funding_size_fit: 15,
-  maturity_fit: 10,
+  mission_topic_fit: 60,
+  eligibility_fit: 20,
+  geography_fit: 10,
+  funding_size_fit: 5,
+  maturity_fit: 5,
 };
 
 export interface ScoreTrace {
@@ -49,34 +49,34 @@ export const ALGORITHM_VARIANTS: AlgorithmVariant[] = [
   {
     key: "v1_current",
     label: "V1 Current",
-    description: "Default weights: mission 35, eligibility 25, geo 15, funding 15, maturity 10",
-    weights: { mission_topic_fit: 35, eligibility_fit: 25, geography_fit: 15, funding_size_fit: 15, maturity_fit: 10 },
+    description: "Default weights: mission 60, eligibility 20, geo 10, funding 5, maturity 5",
+    weights: { mission_topic_fit: 60, eligibility_fit: 20, geography_fit: 10, funding_size_fit: 5, maturity_fit: 5 },
   },
   {
     key: "v1_mission_heavy",
     label: "V1 Mission-Heavy",
-    description: "Boosts mission/topic fit to 45; reduces eligibility to 20",
-    weights: { mission_topic_fit: 45, eligibility_fit: 20, geography_fit: 15, funding_size_fit: 12, maturity_fit: 8 },
+    description: "Maximum mission focus: mission 70, eligibility 15, geo 7, funding 5, maturity 3",
+    weights: { mission_topic_fit: 70, eligibility_fit: 15, geography_fit: 7, funding_size_fit: 5, maturity_fit: 3 },
   },
   {
     key: "v1_eligibility_strict",
     label: "V1 Eligibility-Strict",
-    description: "Raises eligibility weight to 35; reduces mission to 30",
-    weights: { mission_topic_fit: 30, eligibility_fit: 35, geography_fit: 15, funding_size_fit: 12, maturity_fit: 8 },
+    description: "Raises eligibility weight to 30; reduces mission to 50",
+    weights: { mission_topic_fit: 50, eligibility_fit: 30, geography_fit: 10, funding_size_fit: 5, maturity_fit: 5 },
     stricterEligibility: true,
   },
   {
     key: "v1_geo_relaxed",
     label: "V1 Geo-Relaxed",
-    description: "Reduces geography weight to 8; boosts mission to 40",
-    weights: { mission_topic_fit: 40, eligibility_fit: 25, geography_fit: 8, funding_size_fit: 17, maturity_fit: 10 },
+    description: "Reduces geography weight to 5; boosts mission to 65",
+    weights: { mission_topic_fit: 65, eligibility_fit: 20, geography_fit: 5, funding_size_fit: 5, maturity_fit: 5 },
     relaxedGeography: true,
   },
   {
     key: "v1_synonyms",
     label: "V1 + Synonyms",
     description: "Default weights with synonym expansion for keyword matching",
-    weights: { mission_topic_fit: 35, eligibility_fit: 25, geography_fit: 15, funding_size_fit: 15, maturity_fit: 10 },
+    weights: { mission_topic_fit: 60, eligibility_fit: 20, geography_fit: 10, funding_size_fit: 5, maturity_fit: 5 },
     useSynonymExpansion: true,
   },
   {

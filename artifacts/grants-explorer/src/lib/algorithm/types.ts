@@ -53,11 +53,11 @@ export interface NormalizedOpportunity {
 // ─── Match Result ────────────────────────────────────────────────────────────
 
 export interface ScoreBreakdown {
-  mission_topic_fit: number;   // max 35
-  eligibility_fit: number;     // max 25
-  geography_fit: number;       // max 15
-  funding_size_fit: number;    // max 15
-  maturity_fit: number;        // max 10
+  mission_topic_fit: number;   // max 60
+  eligibility_fit: number;     // max 20
+  geography_fit: number;       // max 10
+  funding_size_fit: number;    // max 5
+  maturity_fit: number;        // max 5
   total: number;               // max 100
 }
 

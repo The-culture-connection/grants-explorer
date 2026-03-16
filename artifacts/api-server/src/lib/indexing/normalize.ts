@@ -251,20 +251,37 @@ export function normalizeWorldBank(raw: any): NormalizedRecord | null {
 }
 
 export function normalizeTedEu(raw: any): NormalizedRecord | null {
-  const id = String(raw.noticeNumber ?? raw.ND ?? "");
+  // TED EU v3 API returns BT-coded eForms fields and a "publication-number" identifier
+  const id = String(raw["publication-number"] ?? raw.noticeNumber ?? raw.ND ?? "");
   if (!id) return null;
   const dedupeKey = makeDedupeKey("ted_eu", id);
+
+  // BT-21-Procedure is the procedure title — may be a string, language-keyed object, or absent
+  const btTitle = raw["BT-21-Procedure"];
+  const title: string =
+    typeof btTitle === "string"
+      ? btTitle
+      : typeof btTitle === "object" && btTitle !== null
+        ? (btTitle["ENG"] ?? btTitle["MUL"] ?? Object.values(btTitle)[0] ?? `EU Procurement ${id}`)
+        : `EU Procurement Notice ${id}`;
+
+  const pubDate: string | null = raw["BT-05(a)-notice"] ?? raw.publicationDate ?? null;
+  const noticeUrl =
+    raw.links?.pdf?.ENG ??
+    raw.links?.html?.ENG ??
+    `https://ted.europa.eu/en/notice/${id}`;
+
   return {
     id: makeId(dedupeKey),
     source: "ted_eu",
     sourceRecordId: id,
     classification: "active_opportunity",
-    title: raw.title?.[0]?.value ?? raw.noticeTitle ?? "Untitled",
-    description: String(raw.shortDescription?.[0]?.value ?? raw.description ?? "").slice(0, 600),
+    title,
+    description: String(raw["BT-02-notice"] ?? raw.shortDescription?.[0]?.value ?? raw.description ?? "").slice(0, 600),
     agency: raw.buyer?.[0]?.officialName ?? raw.CA ?? null,
     fundingType: "procurement",
     status: "active",
-    openDate: raw.publicationDate?.startsWith("20") ? raw.publicationDate : null,
+    openDate: pubDate?.startsWith("20") ? pubDate.slice(0, 10) : null,
     closeDate: raw.deadline ?? raw.DT ?? null,
     minAward: null,
     maxAward: parseAmount(raw.totalValueOfBusiness ?? raw.contractValue),
@@ -272,7 +289,7 @@ export function normalizeTedEu(raw: any): NormalizedRecord | null {
     categories: toArray(raw.mainCpvCode?.codeValue ?? []),
     keywords: [],
     geography: [raw.isoCountry ?? "European Union"],
-    url: raw.noticeNumber ? `https://ted.europa.eu/en/notice/-/detail/${raw.noticeNumber}` : "https://ted.europa.eu/en/search",
+    url: noticeUrl,
     rawPayload: raw,
     dedupeKey,
   };

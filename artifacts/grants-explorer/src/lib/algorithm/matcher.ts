@@ -77,7 +77,7 @@ function overlap(a: string[], b: string[]): number {
 }
 
 /**
- * Mission / Topic Fit — 35 points
+ * Mission / Topic Fit — 60 points
  * Keyword overlap between org mission/keywords/program_areas and
  * opp title/description/keywords/categories.
  */
@@ -98,23 +98,23 @@ export function scoreMissionFit(org: OrgProfile, opp: NormalizedOpportunity): nu
   const hits = overlap(orgTerms, oppTerms);
   const uniqueOrgTerms = new Set(orgTerms).size;
 
-  // Score based on coverage ratio, capped at 35
+  // Score based on coverage ratio, capped at 60
   const ratio = uniqueOrgTerms > 0 ? hits / Math.min(uniqueOrgTerms, 20) : 0;
-  return Math.round(Math.min(35, ratio * 35 + (hits > 0 ? 5 : 0)));
+  return Math.round(Math.min(60, ratio * 60 + (hits > 0 ? 8 : 0)));
 }
 
 /**
- * Eligibility Fit — 25 points
+ * Eligibility Fit — 20 points
  * Positive score if eligible; partial score if potentially eligible.
  * 0 if not eligible (and passesEligibility returns false).
  */
 export function scoreEligibilityFit(org: OrgProfile, opp: NormalizedOpportunity): number {
   if (!passesEligibility(org, opp)) return 0;
 
-  if (!opp.eligibility || opp.eligibility.length === 0) return 15; // Unknown — partial credit
+  if (!opp.eligibility || opp.eligibility.length === 0) return 10; // Unknown — partial credit
 
   const eligLower = opp.eligibility.map((e) => e.toLowerCase());
-  let score = 15; // Base for passing
+  let score = 10; // Base for passing
 
   // Exact org type match
   if (eligLower.includes(org.org_type)) score += 5;
@@ -125,11 +125,11 @@ export function scoreEligibilityFit(org: OrgProfile, opp: NormalizedOpportunity)
   // Small business confirmed
   if (org.is_small_business && eligLower.includes("small_business")) score += 2;
 
-  return Math.min(25, score);
+  return Math.min(20, score);
 }
 
 /**
- * Geography Fit — 15 points
+ * Geography Fit — 10 points
  * Checks if org geography overlaps with opp geography.
  */
 export function scoreGeographyFit(org: OrgProfile, opp: NormalizedOpportunity): number {
@@ -141,29 +141,29 @@ export function scoreGeographyFit(org: OrgProfile, opp: NormalizedOpportunity): 
     oppGeo.includes("international") ||
     oppGeo.length === 0
   ) {
-    return 10; // Open geographies get partial credit
+    return 7; // Open geographies get partial credit
   }
 
   for (const og of orgGeo) {
     for (const oppG of oppGeo) {
-      if (og.includes(oppG) || oppG.includes(og)) return 15;
+      if (og.includes(oppG) || oppG.includes(og)) return 10;
     }
   }
 
   // US-based org vs US opportunity
   const orgInUS = orgGeo.some((g) => g === "united states" || g === "us");
   const oppInUS = oppGeo.some((g) => g === "united states" || g === "us");
-  if (orgInUS && oppInUS) return 15;
+  if (orgInUS && oppInUS) return 10;
 
   return 0;
 }
 
 /**
- * Funding Size Fit — 15 points
+ * Funding Size Fit — 5 points
  * Checks if the award range is realistic for the org's budget and capacity.
  */
 export function scoreFundingFit(org: OrgProfile, opp: NormalizedOpportunity): number {
-  if (!opp.max_award) return 8; // Unknown — partial credit
+  if (!opp.max_award) return 3; // Unknown — partial credit
 
   const budget = org.annual_budget;
   const maxAward = opp.max_award;
@@ -173,16 +173,16 @@ export function scoreFundingFit(org: OrgProfile, opp: NormalizedOpportunity): nu
   const lowerIdeal = budget * 0.1;
   const upperIdeal = budget * 2.0;
 
-  if (maxAward >= lowerIdeal && minAward <= upperIdeal) return 15;
-  if (maxAward >= lowerIdeal * 0.5 && minAward <= upperIdeal * 1.5) return 10;
-  if (maxAward < lowerIdeal * 0.1) return 3; // Award too small to be worth it
-  if (minAward > upperIdeal * 3) return 3; // Award likely too large for org capacity
+  if (maxAward >= lowerIdeal && minAward <= upperIdeal) return 5;
+  if (maxAward >= lowerIdeal * 0.5 && minAward <= upperIdeal * 1.5) return 3;
+  if (maxAward < lowerIdeal * 0.1) return 1; // Award too small to be worth it
+  if (minAward > upperIdeal * 3) return 1; // Award likely too large for org capacity
 
-  return 6;
+  return 2;
 }
 
 /**
- * Maturity Fit — 10 points
+ * Maturity Fit — 5 points
  * Organizations < 2 years may face barriers; 5+ years shows track record.
  */
 export function scoreMaturityFit(org: OrgProfile, opp: NormalizedOpportunity): number {
@@ -195,10 +195,10 @@ export function scoreMaturityFit(org: OrgProfile, opp: NormalizedOpportunity): n
     descLower.includes("prior federal") ||
     descLower.includes("established");
 
-  if (years >= 5) return 10;
-  if (years >= 3) return requiresExperience ? 6 : 8;
-  if (years >= 1) return requiresExperience ? 3 : 6;
-  return 2;
+  if (years >= 5) return 5;
+  if (years >= 3) return requiresExperience ? 3 : 4;
+  if (years >= 1) return requiresExperience ? 2 : 3;
+  return 1;
 }
 
 // ─── Explainability ───────────────────────────────────────────────────────────
@@ -206,38 +206,38 @@ export function scoreMaturityFit(org: OrgProfile, opp: NormalizedOpportunity): n
 export function generateReasons(org: OrgProfile, opp: NormalizedOpportunity, scores: ScoreBreakdown): string[] {
   const reasons: string[] = [];
 
-  if (scores.eligibility_fit >= 20) {
+  if (scores.eligibility_fit >= 15) {
     if (org.org_type === "nonprofit") reasons.push("Eligible nonprofit applicant type confirmed");
     else if (org.is_small_business) reasons.push("Eligible small business applicant type confirmed");
-  } else if (scores.eligibility_fit >= 15) {
+  } else if (scores.eligibility_fit >= 10) {
     reasons.push("Meets basic eligibility requirements");
   }
 
   if (org.has_501c3) reasons.push("501(c)(3) status satisfies tax-exempt requirement");
   if (org.is_small_business) reasons.push("Small business designation aligns with set-aside opportunities");
 
-  if (scores.mission_topic_fit >= 25) {
+  if (scores.mission_topic_fit >= 40) {
     const matchedKw = org.keywords.filter((k) =>
       (opp.title + " " + opp.description + " " + opp.keywords.join(" ")).toLowerCase().includes(k.toLowerCase())
     );
     if (matchedKw.length > 0)
       reasons.push(`Strong topic overlap: ${matchedKw.slice(0, 3).join(", ")}`);
     else reasons.push("Strong mission and topic alignment with funding priorities");
-  } else if (scores.mission_topic_fit >= 15) {
+  } else if (scores.mission_topic_fit >= 25) {
     reasons.push("Moderate topic alignment with opportunity focus areas");
   }
 
-  if (scores.geography_fit === 15) {
+  if (scores.geography_fit === 10) {
     reasons.push(`Geographic fit: ${org.geography[0]} aligns with opportunity coverage`);
-  } else if (scores.geography_fit === 10) {
+  } else if (scores.geography_fit >= 6) {
     reasons.push("Opportunity open to international or wide geographic applicants");
   }
 
-  if (scores.funding_size_fit === 15) {
+  if (scores.funding_size_fit >= 4) {
     reasons.push("Award size appears realistic for this organization's budget scale");
   }
 
-  if (scores.maturity_fit === 10) {
+  if (scores.maturity_fit >= 4) {
     reasons.push("Organization's operational history demonstrates funding capacity");
   }
 
@@ -247,7 +247,7 @@ export function generateReasons(org: OrgProfile, opp: NormalizedOpportunity, sco
 export function generateRisks(org: OrgProfile, opp: NormalizedOpportunity, scores: ScoreBreakdown): string[] {
   const risks: string[] = [];
 
-  if (scores.mission_topic_fit < 15) {
+  if (scores.mission_topic_fit < 20) {
     risks.push("Limited keyword overlap — mission alignment may be weak");
   }
 
