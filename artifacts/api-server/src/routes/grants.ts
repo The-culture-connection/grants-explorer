@@ -8,6 +8,7 @@ import {
   GetNihResponse,
   GetNsfResponse,
   GetWorldBankResponse,
+  GetSimplerGrantsResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -405,6 +406,84 @@ router.get("/grants/worldbank", async (req, res): Promise<void> => {
     const result = GetWorldBankResponse.parse({
       source: "World Bank",
       total: Number((data as any).total?.value ?? (data as any).total ?? items.length),
+      items,
+    });
+    res.json(result);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    res.status(500).json({ error: message });
+  }
+});
+
+router.get("/grants/simplergrants", async (req, res): Promise<void> => {
+  const keyword = getKeyword(req.query.keyword);
+  const rows = getRows(req.query.rows);
+  const apiKey = process.env.SIMPLER_GRANTS_API_KEY;
+
+  if (!apiKey) {
+    res.status(500).json({ error: "SIMPLER_GRANTS_API_KEY environment variable is not set" });
+    return;
+  }
+
+  try {
+    const payload: Record<string, unknown> = {
+      pagination: {
+        page_offset: 1,
+        page_size: rows,
+        sort_order: [{ order_by: "post_date", sort_direction: "descending" }],
+      },
+    };
+
+    // Add keyword filter if provided
+    if (keyword && keyword !== "research") {
+      payload.filters = {
+        opportunity_title: { one_of: [keyword] },
+      };
+    }
+
+    const response = await fetch("https://api.simpler.grants.gov/v1/opportunities/search", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-KEY": apiKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => "");
+      throw new Error(`Simpler Grants responded ${response.status}: ${errBody.slice(0, 200)}`);
+    }
+
+    const data = await response.json() as Record<string, unknown>;
+    const rawItems = Array.isArray((data as any).data) ? (data as any).data : [];
+
+    const items = rawItems.slice(0, rows).map((opp: any) => {
+      const summary = opp.summary ?? {};
+      return {
+        id: String(opp.opportunity_id ?? opp.legacy_opportunity_id ?? Math.random()),
+        title: opp.opportunity_title ?? "Untitled",
+        description: summary.summary_description
+          ? String(summary.summary_description).slice(0, 400) + (String(summary.summary_description).length > 400 ? "..." : "")
+          : "",
+        amount: summary.award_ceiling
+          ? `$${Number(summary.award_ceiling).toLocaleString()}`
+          : summary.estimated_total_program_funding
+          ? `$${Number(summary.estimated_total_program_funding).toLocaleString()}`
+          : undefined,
+        deadline: summary.close_date ?? summary.forecasted_close_date ?? undefined,
+        agency: opp.agency_name ?? opp.top_level_agency_name ?? opp.agency ?? undefined,
+        url: opp.opportunity_id
+          ? `https://simpler.grants.gov/opportunity/${opp.opportunity_id}`
+          : undefined,
+        status: opp.opportunity_status ?? undefined,
+      };
+    });
+
+    const pagination = (data as any).pagination_info ?? {};
+    const result = GetSimplerGrantsResponse.parse({
+      source: "Simpler Grants",
+      total: pagination.total_records ?? items.length,
       items,
     });
     res.json(result);

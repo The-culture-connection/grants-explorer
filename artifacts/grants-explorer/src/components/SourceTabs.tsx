@@ -7,7 +7,8 @@ import {
   useGetUsaSpending, 
   useGetNih, 
   useGetNsf, 
-  useGetWorldBank 
+  useGetWorldBank,
+  useGetSimplerGrants,
 } from "@workspace/api-client-react";
 import { GrantList } from "./GrantList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useDebounce } from "use-debounce";
 
 const SOURCES = [
+  { id: "simplergrants", label: "Simpler Grants" },
   { id: "grantsgov", label: "Grants.gov" },
   { id: "sbir", label: "SBIR/STTR" },
   { id: "nsf", label: "NSF Awards" },
@@ -31,11 +33,9 @@ export function SourceTabs() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [debouncedKeyword] = useDebounce(searchTerm, 600);
 
-  // We explicitly call all hooks but they could be configured to only run when their tab is active
-  // using `enabled: activeTab === '...'`. However, prefetching makes the UX faster.
-  // We'll use enabled flag to avoid spamming 8 APIs on every keystroke if they aren't looking at them.
   const queryParams = { keyword: debouncedKeyword, rows: 12 };
 
+  const simplerGrantsQuery = useGetSimplerGrants(queryParams, { query: { enabled: activeTab === "simplergrants" } });
   const grantsGovQuery = useGetGrantsGov(queryParams, { query: { enabled: activeTab === "grantsgov" } });
   const sbirQuery = useGetSbir(queryParams, { query: { enabled: activeTab === "sbir" } });
   const nsfQuery = useGetNsf(queryParams, { query: { enabled: activeTab === "nsf" } });
@@ -47,6 +47,7 @@ export function SourceTabs() {
 
   const getQueryForTab = (tabId: string) => {
     switch (tabId) {
+      case "simplergrants": return simplerGrantsQuery;
       case "grantsgov": return grantsGovQuery;
       case "sbir": return sbirQuery;
       case "nsf": return nsfQuery;
@@ -55,7 +56,7 @@ export function SourceTabs() {
       case "cagrants": return caGrantsQuery;
       case "threesixtygiving": return threeSixtyQuery;
       case "worldbank": return worldBankQuery;
-      default: return grantsGovQuery;
+      default: return simplerGrantsQuery;
     }
   };
 

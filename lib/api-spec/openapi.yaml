@@ -186,6 +186,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/NsfResult"
+  /grants/simplergrants:
+    get:
+      operationId: getSimplerGrants
+      tags: [grants]
+      summary: Fetch Simpler Grants opportunities
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Simpler Grants results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimplerGrantsResult"
   /grants/worldbank:
     get:
       operationId: getWorldBank
@@ -328,6 +351,20 @@ components:
         - source
         - items
     NsfResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    SimplerGrantsResult:
       type: object
       properties:
         source:

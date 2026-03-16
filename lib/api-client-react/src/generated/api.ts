@@ -20,6 +20,7 @@ import type {
   GetNihParams,
   GetNsfParams,
   GetSbirParams,
+  GetSimplerGrantsParams,
   GetThreeSixtyGivingParams,
   GetUsaSpendingParams,
   GetWorldBankParams,
@@ -28,6 +29,7 @@ import type {
   NihResult,
   NsfResult,
   SbirResult,
+  SimplerGrantsResult,
   ThreeSixtyGivingResult,
   UsaSpendingResult,
   WorldBankResult,
@@ -749,6 +751,103 @@ export function useGetNsf<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetNsfQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Fetch Simpler Grants opportunities
+ */
+export const getGetSimplerGrantsUrl = (params?: GetSimplerGrantsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/grants/simplergrants?${stringifiedParams}`
+    : `/api/grants/simplergrants`;
+};
+
+export const getSimplerGrants = async (
+  params?: GetSimplerGrantsParams,
+  options?: RequestInit,
+): Promise<SimplerGrantsResult> => {
+  return customFetch<SimplerGrantsResult>(getGetSimplerGrantsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSimplerGrantsQueryKey = (
+  params?: GetSimplerGrantsParams,
+) => {
+  return [`/api/grants/simplergrants`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetSimplerGrantsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSimplerGrants>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetSimplerGrantsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSimplerGrants>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSimplerGrantsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSimplerGrants>>
+  > = ({ signal }) => getSimplerGrants(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSimplerGrants>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSimplerGrantsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSimplerGrants>>
+>;
+export type GetSimplerGrantsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Fetch Simpler Grants opportunities
+ */
+
+export function useGetSimplerGrants<
+  TData = Awaited<ReturnType<typeof getSimplerGrants>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetSimplerGrantsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSimplerGrants>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSimplerGrantsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

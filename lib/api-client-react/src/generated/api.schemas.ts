@@ -65,6 +65,12 @@ export interface NsfResult {
   items: GrantItem[];
 }
 
+export interface SimplerGrantsResult {
+  source: string;
+  total?: number;
+  items: GrantItem[];
+}
+
 export interface WorldBankResult {
   source: string;
   total?: number;
@@ -102,6 +108,11 @@ export type GetNihParams = {
 };
 
 export type GetNsfParams = {
+  keyword?: string;
+  rows?: number;
+};
+
+export type GetSimplerGrantsParams = {
   keyword?: string;
   rows?: number;
 };
