@@ -68,7 +68,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["maternal health", "health equity", "community health"],
     keywords: ["maternal mortality", "birth equity", "Black women", "community health", "health disparities"],
     geography: ["United States"],
-    url: "https://simpler.grants.gov/opportunities/sg_001",
+    url: "https://simpler.grants.gov/opportunities",
   },
   {
     id: "sg_002",
@@ -87,7 +87,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["workforce development", "climate", "STEM", "clean energy"],
     keywords: ["clean energy", "workforce", "youth", "STEM", "climate jobs", "underserved"],
     geography: ["United States"],
-    url: "https://simpler.grants.gov/opportunities/sg_002",
+    url: "https://simpler.grants.gov/opportunities",
   },
   {
     id: "sg_003",
@@ -106,7 +106,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["environmental justice", "community advocacy", "climate"],
     keywords: ["environmental justice", "climate", "community", "equity", "pollution"],
     geography: ["United States"],
-    url: "https://simpler.grants.gov/opportunities/sg_003",
+    url: "https://simpler.grants.gov/opportunities",
   },
 
   // ── Grants.gov (3) ───────────────────────────────────────────────────────
@@ -127,7 +127,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["community health", "workforce", "health equity", "maternal health"],
     keywords: ["community health worker", "health disparities", "maternal health", "training", "underserved"],
     geography: ["United States"],
-    url: "https://grants.gov/search-results-detail/gg_001",
+    url: "https://grants.gov/search-results",
   },
   {
     id: "gg_002",
@@ -146,7 +146,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["STEM", "education", "youth", "workforce"],
     keywords: ["STEM", "youth", "education", "underrepresented", "workforce", "climate"],
     geography: ["United States"],
-    url: "https://grants.gov/search-results-detail/gg_002",
+    url: "https://grants.gov/search-results",
   },
   {
     id: "gg_003",
@@ -165,7 +165,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["government technology", "digital services", "data"],
     keywords: ["govtech", "digital government", "data analytics", "public sector", "modernization"],
     geography: ["United States"],
-    url: "https://grants.gov/search-results-detail/gg_003",
+    url: "https://grants.gov/search-results",
   },
 
   // ── SAM.gov (3) ──────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["data analytics", "technology", "procurement"],
     keywords: ["data analytics", "visualization", "SaaS", "government", "platform", "reporting"],
     geography: ["United States"],
-    url: "https://sam.gov/opp/sam_001/view",
+    url: "https://sam.gov/content/opportunities",
   },
   {
     id: "sam_002",
@@ -205,7 +205,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["govtech", "civic tech", "procurement", "innovation"],
     keywords: ["civic tech", "government technology", "procurement", "small business", "SaaS", "innovation"],
     geography: ["United States"],
-    url: "https://sam.gov/opp/sam_002/view",
+    url: "https://sam.gov/content/opportunities",
   },
   {
     id: "sam_003",
@@ -224,7 +224,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["public health", "data systems", "surveillance"],
     keywords: ["public health", "data systems", "maternal health", "surveillance", "technology"],
     geography: ["United States"],
-    url: "https://sam.gov/opp/sam_003/view",
+    url: "https://sam.gov/content/opportunities",
   },
 
   // ── SBIR (3) ─────────────────────────────────────────────────────────────
@@ -245,7 +245,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["health technology", "AI/ML", "maternal health", "research"],
     keywords: ["AI", "maternal health", "risk assessment", "small business", "health technology"],
     geography: ["United States"],
-    url: "https://www.sbir.gov/solicitation/sbir_001",
+    url: "https://www.sbir.gov/solicitations",
   },
   {
     id: "sbir_002",
@@ -264,7 +264,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["clean energy", "technology", "research", "innovation"],
     keywords: ["clean energy", "grid", "technology", "SBIR", "small business", "innovation"],
     geography: ["United States"],
-    url: "https://www.sbir.gov/solicitation/sbir_002",
+    url: "https://www.sbir.gov/solicitations",
   },
   {
     id: "sbir_003",
@@ -283,7 +283,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["data systems", "government technology", "research"],
     keywords: ["data analytics", "government", "interoperability", "SaaS", "civic tech"],
     geography: ["United States"],
-    url: "https://www.sbir.gov/solicitation/sbir_003",
+    url: "https://www.sbir.gov/solicitations",
   },
 
   // ── 360Giving / UKRI (2) ─────────────────────────────────────────────────
@@ -304,7 +304,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["climate", "youth", "research", "STEM"],
     keywords: ["youth", "climate", "STEM", "workforce", "research", "UK"],
     geography: ["United Kingdom", "International"],
-    url: "https://gtr.ukri.org/projects/ukri_001",
+    url: "https://www.ukri.org/apply-for-funding/find-funding-for-your-research-or-innovation/",
   },
   {
     id: "ukri_002",
@@ -323,7 +323,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["community health", "health equity", "innovation"],
     keywords: ["community health", "health equity", "maternal health", "innovation", "UK"],
     geography: ["United Kingdom"],
-    url: "https://gtr.ukri.org/projects/ukri_002",
+    url: "https://www.ukri.org/apply-for-funding/find-funding-for-your-research-or-innovation/",
   },
 
   // ── California Grants (2) ─────────────────────────────────────────────────
@@ -344,7 +344,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["workforce development", "climate", "youth", "environmental justice"],
     keywords: ["climate", "workforce", "youth", "California", "green jobs", "disadvantaged"],
     geography: ["California", "United States"],
-    url: "https://www.grants.ca.gov/grants/ca_001",
+    url: "https://www.grants.ca.gov/grants/",
   },
   {
     id: "ca_002",
@@ -363,7 +363,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["maternal health", "health equity", "community health"],
     keywords: ["maternal health", "health equity", "California", "Black women", "community health"],
     geography: ["California", "United States"],
-    url: "https://www.grants.ca.gov/grants/ca_002",
+    url: "https://www.grants.ca.gov/grants/",
   },
 
   // ── World Bank (2) ────────────────────────────────────────────────────────
@@ -384,7 +384,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["government technology", "digital services", "procurement", "ICT"],
     keywords: ["government technology", "data analytics", "digital services", "procurement", "ICT"],
     geography: ["International", "Global"],
-    url: "https://projects.worldbank.org/wb_001",
+    url: "https://projects.worldbank.org/en/projects-operations/procurement",
   },
   {
     id: "wb_002",
@@ -403,7 +403,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["climate", "energy", "environment", "international"],
     keywords: ["climate", "green energy", "resilience", "international", "environment"],
     geography: ["International", "Global"],
-    url: "https://projects.worldbank.org/wb_002",
+    url: "https://projects.worldbank.org/en/projects-operations/procurement",
   },
 
   // ── TED EU (2) ────────────────────────────────────────────────────────────
@@ -424,7 +424,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["government technology", "data analytics", "procurement", "civic tech"],
     keywords: ["civic tech", "data analytics", "government", "EU", "procurement", "SaaS"],
     geography: ["European Union", "International"],
-    url: "https://ted.europa.eu/notice/-/detail/ted_001",
+    url: "https://ted.europa.eu/en/search",
   },
   {
     id: "ted_002",
@@ -443,7 +443,7 @@ export const MOCK_OPPORTUNITIES_ACTIVE: NormalizedOpportunity[] = [
     categories: ["workforce development", "youth", "employment", "climate"],
     keywords: ["workforce", "youth", "employment", "climate", "EU", "STEM"],
     geography: ["European Union", "International"],
-    url: "https://ted.europa.eu/notice/-/detail/ted_002",
+    url: "https://ted.europa.eu/en/search",
   },
 ];
 
@@ -468,7 +468,7 @@ export const MOCK_OPPORTUNITIES_EXCLUDED: NormalizedOpportunity[] = [
     categories: ["maternal health", "research"],
     keywords: ["maternal health", "research", "historical"],
     geography: ["United States"],
-    url: "https://www.usaspending.gov/award/usa_001",
+    url: "https://www.usaspending.gov/search/",
   },
   {
     id: "usa_002",
@@ -487,7 +487,7 @@ export const MOCK_OPPORTUNITIES_EXCLUDED: NormalizedOpportunity[] = [
     categories: ["clean energy", "research"],
     keywords: ["clean energy", "solar", "historical"],
     geography: ["United States"],
-    url: "https://www.usaspending.gov/award/usa_002",
+    url: "https://www.usaspending.gov/search/",
   },
   {
     id: "nih_001",
@@ -506,7 +506,7 @@ export const MOCK_OPPORTUNITIES_EXCLUDED: NormalizedOpportunity[] = [
     categories: ["maternal health", "research", "community health"],
     keywords: ["maternal health", "community", "NIH", "intelligence"],
     geography: ["United States"],
-    url: "https://reporter.nih.gov/search/nih_001",
+    url: "https://reporter.nih.gov/",
   },
   {
     id: "nih_002",
@@ -525,7 +525,7 @@ export const MOCK_OPPORTUNITIES_EXCLUDED: NormalizedOpportunity[] = [
     categories: ["STEM", "workforce", "research"],
     keywords: ["STEM", "workforce", "research", "intelligence"],
     geography: ["United States"],
-    url: "https://reporter.nih.gov/search/nih_002",
+    url: "https://reporter.nih.gov/",
   },
   {
     id: "nsf_001",
@@ -544,7 +544,7 @@ export const MOCK_OPPORTUNITIES_EXCLUDED: NormalizedOpportunity[] = [
     categories: ["government technology", "data systems", "research"],
     keywords: ["civic tech", "data", "government", "NSF", "research", "intelligence"],
     geography: ["United States"],
-    url: "https://www.nsf.gov/awardsearch/nsf_001",
+    url: "https://www.nsf.gov/awardsearch/",
   },
   {
     id: "nsf_002",
@@ -563,7 +563,7 @@ export const MOCK_OPPORTUNITIES_EXCLUDED: NormalizedOpportunity[] = [
     categories: ["climate", "STEM", "youth", "education"],
     keywords: ["youth", "STEM", "climate", "NSF", "intelligence"],
     geography: ["United States"],
-    url: "https://www.nsf.gov/awardsearch/nsf_002",
+    url: "https://www.nsf.gov/awardsearch/",
   },
 ];
 
