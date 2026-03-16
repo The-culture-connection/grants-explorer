@@ -9,4 +9,5 @@
 export type GetUsaSpendingParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

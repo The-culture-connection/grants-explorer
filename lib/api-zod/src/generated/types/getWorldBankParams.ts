@@ -9,4 +9,5 @@
 export type GetWorldBankParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

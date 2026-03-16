@@ -9,4 +9,5 @@
 export type GetSimplerGrantsParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

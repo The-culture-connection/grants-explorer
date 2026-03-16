@@ -21,18 +21,24 @@ function getKeyword(q: unknown): string {
 
 function getRows(q: unknown): number {
   const n = parseInt(String(q), 10);
-  return isNaN(n) || n <= 0 ? 10 : Math.min(n, 25);
+  return isNaN(n) || n <= 0 ? 12 : Math.min(n, 25);
+}
+
+function getOffset(q: unknown): number {
+  const n = parseInt(String(q), 10);
+  return isNaN(n) || n < 0 ? 0 : n;
 }
 
 router.get("/grants/grantsgov", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = getRows(req.query.rows);
+  const offset = getOffset(req.query.offset);
 
   try {
     const response = await fetch("https://apply07.grants.gov/grantsws/rest/opportunities/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keyword, rows, oppStatuses: "forecasted|posted" }),
+      body: JSON.stringify({ keyword, rows, startRecordNum: offset, oppStatuses: "forecasted|posted" }),
     });
     if (!response.ok) throw new Error(`Grants.gov responded ${response.status}`);
     const data = await response.json() as Record<string, unknown>;
@@ -64,10 +70,11 @@ router.get("/grants/grantsgov", async (req, res): Promise<void> => {
 router.get("/grants/sbir", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = getRows(req.query.rows);
+  const offset = getOffset(req.query.offset);
 
   try {
     // SBIR.gov uses a POST-based search API
-    const response = await fetch(`https://www.sbir.gov/api/solicitations.json?keyword=${encodeURIComponent(keyword)}&rows=${rows}`, {
+    const response = await fetch(`https://www.sbir.gov/api/solicitations.json?keyword=${encodeURIComponent(keyword)}&rows=${rows}&start=${offset}`, {
       headers: {
         "Accept": "application/json",
         "User-Agent": "grants-explorer/1.0",
@@ -133,10 +140,12 @@ router.get("/grants/sbir", async (req, res): Promise<void> => {
 router.get("/grants/threesixtygiving", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const pageSize = Math.max(getRows(req.query.rows), 10);
+  const offset = getOffset(req.query.offset);
+  const page = Math.floor(offset / pageSize) + 1;
 
   try {
     // Use UKRI Gateway to Research API (UK research funding, aligns with 360Giving UK grant data)
-    const url = `https://gtr.ukri.org/gtr/api/projects?q=${encodeURIComponent(keyword)}&s=${pageSize}&p=1`;
+    const url = `https://gtr.ukri.org/gtr/api/projects?q=${encodeURIComponent(keyword)}&s=${pageSize}&p=${page}`;
     const response = await fetch(url, {
       headers: { "Accept": "application/json" },
     });
@@ -255,6 +264,8 @@ router.get("/grants/cagrants", async (req, res): Promise<void> => {
 router.get("/grants/usaspending", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = getRows(req.query.rows);
+  const offset = getOffset(req.query.offset);
+  const page = Math.floor(offset / rows) + 1;
 
   try {
     const payload = {
@@ -264,6 +275,7 @@ router.get("/grants/usaspending", async (req, res): Promise<void> => {
       },
       fields: ["Award ID", "Recipient Name", "Award Amount", "Total Outlays", "Description", "Start Date", "End Date", "Awarding Agency"],
       limit: rows,
+      page,
       sort: "Award Amount",
       order: "desc",
     };
@@ -303,6 +315,7 @@ router.get("/grants/usaspending", async (req, res): Promise<void> => {
 router.get("/grants/nih", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = getRows(req.query.rows);
+  const offset = getOffset(req.query.offset);
 
   try {
     const payload = {
@@ -313,7 +326,7 @@ router.get("/grants/nih", async (req, res): Promise<void> => {
       },
       include_fields: ["ProjectNum", "ProjectTitle", "AbstractText", "AwardAmount", "ProjectStartDate", "ProjectEndDate", "Organization", "AgencyCode"],
       limit: rows,
-      offset: 0,
+      offset,
     };
 
     const response = await fetch("https://api.reporter.nih.gov/v2/projects/search", {
@@ -351,9 +364,10 @@ router.get("/grants/nih", async (req, res): Promise<void> => {
 router.get("/grants/nsf", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = getRows(req.query.rows);
+  const offset = getOffset(req.query.offset);
 
   try {
-    const url = `https://api.nsf.gov/services/v1/awards.json?keyword=${encodeURIComponent(keyword)}&rpp=${rows}`;
+    const url = `https://api.nsf.gov/services/v1/awards.json?keyword=${encodeURIComponent(keyword)}&rpp=${rows}&offset=${offset}`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`NSF responded ${response.status}`);
     const data = await response.json() as Record<string, unknown>;
@@ -385,9 +399,10 @@ router.get("/grants/nsf", async (req, res): Promise<void> => {
 router.get("/grants/worldbank", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = getRows(req.query.rows);
+  const offset = getOffset(req.query.offset);
 
   try {
-    const url = `https://search.worldbank.org/api/v2/projects?format=json&q=${encodeURIComponent(keyword)}&rows=${rows}&fl=id,project_name,totalamt,closingdate,countryname,status,url,boardapprovaldate,lendinginstr`;
+    const url = `https://search.worldbank.org/api/v2/projects?format=json&q=${encodeURIComponent(keyword)}&rows=${rows}&start=${offset}&fl=id,project_name,totalamt,closingdate,countryname,status,url,boardapprovaldate,lendinginstr`;
     const response = await fetch(url);
     if (!response.ok) throw new Error(`World Bank responded ${response.status}`);
     const data = await response.json() as Record<string, unknown>;
@@ -420,6 +435,7 @@ router.get("/grants/worldbank", async (req, res): Promise<void> => {
 router.get("/grants/samgov", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = getRows(req.query.rows);
+  const offset = getOffset(req.query.offset);
   const apiKey = process.env.SAM_GOV_API_KEY;
 
   if (!apiKey) {
@@ -437,6 +453,7 @@ router.get("/grants/samgov", async (req, res): Promise<void> => {
 
     const params = new URLSearchParams({
       limit: String(rows),
+      offset: String(offset),
       api_key: apiKey,
       postedFrom: fmt(from),
       postedTo: fmt(now),
@@ -487,6 +504,8 @@ router.get("/grants/samgov", async (req, res): Promise<void> => {
 router.get("/grants/tedeu", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = Math.max(getRows(req.query.rows), 1);
+  const offset = getOffset(req.query.offset);
+  const page = Math.floor(offset / rows) + 1;
 
   try {
     // Build query: TED EU expert search uses YYYYMMDD format for dates
@@ -501,7 +520,7 @@ router.get("/grants/tedeu", async (req, res): Promise<void> => {
       query: queryStr,
       fields: ["ND", "TI", "DT", "AU", "CY"],
       limit: rows,
-      page: 1,
+      page,
     };
 
     const response = await fetch("https://api.ted.europa.eu/v3/notices/search", {
@@ -560,6 +579,8 @@ router.get("/grants/tedeu", async (req, res): Promise<void> => {
 router.get("/grants/simplergrants", async (req, res): Promise<void> => {
   const keyword = getKeyword(req.query.keyword);
   const rows = getRows(req.query.rows);
+  const offset = getOffset(req.query.offset);
+  const pageOffset = Math.floor(offset / rows) + 1;
   const apiKey = process.env.SIMPLER_GRANTS_API_KEY;
 
   if (!apiKey) {
@@ -570,7 +591,7 @@ router.get("/grants/simplergrants", async (req, res): Promise<void> => {
   try {
     const payload: Record<string, unknown> = {
       pagination: {
-        page_offset: 1,
+        page_offset: pageOffset,
         page_size: rows,
         sort_order: [{ order_by: "post_date", sort_direction: "descending" }],
       },

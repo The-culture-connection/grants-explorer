@@ -9,4 +9,5 @@
 export type GetThreeSixtyGivingParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

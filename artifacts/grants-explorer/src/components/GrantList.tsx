@@ -2,16 +2,20 @@ import React from "react";
 import { motion } from "framer-motion";
 import { GrantCard } from "./GrantCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, FileSearch } from "lucide-react";
+import { AlertCircle, FileSearch, Loader2, ChevronDown } from "lucide-react";
 import { GrantItem } from "@workspace/api-client-react/src/generated/api.schemas";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 interface GrantListProps {
   items?: GrantItem[];
   isLoading: boolean;
+  isLoadingMore?: boolean;
   error: Error | null;
   total?: number;
   sourceName: string;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
 }
 
 const containerVariants = {
@@ -24,7 +28,7 @@ const containerVariants = {
   }
 };
 
-export function GrantList({ items, isLoading, error, total, sourceName }: GrantListProps) {
+export function GrantList({ items, isLoading, isLoadingMore, error, total, sourceName, onLoadMore, hasMore }: GrantListProps) {
   if (isLoading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
@@ -87,12 +91,12 @@ export function GrantList({ items, isLoading, error, total, sourceName }: GrantL
         </h2>
         {total !== undefined && (
           <div className="text-sm font-medium bg-secondary text-secondary-foreground px-3 py-1 rounded-full">
-            {total.toLocaleString()} total found
+            {items.length.toLocaleString()} of {total.toLocaleString()}
           </div>
         )}
       </div>
 
-      <motion.div 
+      <motion.div
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         variants={containerVariants}
         initial="hidden"
@@ -102,6 +106,36 @@ export function GrantList({ items, isLoading, error, total, sourceName }: GrantL
           <GrantCard key={grant.id || index} grant={grant} index={index} />
         ))}
       </motion.div>
+
+      {(hasMore || isLoadingMore) && (
+        <div className="flex justify-center pt-4 pb-8">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="h-12 px-8 rounded-xl border-2 border-border hover:border-primary hover:text-primary font-medium text-base transition-all gap-2"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading more...
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" />
+                Load more results
+              </>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {!hasMore && items.length > 0 && total !== undefined && items.length >= total && (
+        <p className="text-center text-sm text-muted-foreground pb-6">
+          All {total.toLocaleString()} results loaded
+        </p>
+      )}
     </div>
   );
 }

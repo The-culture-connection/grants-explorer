@@ -9,4 +9,5 @@
 export type GetNsfParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

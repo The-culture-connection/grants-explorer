@@ -9,4 +9,5 @@
 export type GetGrantsGovParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

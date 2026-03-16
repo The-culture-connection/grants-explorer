@@ -9,4 +9,5 @@
 export type GetTedEuParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

@@ -92,54 +92,65 @@ export interface WorldBankResult {
 export type GetGrantsGovParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetSbirParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetThreeSixtyGivingParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetCaGrantsParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetUsaSpendingParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetNihParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetNsfParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetSamGovParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetTedEuParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetSimplerGrantsParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };
 
 export type GetWorldBankParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

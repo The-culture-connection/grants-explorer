@@ -21,6 +21,7 @@ export const HealthCheckResponse = zod.object({
 export const GetGrantsGovQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetGrantsGovResponse = zod.object({
@@ -47,6 +48,7 @@ export const GetGrantsGovResponse = zod.object({
 export const GetSbirQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetSbirResponse = zod.object({
@@ -73,6 +75,7 @@ export const GetSbirResponse = zod.object({
 export const GetThreeSixtyGivingQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetThreeSixtyGivingResponse = zod.object({
@@ -99,6 +102,7 @@ export const GetThreeSixtyGivingResponse = zod.object({
 export const GetCaGrantsQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetCaGrantsResponse = zod.object({
@@ -125,6 +129,7 @@ export const GetCaGrantsResponse = zod.object({
 export const GetUsaSpendingQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetUsaSpendingResponse = zod.object({
@@ -151,6 +156,7 @@ export const GetUsaSpendingResponse = zod.object({
 export const GetNihQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetNihResponse = zod.object({
@@ -177,6 +183,7 @@ export const GetNihResponse = zod.object({
 export const GetNsfQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetNsfResponse = zod.object({
@@ -203,6 +210,7 @@ export const GetNsfResponse = zod.object({
 export const GetSamGovQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetSamGovResponse = zod.object({
@@ -229,6 +237,7 @@ export const GetSamGovResponse = zod.object({
 export const GetTedEuQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetTedEuResponse = zod.object({
@@ -255,6 +264,7 @@ export const GetTedEuResponse = zod.object({
 export const GetSimplerGrantsQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetSimplerGrantsResponse = zod.object({
@@ -281,6 +291,7 @@ export const GetSimplerGrantsResponse = zod.object({
 export const GetWorldBankQueryParams = zod.object({
   keyword: zod.coerce.string().optional(),
   rows: zod.coerce.number().optional(),
+  offset: zod.coerce.number().optional(),
 });
 
 export const GetWorldBankResponse = zod.object({

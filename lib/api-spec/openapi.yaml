@@ -41,6 +41,11 @@ paths:
           required: false
           schema:
             type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: Grants.gov results
@@ -60,6 +65,11 @@ paths:
           schema:
             type: string
         - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
           in: query
           required: false
           schema:
@@ -87,6 +97,11 @@ paths:
           required: false
           schema:
             type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: 360Giving results
@@ -106,6 +121,11 @@ paths:
           schema:
             type: string
         - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
           in: query
           required: false
           schema:
@@ -133,6 +153,11 @@ paths:
           required: false
           schema:
             type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: USASpending results
@@ -152,6 +177,11 @@ paths:
           schema:
             type: string
         - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
           in: query
           required: false
           schema:
@@ -179,6 +209,11 @@ paths:
           required: false
           schema:
             type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: NSF Awards results
@@ -198,6 +233,11 @@ paths:
           schema:
             type: string
         - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
           in: query
           required: false
           schema:
@@ -225,6 +265,11 @@ paths:
           required: false
           schema:
             type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: TED EU results
@@ -248,6 +293,11 @@ paths:
           required: false
           schema:
             type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
       responses:
         "200":
           description: Simpler Grants results
@@ -267,6 +317,11 @@ paths:
           schema:
             type: string
         - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
           in: query
           required: false
           schema:

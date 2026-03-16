@@ -9,4 +9,5 @@
 export type GetCaGrantsParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

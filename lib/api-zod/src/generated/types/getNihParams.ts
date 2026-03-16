@@ -9,4 +9,5 @@
 export type GetNihParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

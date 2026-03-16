@@ -9,4 +9,5 @@
 export type GetSamGovParams = {
   keyword?: string;
   rows?: number;
+  offset?: number;
 };

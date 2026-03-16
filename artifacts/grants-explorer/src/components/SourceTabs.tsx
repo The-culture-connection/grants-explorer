@@ -1,12 +1,12 @@
-import React from "react";
-import { 
-  useGetGrantsGov, 
-  useGetSbir, 
-  useGetThreeSixtyGiving, 
-  useGetCaGrants, 
-  useGetUsaSpending, 
-  useGetNih, 
-  useGetNsf, 
+import React, { useState, useEffect, useRef } from "react";
+import {
+  useGetGrantsGov,
+  useGetSbir,
+  useGetThreeSixtyGiving,
+  useGetCaGrants,
+  useGetUsaSpending,
+  useGetNih,
+  useGetNsf,
   useGetWorldBank,
   useGetSimplerGrants,
   useGetSamGov,
@@ -17,6 +17,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "use-debounce";
+import type { GrantItem } from "@workspace/api-client-react/src/generated/api.schemas";
+
+const PAGE_SIZE = 12;
 
 const SOURCES = [
   { id: "simplergrants", label: "Simpler Grants" },
@@ -32,41 +35,208 @@ const SOURCES = [
   { id: "worldbank", label: "World Bank" },
 ];
 
+/* ─────────────────────────────────────────────────────────────────────────
+   Generic accumulating hook — wraps any single-page react-query result
+   and exposes a stable list + loadMore callback.
+   Rules-of-hooks: callers must always invoke this unconditionally.
+───────────────────────────────────────────────────────────────────────── */
+function useAccumulator(
+  data: { items?: GrantItem[]; total?: number } | undefined,
+  isSuccess: boolean,
+  keyword: string,
+  offset: number,
+) {
+  const [allItems, setAllItems] = useState<GrantItem[]>([]);
+  const [total, setTotal] = useState<number | undefined>();
+  const prevKeyword = useRef(keyword);
+
+  useEffect(() => {
+    if (keyword !== prevKeyword.current) {
+      prevKeyword.current = keyword;
+      setAllItems([]);
+      setTotal(undefined);
+    }
+  }, [keyword]);
+
+  useEffect(() => {
+    if (isSuccess && data) {
+      if (data.total !== undefined) setTotal(data.total);
+      const incoming = data.items ?? [];
+      setAllItems((prev) => (offset === 0 ? [...incoming] : [...prev, ...incoming]));
+    }
+  }, [isSuccess, data]);
+
+  return { allItems, total };
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Per-source tab components — each owns its own offset state.
+   They are always rendered (just hidden) so state isn't lost on tab switch.
+───────────────────────────────────────────────────────────────────────── */
+
+function SimplerGrantsTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetSimplerGrants({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="Simpler Grants"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function SamGovTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetSamGov({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="SAM.gov"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function TedEuTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetTedEu({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="TED EU"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function GrantsGovTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetGrantsGov({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="Grants.gov"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function SbirTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetSbir({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="SBIR/STTR"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function NsfTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetNsf({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="NSF Awards"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function NihTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetNih({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="NIH RePORTER"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function UsaSpendingTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetUsaSpending({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="USASpending"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function CaGrantsTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetCaGrants({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="California Grants"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function ThreeSixtyGivingTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetThreeSixtyGiving({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="360Giving"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+function WorldBankTab({ keyword }: { keyword: string }) {
+  const [offset, setOffset] = useState(0);
+  useEffect(() => { setOffset(0); }, [keyword]);
+  const q = useGetWorldBank({ keyword, rows: PAGE_SIZE, offset });
+  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
+  return (
+    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
+      error={q.error as Error | null} sourceName="World Bank"
+      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
+      hasMore={total !== undefined ? allItems.length < total : false} />
+  );
+}
+
+const TAB_COMPONENTS: Record<string, React.ComponentType<{ keyword: string }>> = {
+  simplergrants: SimplerGrantsTab,
+  samgov: SamGovTab,
+  tedeu: TedEuTab,
+  grantsgov: GrantsGovTab,
+  sbir: SbirTab,
+  nsf: NsfTab,
+  nih: NihTab,
+  usaspending: UsaSpendingTab,
+  cagrants: CaGrantsTab,
+  threesixtygiving: ThreeSixtyGivingTab,
+  worldbank: WorldBankTab,
+};
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Main export
+───────────────────────────────────────────────────────────────────────── */
 export function SourceTabs() {
-  const [activeTab, setActiveTab] = React.useState(SOURCES[0].id);
   const [searchTerm, setSearchTerm] = React.useState("");
   const [debouncedKeyword] = useDebounce(searchTerm, 600);
-
-  const queryParams = { keyword: debouncedKeyword, rows: 12 };
-
-  const simplerGrantsQuery = useGetSimplerGrants(queryParams, { query: { enabled: activeTab === "simplergrants" } });
-  const samGovQuery = useGetSamGov(queryParams, { query: { enabled: activeTab === "samgov" } });
-  const tedEuQuery = useGetTedEu(queryParams, { query: { enabled: activeTab === "tedeu" } });
-  const grantsGovQuery = useGetGrantsGov(queryParams, { query: { enabled: activeTab === "grantsgov" } });
-  const sbirQuery = useGetSbir(queryParams, { query: { enabled: activeTab === "sbir" } });
-  const nsfQuery = useGetNsf(queryParams, { query: { enabled: activeTab === "nsf" } });
-  const nihQuery = useGetNih(queryParams, { query: { enabled: activeTab === "nih" } });
-  const usaSpendingQuery = useGetUsaSpending(queryParams, { query: { enabled: activeTab === "usaspending" } });
-  const caGrantsQuery = useGetCaGrants(queryParams, { query: { enabled: activeTab === "cagrants" } });
-  const threeSixtyQuery = useGetThreeSixtyGiving(queryParams, { query: { enabled: activeTab === "threesixtygiving" } });
-  const worldBankQuery = useGetWorldBank(queryParams, { query: { enabled: activeTab === "worldbank" } });
-
-  const getQueryForTab = (tabId: string) => {
-    switch (tabId) {
-      case "simplergrants": return simplerGrantsQuery;
-      case "samgov": return samGovQuery;
-      case "tedeu": return tedEuQuery;
-      case "grantsgov": return grantsGovQuery;
-      case "sbir": return sbirQuery;
-      case "nsf": return nsfQuery;
-      case "nih": return nihQuery;
-      case "usaspending": return usaSpendingQuery;
-      case "cagrants": return caGrantsQuery;
-      case "threesixtygiving": return threeSixtyQuery;
-      case "worldbank": return worldBankQuery;
-      default: return simplerGrantsQuery;
-    }
-  };
 
   return (
     <div className="w-full space-y-8">
@@ -89,12 +259,12 @@ export function SourceTabs() {
         </div>
       </div>
 
-      <Tabs defaultValue={SOURCES[0].id} onValueChange={setActiveTab} className="w-full">
+      <Tabs defaultValue={SOURCES[0].id} className="w-full">
         <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
           <TabsList className="inline-flex h-14 items-center justify-start rounded-xl bg-muted/50 p-1 w-auto min-w-full sm:min-w-0 border border-border/50">
             {SOURCES.map((source) => (
-              <TabsTrigger 
-                key={source.id} 
+              <TabsTrigger
+                key={source.id}
                 value={source.id}
                 className="h-12 px-6 rounded-lg font-medium text-sm data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
               >
@@ -106,16 +276,10 @@ export function SourceTabs() {
 
         <div className="mt-6 min-h-[500px]">
           {SOURCES.map((source) => {
-            const query = getQueryForTab(source.id);
+            const TabComp = TAB_COMPONENTS[source.id];
             return (
               <TabsContent key={source.id} value={source.id} className="m-0 outline-none">
-                <GrantList 
-                  items={query.data?.items} 
-                  total={query.data?.total}
-                  isLoading={query.isLoading || (query.isFetching && !query.data)} 
-                  error={query.error as Error | null}
-                  sourceName={source.label}
-                />
+                <TabComp keyword={debouncedKeyword} />
               </TabsContent>
             );
           })}
