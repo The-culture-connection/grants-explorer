@@ -1,0 +1,15 @@
+packages:
+  "framer-motion": "For premium smooth page transitions and staggered card reveal animations"
+  "date-fns": "For formatting grant deadlines gracefully"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility to merge tailwind classes without style conflicts"
+  "use-debounce": "For debouncing the keyword search input before triggering API calls"
+
+images:
+  - path: "artifacts/grants-explorer/public/images/hero-bg.png"
+    description: "Abstract ultra-clean geometric background in deep navy blue and crisp white, featuring subtle connecting lines and glowing data nodes, professional civic tech aesthetic, minimal and premium"
+    aspect_ratio: "16:9"
+
+notes:
+  - Expects the @workspace/api-client-react hooks to be available and return data matching the provided GrantItem schema.
+  - Using a generic error boundary approach per tab to allow individual data sources to fail without crashing the whole application.

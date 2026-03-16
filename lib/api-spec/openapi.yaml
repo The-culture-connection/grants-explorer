@@ -1,15 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Grants Explorer API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: grants
+    description: Grant funding API endpoints
 paths:
   /healthz:
     get:
@@ -24,6 +25,190 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /grants/grantsgov:
+    get:
+      operationId: getGrantsGov
+      tags: [grants]
+      summary: Fetch Grants.gov opportunities
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Grants.gov results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GrantsGovResult"
+  /grants/sbir:
+    get:
+      operationId: getSbir
+      tags: [grants]
+      summary: Fetch SBIR/STTR awards
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: SBIR results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SbirResult"
+  /grants/threesixtygiving:
+    get:
+      operationId: getThreeSixtyGiving
+      tags: [grants]
+      summary: Fetch 360Giving grants
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: 360Giving results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThreeSixtyGivingResult"
+  /grants/cagrants:
+    get:
+      operationId: getCaGrants
+      tags: [grants]
+      summary: Fetch California Grants Portal grants
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: California grants results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaGrantsResult"
+  /grants/usaspending:
+    get:
+      operationId: getUsaSpending
+      tags: [grants]
+      summary: Fetch USASpending awards
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: USASpending results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UsaSpendingResult"
+  /grants/nih:
+    get:
+      operationId: getNih
+      tags: [grants]
+      summary: Fetch NIH RePORTER projects
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: NIH RePORTER results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NihResult"
+  /grants/nsf:
+    get:
+      operationId: getNsf
+      tags: [grants]
+      summary: Fetch NSF Awards
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: NSF Awards results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NsfResult"
+  /grants/worldbank:
+    get:
+      operationId: getWorldBank
+      tags: [grants]
+      summary: Fetch World Bank projects
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: rows
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: World Bank results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorldBankResult"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +218,140 @@ components:
           type: string
       required:
         - status
-
+    GrantItem:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        amount:
+          type: string
+        deadline:
+          type: string
+        agency:
+          type: string
+        url:
+          type: string
+        status:
+          type: string
+        extra:
+          type: object
+          additionalProperties: true
+      required:
+        - id
+        - title
+    GrantsGovResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    SbirResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    ThreeSixtyGivingResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    CaGrantsResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    UsaSpendingResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    NihResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    NsfResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items
+    WorldBankResult:
+      type: object
+      properties:
+        source:
+          type: string
+        total:
+          type: integer
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/GrantItem"
+      required:
+        - source
+        - items

@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Grants Explorer"
+version = "1.0.0"
+id = "artifacts/grants-explorer"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 26195
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/grants-explorer run dev"
+
+[services.env]
+PORT = "26195"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/grants-explorer", "run", "build"]
+publicDir = "artifacts/grants-explorer/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
