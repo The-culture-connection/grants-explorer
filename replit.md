@@ -57,21 +57,29 @@ React + Vite web app. Multi-page tool for grant discovery, algorithm testing, an
 
 **Routes:**
 - `/` — Home: 11-source live grant explorer with tabs per source, keyword search, result cards
-- `/algorithm` — Algorithm V1 Testing Center: rules-based funding-match engine, org profile selector, live scoring against indexed DB, score breakdown + explainability
+- `/algorithm` — Algorithm Testing Center: V1/V2 version switcher, compare mode (side-by-side rank delta table + top-5 cards from each engine), V2 8-dimension scoring breakdown, org/opportunity profiling display
 - `/indexing` — Indexing Tool: full-result ingestion from all 11 sources into PostgreSQL, per-source pagination control, record inspector, algorithm integration view
-- `/audit` — Algorithm Audit: internal debug tool for evaluating match quality against real data — scoring traces, failure analysis, weight editor, algorithm comparison lab, keyword audit, eligibility audit, gold-standard eval set builder, recommendations engine
+- `/audit` — Algorithm Audit: internal debug tool with Comparison Lab (V1 vs V2 tab + V1 Variant Lab tab), scoring traces, failure analysis, weight editor, keyword audit, eligibility audit, gold-standard eval set builder, recommendations engine
 
 **Source classification:**
 - Active opportunity sources (8): simpler_grants, grants_gov, sam_gov, sbir, threesixtygiving, california_grants, world_bank, ted_eu
 - Historical/intelligence sources excluded from ranking (3): usaspending, nih_reporter, nsf_awards
 
 **Audit library** (`src/lib/audit/`):
-- `types.ts` — WeightConfig, AlgorithmVariant, FeedbackLabel, EvalLabel, ScoreTrace, ALGORITHM_VARIANTS, DEFAULT_WEIGHTS
+- `types.ts` — WeightConfig, AlgorithmVariant (with `isV2?` flag), FeedbackLabel, EvalLabel, ScoreTrace, ALGORITHM_VARIANTS (includes `v2_current`), DEFAULT_WEIGHTS
 - `scoreTrace.ts` — `buildScoreTrace()`, `runVariantScoring()` — weight-configurable scoring with human-readable audit trail
 - `metrics.ts` — `computeAuditMetrics()` — precision@5, precision@10, recall, score distribution, by-source counts
-- `comparison.ts` — `runComparison()` — multi-variant side-by-side ranking table with rise/fall flags
+- `comparison.ts` — `runComparison()` (multi-V1-variant table) + `runV1vsV2Comparison()` (V1 vs V2 rank-delta table with V2ScoreTrace per row)
 - `recommendations.ts` — `generateRecommendations()`, `classifyFailureCases()` — behavior-driven improvement suggestions
 - `keywords.ts` — `extractKeywordAudit()`, `expandWithSynonyms()`, SYNONYM_GROUPS, STOPWORDS
+
+**V2 scoring library** (`src/lib/v2/`):
+- `types.ts` — V2OrgProfile, V2OppProfile, V2ScoreTrace, V2Dimensions, V2Penalty interfaces
+- `taxonomy.ts` — SECTOR_FAMILIES, ACTIVITY_KEYWORDS, POPULATION_KEYWORDS, V2_SYNONYM_GROUPS lookup tables
+- `orgProfile.ts` — `buildOrganizationProfile()` — classifies org into orgClass + capacityBand from OrgProfile
+- `oppProfile.ts` — `buildOpportunityProfile()`, `classifyOpportunityType()` — classifies opp into 8 opportunity types + complexityBand + geographyScope
+- `scoring.ts` — 8 dimension scorers (eligibilityFit, domainFit, activityFit, populationFit, geographyFit, organizationTypeFit, capacityFit, fundingFit) + semantic boost + penalty engine
+- `matcherV2.ts` — `scoreMatchV2()`, `getTopMatchesV2()`, `compareV1V2()` — returns V2ScoreTrace with finalScore, dimensions, semanticBoost, penaltyTotal, orgProfile, oppProfile, reasons
 
 **Algorithm library** (`src/lib/algorithm/`):
 - `types.ts` — OrgProfile, NormalizedOpportunity, MatchResult, ScoreBreakdown

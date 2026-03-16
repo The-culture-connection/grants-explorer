@@ -43,6 +43,7 @@ export interface AlgorithmVariant {
   useSynonymExpansion?: boolean;
   stricterEligibility?: boolean;
   relaxedGeography?: boolean;
+  isV2?: boolean;
 }
 
 export const ALGORITHM_VARIANTS: AlgorithmVariant[] = [
@@ -84,6 +85,13 @@ export const ALGORITHM_VARIANTS: AlgorithmVariant[] = [
     label: "V1 Balanced",
     description: "Equal weights across all five components",
     weights: { mission_topic_fit: 20, eligibility_fit: 20, geography_fit: 20, funding_size_fit: 20, maturity_fit: 20 },
+  },
+  {
+    key: "v2_current",
+    label: "V2 Profile Match",
+    description: "V2: 8-dimension profile-to-profile matcher with taxonomy, org-type fit, capacity/complexity, and penalty engine",
+    weights: { mission_topic_fit: 20, eligibility_fit: 20, geography_fit: 10, funding_size_fit: 5, maturity_fit: 5 },
+    isV2: true,
   },
 ];
 

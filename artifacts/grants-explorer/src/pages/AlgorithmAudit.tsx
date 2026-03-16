@@ -21,7 +21,8 @@ import type { OrgProfile, NormalizedOpportunity } from "@/lib/algorithm/types";
 import { buildScoreTrace, runVariantScoring } from "@/lib/audit/scoreTrace";
 import { computeAuditMetrics } from "@/lib/audit/metrics";
 import { extractKeywordAudit } from "@/lib/audit/keywords";
-import { runComparison } from "@/lib/audit/comparison";
+import { runComparison, runV1vsV2Comparison } from "@/lib/audit/comparison";
+import type { V1V2CompRow } from "@/lib/audit/comparison";
 import { generateRecommendations, classifyFailureCases } from "@/lib/audit/recommendations";
 import { SYNONYM_GROUPS, STOPWORDS } from "@/lib/audit/keywords";
 import { ALGORITHM_VARIANTS, DEFAULT_WEIGHTS } from "@/lib/audit/types";
@@ -425,6 +426,24 @@ export default function AlgorithmAuditPage() {
       setCompResults(runComparison(activeOrg, pool, compVariants));
       setCompRunning(false);
     }, 200);
+  };
+
+  // ── V1 vs V2 Comparison ───────────────────────────────────────────────────
+  const [v1v2CompResult, setV1v2CompResult] = useState<ReturnType<typeof runV1vsV2Comparison> | null>(null);
+  const [v1v2Running, setV1v2Running] = useState(false);
+  const [expandedV2Row, setExpandedV2Row] = useState<string | null>(null);
+
+  const runV1V2Compare = () => {
+    if (pool.length === 0) return;
+    setV1v2Running(true);
+    setTimeout(() => {
+      try {
+        setV1v2CompResult(runV1vsV2Comparison(activeOrg, pool, 20));
+      } catch (e) {
+        console.error("V1 vs V2 comparison error:", e);
+      }
+      setV1v2Running(false);
+    }, 400);
   };
 
   // ── Keyword audit ─────────────────────────────────────────────────────────
@@ -846,70 +865,270 @@ export default function AlgorithmAuditPage() {
 
             {/* ── 5. Comparison Lab ─────────────────────────────────────────────── */}
             <TabsContent value="comparison">
-              <div className="mb-4 flex flex-wrap items-center gap-3">
-                <div className="text-sm font-medium">Select variants to compare:</div>
-                {ALGORITHM_VARIANTS.map((v) => (
-                  <label key={v.key} className="flex items-center gap-1.5 text-xs cursor-pointer">
-                    <input type="checkbox" checked={compVariants.includes(v.key)}
-                      onChange={(e) => setCompVariants((prev) =>
-                        e.target.checked ? [...prev, v.key] : prev.filter((k) => k !== v.key)
-                      )}
-                    />
-                    {v.label}
-                  </label>
-                ))}
-                <Button size="sm" onClick={runCompare} disabled={compRunning || compVariants.length < 2} className="gap-1 ml-auto">
-                  <BarChart3 className="h-3.5 w-3.5" /> {compRunning ? "Running…" : "Compare"}
-                </Button>
-              </div>
+              <Tabs defaultValue="v1v2">
+                <TabsList className="mb-4">
+                  <TabsTrigger value="v1v2">V1 vs V2 Comparison</TabsTrigger>
+                  <TabsTrigger value="variants">V1 Variant Lab</TabsTrigger>
+                </TabsList>
 
-              {compResults && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/50">
-                        <th className="text-left p-2 font-medium">Opportunity</th>
-                        <th className="text-left p-2 font-medium">Source</th>
-                        {compResults.variantResults.map((vr) => (
-                          <th key={vr.variant.key} className="text-center p-2 font-medium min-w-24">
-                            {vr.variant.label}
-                          </th>
+                {/* ── V1 vs V2 ── */}
+                <TabsContent value="v1v2">
+                  <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                    <div className="space-y-1">
+                      <div className="text-sm font-medium">Algorithm V1 vs V2 Comparison</div>
+                      <div className="text-xs text-muted-foreground">
+                        Run both engines against the live pool and compare rank changes, score deltas, and which opportunities rose or fell.
+                      </div>
+                    </div>
+                    <Button size="sm" onClick={runV1V2Compare} disabled={v1v2Running || pool.length === 0} className="gap-1.5 shrink-0">
+                      <BarChart3 className="h-3.5 w-3.5" />
+                      {v1v2Running ? "Comparing…" : "Run V1 vs V2"}
+                    </Button>
+                  </div>
+
+                  {!v1v2CompResult && !v1v2Running && (
+                    <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg">
+                      <BarChart3 className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">Click <strong>Run V1 vs V2</strong> to compare scoring engines</p>
+                      <p className="text-xs mt-1">Requires an organization selected and opportunities loaded</p>
+                    </div>
+                  )}
+
+                  {v1v2Running && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <div className="inline-flex items-center gap-2 animate-pulse">
+                        <Zap className="h-5 w-5 text-primary" />
+                        <span className="text-sm font-medium">Scoring {pool.length.toLocaleString()} opportunities with V1 and V2…</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {v1v2CompResult && !v1v2Running && (
+                    <div className="space-y-4">
+                      {/* Summary stats */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        {[
+                          { label: "Rose in V2", value: v1v2CompResult.table.filter(r => r.flag === "rose").length, color: "text-emerald-600" },
+                          { label: "Fell in V2", value: v1v2CompResult.table.filter(r => r.flag === "fell").length, color: "text-red-500" },
+                          { label: "New in V2", value: v1v2CompResult.table.filter(r => r.flag === "new").length, color: "text-blue-600" },
+                          { label: "Stable", value: v1v2CompResult.table.filter(r => r.flag === "stable").length, color: "text-muted-foreground" },
+                        ].map(({ label, value, color }) => (
+                          <Card key={label} className="border-border/50">
+                            <CardContent className="p-3 text-center">
+                              <div className={`text-2xl font-bold ${color}`}>{value}</div>
+                              <div className="text-xs text-muted-foreground">{label}</div>
+                            </CardContent>
+                          </Card>
                         ))}
-                        <th className="text-center p-2 font-medium">Δ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {compResults.table.slice(0, 20).map((row) => (
-                        <tr key={row.opp_id} className={`border-b border-border/40 ${
-                          row.flag === "rises" ? "bg-emerald-50/50" :
-                          row.flag === "falls" ? "bg-red-50/50" :
-                          row.flag === "new" ? "bg-blue-50/50" : ""
-                        }`}>
-                          <td className="p-2 max-w-xs">
-                            <div className="line-clamp-1 font-medium">{row.title}</div>
-                          </td>
-                          <td className="p-2 text-muted-foreground font-mono">{row.source}</td>
-                          {compResults.variantResults.map((vr) => (
-                            <td key={vr.variant.key} className="p-2 text-center">
-                              <div className={`font-bold ${scoreColor(row.scores[vr.variant.key] ?? 0)}`}>
-                                {row.scores[vr.variant.key] ?? "—"}
-                              </div>
-                              <div className="text-muted-foreground text-xs">#{row.ranks[vr.variant.key] ?? "—"}</div>
-                            </td>
+                      </div>
+
+                      {/* Comparison table */}
+                      <div className="overflow-x-auto rounded-lg border border-border/60">
+                        <table className="w-full text-xs border-collapse min-w-[700px]">
+                          <thead>
+                            <tr className="bg-muted/60 text-left border-b border-border">
+                              <th className="px-3 py-2 font-medium">Opportunity</th>
+                              <th className="px-3 py-2 font-medium w-24">Source</th>
+                              <th className="px-3 py-2 font-medium w-20 text-center">V1 Score</th>
+                              <th className="px-3 py-2 font-medium w-20 text-center">V2 Score</th>
+                              <th className="px-3 py-2 font-medium w-20 text-center">Score Δ</th>
+                              <th className="px-3 py-2 font-medium w-20 text-center">Rank Δ</th>
+                              <th className="px-3 py-2 font-medium w-20 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {v1v2CompResult.table.map((row: V1V2CompRow, i) => (
+                              <React.Fragment key={row.opp_id}>
+                                <tr
+                                  className={`border-b border-border/40 cursor-pointer hover:bg-muted/30 ${
+                                    i % 2 === 0 ? "bg-background" : "bg-muted/10"
+                                  } ${
+                                    row.flag === "rose" ? "border-l-2 border-l-emerald-400"
+                                    : row.flag === "fell" ? "border-l-2 border-l-red-400"
+                                    : row.flag === "new" ? "border-l-2 border-l-blue-400"
+                                    : ""
+                                  }`}
+                                  onClick={() => setExpandedV2Row(expandedV2Row === row.opp_id ? null : row.opp_id)}
+                                >
+                                  <td className="px-3 py-2 max-w-0">
+                                    <div className="truncate font-medium" title={row.title}>{row.title}</div>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0 font-mono">{row.source}</Badge>
+                                  </td>
+                                  <td className="px-3 py-2 text-center font-mono tabular-nums">
+                                    {row.v1Score != null ? <span className={scoreColor(row.v1Score)}>{row.v1Score}</span> : <span className="text-muted-foreground">—</span>}
+                                  </td>
+                                  <td className="px-3 py-2 text-center font-mono tabular-nums">
+                                    {row.v2Score != null ? <span className={scoreColor(row.v2Score)}>{row.v2Score}</span> : <span className="text-muted-foreground">—</span>}
+                                  </td>
+                                  <td className="px-3 py-2 text-center font-mono tabular-nums">
+                                    {row.scoreDelta == null ? "—"
+                                      : row.scoreDelta > 0 ? <span className="text-emerald-600">+{row.scoreDelta}</span>
+                                      : row.scoreDelta < 0 ? <span className="text-red-500">{row.scoreDelta}</span>
+                                      : <span className="text-muted-foreground">0</span>}
+                                  </td>
+                                  <td className="px-3 py-2 text-center">
+                                    {row.rankDelta == null ? <Minus className="h-3 w-3 mx-auto text-muted-foreground" />
+                                      : row.rankDelta > 0 ? <span className="text-emerald-600 flex items-center justify-center gap-0.5"><TrendingUp className="h-3 w-3" />+{row.rankDelta}</span>
+                                      : row.rankDelta < 0 ? <span className="text-red-500 flex items-center justify-center gap-0.5"><TrendingDown className="h-3 w-3" />{row.rankDelta}</span>
+                                      : <Minus className="h-3 w-3 mx-auto text-muted-foreground" />}
+                                  </td>
+                                  <td className="px-3 py-2 text-center">
+                                    <Badge className={`text-[10px] px-1.5 py-0 ${
+                                      row.flag === "rose" ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                      : row.flag === "fell" ? "bg-red-100 text-red-700 border-red-200"
+                                      : row.flag === "new" ? "bg-blue-100 text-blue-700 border-blue-200"
+                                      : row.flag === "dropped" ? "bg-gray-100 text-gray-600 border-gray-200"
+                                      : "bg-muted text-muted-foreground"}`}>{row.flag}</Badge>
+                                  </td>
+                                </tr>
+                                {/* Expandable V2 trace row */}
+                                {expandedV2Row === row.opp_id && row.v2Trace && (
+                                  <tr className="bg-muted/30 border-b border-border/30">
+                                    <td colSpan={7} className="px-4 py-3">
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                                        <div>
+                                          <div className="font-semibold mb-2">V2 Dimension Scores</div>
+                                          <div className="space-y-1">
+                                            {[
+                                              { key: "eligibilityFit", label: "Eligibility", max: 20 },
+                                              { key: "domainFit", label: "Domain", max: 20 },
+                                              { key: "activityFit", label: "Activity", max: 15 },
+                                              { key: "populationFit", label: "Population", max: 10 },
+                                              { key: "geographyFit", label: "Geography", max: 10 },
+                                              { key: "organizationTypeFit", label: "Org Type", max: 10 },
+                                              { key: "capacityFit", label: "Capacity", max: 10 },
+                                              { key: "fundingFit", label: "Funding", max: 5 },
+                                            ].map(({ key, label, max }) => {
+                                              const val = (row.v2Trace!.dimensions as any)[key] as number;
+                                              const pct = Math.round((val / max) * 100);
+                                              return (
+                                                <div key={key} className="flex items-center gap-2">
+                                                  <span className="w-24 text-muted-foreground shrink-0">{label}</span>
+                                                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                                    <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                                                  </div>
+                                                  <span className="font-mono w-10 text-right">{val}/{max}</span>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                          <div className="mt-2 flex items-center gap-2 font-mono text-xs">
+                                            <span className="text-muted-foreground">Base {row.v2Trace.baseScore}</span>
+                                            {row.v2Trace.semanticBoost > 0 && <span className="text-emerald-600">+{row.v2Trace.semanticBoost}</span>}
+                                            {row.v2Trace.penaltyTotal > 0 && <span className="text-red-500">−{row.v2Trace.penaltyTotal}</span>}
+                                            <span className="font-bold">= {row.v2Trace.finalScore}</span>
+                                          </div>
+                                        </div>
+                                        <div>
+                                          <div className="font-semibold mb-2">Profile Classification</div>
+                                          <div className="space-y-1 text-muted-foreground">
+                                            <div><span className="font-medium text-foreground">Org class:</span> {row.v2Trace.orgProfile.orgClass}</div>
+                                            <div><span className="font-medium text-foreground">Capacity band:</span> {row.v2Trace.orgProfile.capacityBand}</div>
+                                            <div><span className="font-medium text-foreground">Opp type:</span> {row.v2Trace.oppProfile.opportunityType.replace(/_/g, " ")}</div>
+                                            <div><span className="font-medium text-foreground">Complexity:</span> {row.v2Trace.oppProfile.complexityBand}</div>
+                                            <div><span className="font-medium text-foreground">Geo scope:</span> {row.v2Trace.oppProfile.geographyScope}</div>
+                                          </div>
+                                          {row.v2Trace.penalties.length > 0 && (
+                                            <div className="mt-2">
+                                              <div className="font-semibold mb-1 text-red-600">Penalties</div>
+                                              {row.v2Trace.penalties.map((p, pi) => (
+                                                <div key={pi} className="text-red-600 text-[11px]">−{p.value} {p.type.replace(/_/g, " ")}: {p.reason}</div>
+                                              ))}
+                                            </div>
+                                          )}
+                                          {row.v2Trace.reasons.length > 0 && (
+                                            <div className="mt-2">
+                                              <div className="font-semibold mb-1 text-emerald-700">Why it ranked</div>
+                                              {row.v2Trace.reasons.map((r, ri) => (
+                                                <div key={ri} className="text-emerald-700 text-[11px]">✓ {r}</div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Click any row to expand the V2 scoring trace</div>
+                    </div>
+                  )}
+                </TabsContent>
+
+                {/* ── V1 Variant Lab ── */}
+                <TabsContent value="variants">
+                  <div className="mb-4 flex flex-wrap items-center gap-3">
+                    <div className="text-sm font-medium">Select V1 variants to compare:</div>
+                    {ALGORITHM_VARIANTS.filter(v => !v.isV2).map((v) => (
+                      <label key={v.key} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input type="checkbox" checked={compVariants.includes(v.key)}
+                          onChange={(e) => setCompVariants((prev) =>
+                            e.target.checked ? [...prev, v.key] : prev.filter((k) => k !== v.key)
+                          )}
+                        />
+                        {v.label}
+                      </label>
+                    ))}
+                    <Button size="sm" onClick={runCompare} disabled={compRunning || compVariants.length < 2} className="gap-1 ml-auto">
+                      <BarChart3 className="h-3.5 w-3.5" /> {compRunning ? "Running…" : "Compare Variants"}
+                    </Button>
+                  </div>
+
+                  {compResults && (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-border bg-muted/50">
+                            <th className="text-left p-2 font-medium">Opportunity</th>
+                            <th className="text-left p-2 font-medium">Source</th>
+                            {compResults.variantResults.map((vr) => (
+                              <th key={vr.variant.key} className="text-center p-2 font-medium min-w-24">
+                                {vr.variant.label}
+                              </th>
+                            ))}
+                            <th className="text-center p-2 font-medium">Δ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {compResults.table.slice(0, 20).map((row) => (
+                            <tr key={row.opp_id} className={`border-b border-border/40 ${
+                              row.flag === "rises" ? "bg-emerald-50/50" :
+                              row.flag === "falls" ? "bg-red-50/50" :
+                              row.flag === "new" ? "bg-blue-50/50" : ""
+                            }`}>
+                              <td className="p-2 max-w-xs">
+                                <div className="line-clamp-1 font-medium">{row.title}</div>
+                              </td>
+                              <td className="p-2 text-muted-foreground font-mono">{row.source}</td>
+                              {compResults.variantResults.map((vr) => (
+                                <td key={vr.variant.key} className="p-2 text-center">
+                                  <div className={`font-bold ${scoreColor(row.scores[vr.variant.key] ?? 0)}`}>
+                                    {row.scores[vr.variant.key] ?? "—"}
+                                  </div>
+                                  <div className="text-muted-foreground text-xs">#{row.ranks[vr.variant.key] ?? "—"}</div>
+                                </td>
+                              ))}
+                              <td className="p-2 text-center">
+                                {row.flag === "rises" && <TrendingUp className="h-3.5 w-3.5 text-emerald-600 mx-auto" />}
+                                {row.flag === "falls" && <TrendingDown className="h-3.5 w-3.5 text-red-500 mx-auto" />}
+                                {row.flag === "new" && <Star className="h-3.5 w-3.5 text-blue-500 mx-auto" />}
+                                {row.flag === "stable" && <Minus className="h-3.5 w-3.5 text-muted-foreground mx-auto" />}
+                                <div className="text-muted-foreground">{row.rank_delta_min_max > 0 ? `±${row.rank_delta_min_max}` : ""}</div>
+                              </td>
+                            </tr>
                           ))}
-                          <td className="p-2 text-center">
-                            {row.flag === "rises" && <TrendingUp className="h-3.5 w-3.5 text-emerald-600 mx-auto" />}
-                            {row.flag === "falls" && <TrendingDown className="h-3.5 w-3.5 text-red-500 mx-auto" />}
-                            {row.flag === "new" && <Star className="h-3.5 w-3.5 text-blue-500 mx-auto" />}
-                            {row.flag === "stable" && <Minus className="h-3.5 w-3.5 text-muted-foreground mx-auto" />}
-                            <div className="text-muted-foreground">{row.rank_delta_min_max > 0 ? `±${row.rank_delta_min_max}` : ""}</div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </TabsContent>
 
             {/* ── 6. Keyword Audit ─────────────────────────────────────────────── */}

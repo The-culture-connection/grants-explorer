@@ -1,0 +1,635 @@
+# Replit Prompt — Implement Algorithm V2 Using Real Indexed Data Only
+
+Build **Algorithm V2** in this Replit app by extending the existing V1 funding-match system, the real indexed data pipeline, and the existing audit/debug tooling that are already implemented in the project.
+
+## Core requirement
+
+This V2 implementation must **build on top of the current codebase**. Do not replace the current system from scratch.
+
+Use what already exists:
+
+* the current V1 matcher
+* the real indexed data store
+* the source filtering/classification logic
+* the Algorithm page
+* the Indexing Tool
+* the Algorithm Audit tooling
+* any existing normalization logic
+* any existing organization profile inputs and opportunity schemas
+
+## Strict data rule
+
+Use **real indexed data only**.
+
+Do **not** introduce, seed, or rely on any mock data, fallback sample data, demo fixtures, or hardcoded toy opportunities/organizations anywhere in the V2 matching path, audit path, comparison path, or UI.
+
+If data is missing, surface that clearly in the UI instead of inventing records.
+
+## Goal
+
+Improve ranking quality so that results are based on **true practical fit**, not just broad topic similarity.
+
+V2 should work broadly across many organization types, not just one example.
+
+It must improve matches for organizations such as:
+
+* nonprofits
+* small businesses
+* universities
+* local governments
+* tribal organizations
+* research institutions
+* community-based organizations
+* contractors
+* international NGOs
+
+## Important source rule
+
+V2 matching and displayed opportunity rankings must continue using only **active opportunity** records from the indexed store.
+
+Include only these active-opportunity sources in rankings:
+
+* Simpler Grants
+* Grants.gov Search
+* SAM.gov Opportunities
+* SBIR
+* 360Giving
+* California Grants Portal
+* World Bank Procurement
+* TED (EU)
+
+Do not rank these as live opportunities:
+
+* USAspending
+* NIH RePORTER
+* NSF Awards
+
+Those historical/intelligence sources may remain available for future analytics or benchmarking, but they must not appear as current opportunity results in V2 rankings.
+
+---
+
+# Main V2 design
+
+Implement V2 as a **generalized profile-to-profile matcher**.
+
+Instead of relying mostly on raw keyword overlap, V2 should compare:
+
+* a normalized, inferred **organization profile**
+  against
+* a normalized, inferred **opportunity profile**
+
+The final score should reflect:
+
+* relevance
+* practical fit
+* operational realism
+* scale appropriateness
+* organization/opportunity type compatibility
+
+---
+
+# What to implement
+
+## 1. Keep V1 intact
+
+Do not remove or overwrite V1.
+
+Keep the existing V1 codepath available as a baseline for:
+
+* comparison in the Algorithm Audit page
+* side-by-side ranking evaluation
+* regression checking
+
+Add V2 as a new versioned scorer, for example:
+
+* `scoreMatchV1(...)`
+* `scoreMatchV2(...)`
+
+The app should be able to compare V1 and V2 on the same real indexed data.
+
+---
+
+## 2. Build a generalized organization profile builder
+
+Create a reusable function that takes any real organization JSON/profile already used in the app and infers a standardized internal organization profile.
+
+Example internal shape:
+
+```ts
+{
+  orgId: string,
+  name: string,
+  orgClass: 'nonprofit' | 'small_business' | 'university' | 'government' | 'tribal' | 'research_institution' | 'contractor' | 'international_ngo' | 'other',
+  sectorTags: string[],
+  domainTags: string[],
+  activityTags: string[],
+  populationTags: string[],
+  geographyTags: string[],
+  geographyScope: 'local' | 'state' | 'national' | 'international' | 'unknown',
+  capacityBand: 'early' | 'growing' | 'established' | 'enterprise' | 'unknown',
+  fundingReadiness: 'low' | 'medium' | 'high' | 'unknown',
+  researchReadiness: 'low' | 'medium' | 'high' | 'unknown',
+  procurementReadiness: 'low' | 'medium' | 'high' | 'unknown',
+  annualBudget: number | null,
+  yearsInOperation: number | null,
+  has501c3: boolean | null,
+  isSmallBusiness: boolean | null,
+  rawSourceFields: any
+}
+```
+
+Infer this profile from the real organization fields already present in the app, such as:
+
+* org type
+* mission
+* program areas
+* population served
+* geography
+* annual budget
+* years in operation
+* legal status flags
+* keyword fields
+
+Do not assume every organization JSON is identical. Make the builder tolerant of sparse or uneven inputs.
+
+---
+
+## 3. Build a generalized opportunity profile builder
+
+Create a reusable function that takes each real indexed opportunity and infers a standardized internal opportunity profile.
+
+Example internal shape:
+
+```ts
+{
+  opportunityId: string,
+  source: string,
+  title: string,
+  opportunityType: 'grant' | 'contract' | 'procurement' | 'research' | 'technical_assistance' | 'fellowship' | 'subaward' | 'prize' | 'loan' | 'other',
+  domainTags: string[],
+  activityTags: string[],
+  populationTags: string[],
+  applicantTypes: string[],
+  geographyRestrictions: string[],
+  geographyScope: 'local' | 'state' | 'national' | 'international' | 'unknown',
+  complexityBand: 'low' | 'medium' | 'high' | 'very_high' | 'unknown',
+  fundingBand: 'micro' | 'small' | 'medium' | 'large' | 'enterprise' | 'unknown',
+  fundingMin: number | null,
+  fundingMax: number | null,
+  status: 'open' | 'forecasted' | 'closed' | 'unknown',
+  closeDate: string | null,
+  rawEligibilityText: string | null,
+  rawSourceFields: any
+}
+```
+
+Infer this from real normalized opportunity records only.
+
+Use title, description, funding type, source metadata, eligibility text, categories, keywords, geography, award range, and status fields already present in the indexed records.
+
+---
+
+## 4. Add a taxonomy and concept extraction layer
+
+Build a reusable taxonomy-driven tagging layer so V2 does not depend only on raw token overlap.
+
+Implement concept extraction for broad categories that work across many organizations.
+
+Suggested concept families:
+
+* health
+* education
+* workforce
+* housing
+* entrepreneurship/business
+* climate/environment
+* arts/culture
+* justice/public safety
+* technology/data
+* research/science
+* agriculture/food
+* transportation/infrastructure
+* public administration/government services
+* international development
+* economic development
+
+Also extract activity tags such as:
+
+* research
+* service_delivery
+* implementation
+* advocacy
+* planning
+* capacity_building
+* technical_assistance
+* training
+* procurement
+* infrastructure
+* commercialization
+* outreach
+
+Also extract population tags such as:
+
+* youth
+* women
+* families
+* seniors
+* veterans
+* students
+* small businesses
+* low-income communities
+* underserved communities
+* rural communities
+* tribal communities
+* public agencies
+
+Use real text fields from organizations and opportunities.
+
+Implement this as reusable utilities, not as hardcoded logic inside one component.
+
+---
+
+## 5. Add synonym and phrase support
+
+Improve text matching without relying only on generic words.
+
+Implement:
+
+* phrase detection for important multi-word concepts
+* synonym expansion for concept families
+* strong downweighting of generic low-information words
+
+Examples of broad synonym groups:
+
+* workforce development = job training = career readiness = reskilling
+* entrepreneurship = small business support = founder support = commercialization
+* public health = community health = health education
+* affordable housing = housing stability = homelessness prevention
+* clean energy = energy transition = decarbonization
+* violence prevention = community safety = public safety intervention
+
+Make this taxonomy configurable in code so it can evolve.
+
+Do not hardcode only one sector like maternal health.
+
+---
+
+## 6. Add opportunity type classification
+
+Build a classifier that labels opportunities into broad reusable categories.
+
+Suggested classes:
+
+* program_service_grant
+* research_grant
+* procurement_contract
+* capacity_building_grant
+* planning_grant
+* technical_assistance
+* fellowship_training
+* prize_challenge
+* loan_financing
+* infrastructure_capital
+* international_implementation
+* other
+
+This classifier should use real opportunity fields like:
+
+* source
+* title
+* description
+* eligibility text
+* funding type
+* category fields
+
+Do not use mock examples.
+
+---
+
+## 7. Add organization type fit scoring
+
+Implement a generalized scorer that evaluates whether the opportunity is structurally suited to the organization type.
+
+Examples of broad logic:
+
+* nonprofits fit better to nonprofit/service/capacity-building opportunities
+* small businesses fit better to SBIR, commercialization, procurement, founder support
+* universities fit better to research grants, fellowships, academic programs
+* governments fit better to implementation, public-service, infrastructure, agency-focused funding
+* contractors fit better to procurement and service contracts
+
+This should be inference-based and general, not rigidly hardcoded to one profile.
+
+---
+
+## 8. Add capacity vs complexity scoring
+
+This is a major V2 feature.
+
+Implement a score that compares organization capacity against opportunity complexity.
+
+Infer organization capacity from real org fields such as:
+
+* annual budget
+* years in operation
+* org class
+* legal readiness indicators
+* signals of research or procurement readiness
+
+Infer opportunity complexity from real opportunity fields such as:
+
+* funding amount
+* opportunity type
+* research orientation
+* technical complexity language
+* international scope
+* heavy compliance/reporting language if detectable
+* cooperative agreement / multi-site / advanced implementation signals
+
+Return a score and also penalty reasons.
+
+---
+
+## 9. Add funding realism scoring
+
+Improve the funding fit layer so it works broadly.
+
+The goal is not to reject large opportunities automatically, but to measure whether the opportunity size and structure seem realistic for the organization’s apparent scale.
+
+Examples:
+
+* microgrant to a giant institution may be a weaker fit
+* massive infrastructure award to a tiny early-stage organization may be a weak fit
+* medium-sized program grant to a growing nonprofit may be a strong fit
+
+Use award range if available. If missing, handle gracefully.
+
+---
+
+## 10. Add generalized geography logic
+
+Make geography fit more precise and reusable.
+
+Handle:
+
+* local/state-specific opportunities
+* national U.S. opportunities
+* international opportunities
+* unknown geography
+
+Compare against organization geography scope and geography tags.
+
+Do not use brittle one-off assumptions.
+
+If geography is unknown, avoid over-penalizing, but surface uncertainty.
+
+---
+
+## 11. Add a penalty engine
+
+V2 must include explicit penalties for mismatch signals.
+
+Create a reusable penalty engine that can subtract points for:
+
+* clear eligibility contradictions
+* organization/opportunity type mismatch
+* excessive complexity mismatch
+* unrealistic funding mismatch
+* geography mismatch
+* research-vs-service mismatch
+* procurement-vs-nonprocurement mismatch
+* international-vs-local mismatch
+
+Make penalties visible in the score trace.
+
+---
+
+## 12. Build V2 scoring dimensions
+
+Implement V2 as a structured score with reusable dimensions.
+
+Recommended starting weights:
+
+* eligibility fit: 20
+* domain/mission fit: 20
+* activity/model fit: 15
+* population fit: 10
+* geography fit: 10
+* organization type fit: 10
+* capacity/complexity fit: 10
+* funding fit: 5
+
+Total base score = 100
+
+Then calculate:
+
+* semantic/text boost: optional capped boost, such as 0 to 10
+* mismatch penalties: subtractive layer
+
+Suggested formula:
+
+```ts
+finalScore = baseScore + semanticBoost - penaltyTotal
+```
+
+Clamp to a sensible range, for example 0 to 100.
+
+Do not let semantic similarity overwhelm structured fit.
+
+---
+
+## 13. Use the real indexed opportunity pool only
+
+When V2 runs, it must load opportunities from the real indexed store only.
+
+Requirements:
+
+* classification must be `active_opportunity`
+* status should be open or otherwise explicitly matchable based on current app logic
+* no demo records
+* no fallback records
+* no hidden sample arrays
+
+Also preserve existing dedupe logic.
+
+If there are zero eligible records, the UI must say so explicitly.
+
+---
+
+## 14. Integrate V2 into the existing Algorithm page
+
+Extend the existing Algorithm page so I can:
+
+* run V1 or V2 on the same organization and real indexed data
+* compare the top results side by side
+* see score deltas
+* see why V2 changed rankings
+
+Add controls such as:
+
+* scoring version dropdown: V1 / V2
+* compare mode toggle: off / on
+* show detailed score trace toggle
+
+For each result in V2, display:
+
+* final score
+* each scoring dimension
+* semantic boost if any
+* penalties applied
+* explanation reasons
+* risk notes
+* opportunity type
+* organization type fit summary
+* capacity/complexity summary
+
+---
+
+## 15. Integrate V2 into the existing Algorithm Audit page
+
+Update the existing audit tooling to support V2.
+
+Required additions:
+
+* compare V1 vs V2 using real indexed data
+* show rank changes
+* show which weak V1 matches dropped
+* show which stronger-fit V2 matches rose
+* expose V2 score traces
+* expose V2 penalty traces
+* allow audit labeling against V2 results
+* compute audit metrics for V1 and V2 side by side
+
+Do not remove any existing audit functionality.
+
+---
+
+## 16. Add score trace transparency
+
+For every V2 result, generate a detailed trace.
+
+Example shape:
+
+```ts
+{
+  baseScore: 72,
+  semanticBoost: 6,
+  penalties: [
+    { type: 'complexity_mismatch', value: 8, reason: 'Opportunity complexity appears high relative to organization capacity' },
+    { type: 'geography_mismatch', value: 5, reason: 'Opportunity is state-limited and organization has no matching geography tag' }
+  ],
+  dimensions: {
+    eligibilityFit: 20,
+    domainFit: 16,
+    activityFit: 12,
+    populationFit: 8,
+    geographyFit: 5,
+    organizationTypeFit: 6,
+    capacityFit: 3,
+    fundingFit: 2
+  },
+  reasons: [...],
+  risks: [...]
+}
+```
+
+This must be visible in the UI and reusable in the audit page.
+
+---
+
+## 17. No mock data anywhere in V2 codepath
+
+This is critical.
+
+Search the codebase for anything like:
+
+* `mockOpportunities`
+* `sampleOrganizations`
+* `seedData`
+* demo arrays
+* fallback fixtures
+* local default records
+
+If those are used in the live matcher, replace them with real indexed data loading or explicit empty-state messaging.
+
+V2 should never quietly substitute fake records.
+
+---
+
+## 18. Add implementation guardrails
+
+While implementing V2, do not break:
+
+* indexing
+* source classification
+* existing normalization
+* current V1 scoring
+* current audit labels
+* current dedupe logic
+
+Add versioned code paths rather than destructive rewrites.
+
+---
+
+## 19. Suggested helper modules
+
+Create or extend modular utilities like:
+
+* `buildOrganizationProfile(rawOrg)`
+* `buildOpportunityProfile(rawOpportunity)`
+* `extractConceptTags(textFields)`
+* `expandSynonyms(tokensOrTags)`
+* `classifyOpportunityType(opportunityProfile)`
+* `scoreEligibilityFit(orgProfile, oppProfile)`
+* `scoreDomainFit(orgProfile, oppProfile)`
+* `scoreActivityFit(orgProfile, oppProfile)`
+* `scorePopulationFit(orgProfile, oppProfile)`
+* `scoreGeographyFit(orgProfile, oppProfile)`
+* `scoreOrganizationTypeFit(orgProfile, oppProfile)`
+* `scoreCapacityFit(orgProfile, oppProfile)`
+* `scoreFundingFit(orgProfile, oppProfile)`
+* `computeSemanticBoost(orgProfile, oppProfile)`
+* `computePenaltyEngine(orgProfile, oppProfile)`
+* `scoreMatchV2(rawOrg, rawOpportunity)`
+* `compareMatchVersions(rawOrg, opportunities)`
+
+Use the project’s actual file structure when possible.
+
+---
+
+## 20. Deliverables
+
+Generate all code needed to:
+
+* implement V2 scoring on top of the current codebase
+* reuse the real indexed data store
+* add generalized organization and opportunity profile inference
+* add taxonomy, phrase, and synonym support
+* add opportunity type classification
+* add organization-type fit scoring
+* add capacity/complexity scoring
+* add funding realism scoring
+* add a penalty engine
+* integrate V2 into the current Algorithm page
+* integrate V2 into the current Algorithm Audit page
+* preserve V1 for side-by-side comparison
+* remove any mock-data use from the V2 path
+
+## Final requirement
+
+Prioritize:
+
+* ranking quality
+* broad applicability across many organization JSONs
+* transparency
+* maintainability
+* compatibility with the current codebase
+* real data only
+
+At the end, provide a short implementation summary that explains:
+
+* which existing files were extended
+* which new files were added
+* how V2 differs from V1
+* how the app ensures only real indexed data is used
+* where to inspect V1 vs V2 comparison results in the UI
