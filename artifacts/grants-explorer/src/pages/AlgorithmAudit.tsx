@@ -13,6 +13,7 @@ import {
   FlaskConical, Database, Building2, BarChart3, Target, AlertTriangle,
   CheckCircle2, XCircle, RefreshCw, ChevronRight, Eye, EyeOff,
   TrendingUp, TrendingDown, Minus, Info, Zap, Search, Code, Star, BookOpen,
+  Download, ChevronLeft,
 } from "lucide-react";
 
 import { MOCK_ORGANIZATIONS } from "@/lib/algorithm/mockData";
@@ -342,6 +343,77 @@ export default function AlgorithmAuditPage() {
     return generateRecommendations(rankedResults, allTraces, metrics, feedback);
   }, [hasRun, rankedResults, allTraces, metrics, feedback]);
 
+  // ── Raw Results tab ───────────────────────────────────────────────────────
+  const [rawSearch, setRawSearch] = useState("");
+  const [rawSrcFilter, setRawSrcFilter] = useState("all");
+  const [rawSortKey, setRawSortKey] = useState<"total" | "mission" | "elig" | "geo" | "funding" | "maturity">("total");
+  const [rawSortDir, setRawSortDir] = useState<"desc" | "asc">("desc");
+  const [rawPage, setRawPage] = useState(0);
+  const RAW_PAGE_SIZE = 200;
+
+  const rawSources = useMemo(() => {
+    const srcs = new Set(allTraces.map((t) => t.opp.source));
+    return Array.from(srcs).sort();
+  }, [allTraces]);
+
+  const filteredRawResults = useMemo(() => {
+    let results = allTraces;
+    if (rawSrcFilter !== "all") results = results.filter((t) => t.opp.source === rawSrcFilter);
+    if (rawSearch.trim()) {
+      const q = rawSearch.toLowerCase();
+      results = results.filter((t) =>
+        t.opp.title.toLowerCase().includes(q) ||
+        (t.opp.agency ?? "").toLowerCase().includes(q)
+      );
+    }
+    const key = rawSortKey;
+    const dir = rawSortDir === "desc" ? -1 : 1;
+    return [...results].sort((a, b) => {
+      const av = key === "total" ? a.scores.total
+        : key === "mission" ? a.scores.mission_topic_fit
+        : key === "elig" ? a.scores.eligibility_fit
+        : key === "geo" ? a.scores.geography_fit
+        : key === "funding" ? a.scores.funding_size_fit
+        : a.scores.maturity_fit;
+      const bv = key === "total" ? b.scores.total
+        : key === "mission" ? b.scores.mission_topic_fit
+        : key === "elig" ? b.scores.eligibility_fit
+        : key === "geo" ? b.scores.geography_fit
+        : key === "funding" ? b.scores.funding_size_fit
+        : b.scores.maturity_fit;
+      return (bv - av) * dir;
+    });
+  }, [allTraces, rawSearch, rawSrcFilter, rawSortKey, rawSortDir]);
+
+  const rawTotalPages = Math.ceil(filteredRawResults.length / RAW_PAGE_SIZE);
+  const rawPageSlice = filteredRawResults.slice(rawPage * RAW_PAGE_SIZE, (rawPage + 1) * RAW_PAGE_SIZE);
+
+  function downloadRawCsv() {
+    const headers = ["Rank", "Title", "Source", "Agency", "Total", "Mission(60)", "Eligibility(20)", "Geo(10)", "Funding(5)", "Maturity(5)", "Eligible", "URL"];
+    const rows = filteredRawResults.map((t, i) => [
+      i + 1,
+      `"${(t.opp.title ?? "").replace(/"/g, "'")}"`,
+      t.opp.source,
+      `"${(t.opp.agency ?? "").replace(/"/g, "'")}"`,
+      t.scores.total,
+      t.scores.mission_topic_fit,
+      t.scores.eligibility_fit,
+      t.scores.geography_fit,
+      t.scores.funding_size_fit,
+      t.scores.maturity_fit,
+      t.passes_eligibility ? "yes" : "no",
+      t.opp.url ?? "",
+    ].join(","));
+    const csv = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `algorithm_raw_results_${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   // ── Comparison ────────────────────────────────────────────────────────────
   const [compVariants, setCompVariants] = useState(["v1_current", "v1_mission_heavy", "v1_synonyms"]);
   const [compResults, setCompResults] = useState<ReturnType<typeof runComparison> | null>(null);
@@ -517,6 +589,7 @@ export default function AlgorithmAuditPage() {
               <TabsTrigger value="eligibility">Eligibility Audit</TabsTrigger>
               <TabsTrigger value="evaluation">Eval Set</TabsTrigger>
               <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+              <TabsTrigger value="raw_results">Raw Results</TabsTrigger>
             </TabsList>
 
             {/* ── 1. Overview ──────────────────────────────────────────────────── */}
@@ -1102,6 +1175,126 @@ export default function AlgorithmAuditPage() {
                   ))}
                 </div>
               )}
+            </TabsContent>
+
+            {/* ── 10. Raw Results ───────────────────────────────────────────────── */}
+            <TabsContent value="raw_results">
+              <div className="space-y-4">
+                {/* Controls */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative flex-1 min-w-48">
+                    <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      className="h-8 text-xs pl-8"
+                      placeholder="Filter by title or agency…"
+                      value={rawSearch}
+                      onChange={(e) => { setRawSearch(e.target.value); setRawPage(0); }}
+                    />
+                  </div>
+                  <Select value={rawSrcFilter} onValueChange={(v) => { setRawSrcFilter(v); setRawPage(0); }}>
+                    <SelectTrigger className="h-8 text-xs w-40"><SelectValue placeholder="All sources" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All sources</SelectItem>
+                      {rawSources.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <Select value={rawSortKey} onValueChange={(v) => setRawSortKey(v as typeof rawSortKey)}>
+                    <SelectTrigger className="h-8 text-xs w-36"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="total">Sort: Total</SelectItem>
+                      <SelectItem value="mission">Sort: Mission</SelectItem>
+                      <SelectItem value="elig">Sort: Eligibility</SelectItem>
+                      <SelectItem value="geo">Sort: Geo</SelectItem>
+                      <SelectItem value="funding">Sort: Funding</SelectItem>
+                      <SelectItem value="maturity">Sort: Maturity</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1"
+                    onClick={() => setRawSortDir((d) => d === "desc" ? "asc" : "desc")}>
+                    {rawSortDir === "desc" ? <TrendingDown className="h-3 w-3" /> : <TrendingUp className="h-3 w-3" />}
+                    {rawSortDir === "desc" ? "Desc" : "Asc"}
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={downloadRawCsv}>
+                    <Download className="h-3 w-3" /> CSV
+                  </Button>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {filteredRawResults.length.toLocaleString()} results · page {rawPage + 1}/{Math.max(1, rawTotalPages)}
+                  </span>
+                </div>
+
+                {/* Stats row */}
+                <div className="flex gap-4 text-xs text-muted-foreground">
+                  <span className="text-emerald-600 font-medium">{filteredRawResults.filter(t => t.passes_eligibility && t.scores.total > 0).length.toLocaleString()} scored</span>
+                  <span className="text-red-500 font-medium">{filteredRawResults.filter(t => !t.passes_eligibility).length.toLocaleString()} ineligible</span>
+                  <span>{filteredRawResults.filter(t => t.passes_eligibility && t.scores.total === 0).length.toLocaleString()} zero-score</span>
+                </div>
+
+                {/* Table */}
+                <div className="overflow-auto rounded-lg border border-border/60">
+                  <table className="w-full text-xs border-collapse min-w-[900px]">
+                    <thead>
+                      <tr className="bg-muted/60 text-left">
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-10">#</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground">Title</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-28">Source</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-16 text-center">Total</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-16 text-center">Miss</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-14 text-center">Elig</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-12 text-center">Geo</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-12 text-center">Fund</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-12 text-center">Mat</th>
+                        <th className="px-3 py-2 font-medium text-muted-foreground w-16 text-center">OK?</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rawPageSlice.map((t, i) => {
+                        const globalRank = rawPage * RAW_PAGE_SIZE + i + 1;
+                        const rowClass = i % 2 === 0 ? "bg-background" : "bg-muted/20";
+                        return (
+                          <tr key={t.opp.id} className={`${rowClass} hover:bg-primary/5`}>
+                            <td className="px-3 py-1.5 text-muted-foreground tabular-nums">{globalRank}</td>
+                            <td className="px-3 py-1.5 max-w-0">
+                              <div className="truncate font-medium" title={t.opp.title}>{t.opp.title}</div>
+                              {t.opp.agency && <div className="truncate text-muted-foreground text-[10px]">{t.opp.agency}</div>}
+                            </td>
+                            <td className="px-3 py-1.5">
+                              <Badge variant="outline" className="text-[10px] font-mono px-1 py-0">{t.opp.source}</Badge>
+                            </td>
+                            <td className={`px-3 py-1.5 text-center font-bold tabular-nums ${scoreColor(t.scores.total)}`}>{t.scores.total}</td>
+                            <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{t.scores.mission_topic_fit}</td>
+                            <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{t.scores.eligibility_fit}</td>
+                            <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{t.scores.geography_fit}</td>
+                            <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{t.scores.funding_size_fit}</td>
+                            <td className="px-3 py-1.5 text-center tabular-nums text-muted-foreground">{t.scores.maturity_fit}</td>
+                            <td className="px-3 py-1.5 text-center">
+                              {t.passes_eligibility
+                                ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 mx-auto" />
+                                : <XCircle className="h-3.5 w-3.5 text-red-400 mx-auto" />}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {rawTotalPages > 1 && (
+                  <div className="flex items-center justify-center gap-2">
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                      disabled={rawPage === 0} onClick={() => setRawPage((p) => p - 1)}>
+                      <ChevronLeft className="h-3 w-3" /> Prev
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      Page {rawPage + 1} of {rawTotalPages}
+                    </span>
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1"
+                      disabled={rawPage >= rawTotalPages - 1} onClick={() => setRawPage((p) => p + 1)}>
+                      Next <ChevronRight className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </TabsContent>
 
           </Tabs>

@@ -87,10 +87,12 @@ export function requestStopAll(): void {
 
 async function fetchWithRetry(fn: () => Promise<Response>, retries = 3): Promise<Response> {
   let lastErr: unknown;
+  let lastResp: Response | undefined;
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
       const r = await fn();
       if (r.ok) return r;
+      lastResp = r;
       if (r.status === 429 || r.status >= 500) {
         await sleep(1000 * Math.pow(2, attempt));
         continue;
@@ -101,7 +103,8 @@ async function fetchWithRetry(fn: () => Promise<Response>, retries = 3): Promise
       await sleep(500 * Math.pow(2, attempt));
     }
   }
-  throw lastErr;
+  if (lastResp) return lastResp;
+  throw lastErr ?? new Error("fetchWithRetry: all attempts failed with no response");
 }
 
 function sleep(ms: number): Promise<void> {

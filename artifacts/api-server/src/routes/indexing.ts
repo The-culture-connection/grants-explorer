@@ -156,7 +156,7 @@ router.get("/indexing/records/for-algorithm", async (_req, res): Promise<void> =
   try {
     const result = await getIndexedRecords({
       classification: "active_opportunity",
-      limit: 5000,
+      limit: 50000,
       offset: 0,
     });
     res.json(result);
