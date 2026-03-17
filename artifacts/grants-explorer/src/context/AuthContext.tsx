@@ -22,6 +22,7 @@ export interface AuthUser {
   id: number;
   email: string;
   org_profile: OrgProfileData | null;
+  is_admin: boolean;
 }
 
 interface AuthContextValue {
@@ -50,26 +51,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const savedToken = localStorage.getItem("ge_token");
-    if (!savedToken) {
-      setLoading(false);
-      return;
-    }
+    if (!savedToken) { setLoading(false); return; }
     setToken(savedToken);
-    fetch(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${savedToken}` },
-    })
+    fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${savedToken}` } })
       .then((r) => r.json())
       .then((data) => {
-        if (data.user) setUser(data.user);
-        else {
-          localStorage.removeItem("ge_token");
-          setToken(null);
-        }
+        if (data.user) setUser({ ...data.user, is_admin: data.user.is_admin ?? false });
+        else { localStorage.removeItem("ge_token"); setToken(null); }
       })
-      .catch(() => {
-        localStorage.removeItem("ge_token");
-        setToken(null);
-      })
+      .catch(() => { localStorage.removeItem("ge_token"); setToken(null); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -83,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!r.ok) throw new Error(data.error || "Login failed");
     localStorage.setItem("ge_token", data.token);
     setToken(data.token);
-    setUser(data.user);
+    setUser({ ...data.user, is_admin: data.user.is_admin ?? false });
   }, []);
 
   const signup = useCallback(async (email: string, password: string) => {
@@ -96,7 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!r.ok) throw new Error(data.error || "Signup failed");
     localStorage.setItem("ge_token", data.token);
     setToken(data.token);
-    setUser(data.user);
+    setUser({ ...data.user, is_admin: data.user.is_admin ?? false });
   }, []);
 
   const logout = useCallback(() => {
@@ -109,10 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedToken = localStorage.getItem("ge_token");
     const r = await fetch(`${API}/auth/profile`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${savedToken}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${savedToken}` },
       body: JSON.stringify({ org_profile: profile }),
     });
     const data = await r.json();

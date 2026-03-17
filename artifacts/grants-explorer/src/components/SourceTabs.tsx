@@ -104,8 +104,11 @@ export function SourceTabs() {
     .reduce((acc, s) => acc + (s.total ?? 0), 0);
   const allLoading = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
     .some((s) => s.isLoading && s.items.length === 0);
-  const allError = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
-    .find((s) => s.error)?.error ?? null;
+  // Only surface errors on the All tab when every source fails with no items at all
+  const allSources = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank];
+  const allError = allSources.every((s) => s.error && s.items.length === 0)
+    ? (allSources.find((s) => s.error)?.error ?? null)
+    : null;
   const allHasMore = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
     .some((s) => s.hasMore);
 

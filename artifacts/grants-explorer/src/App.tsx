@@ -14,22 +14,22 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
-    },
+    queries: { refetchOnWindowFocus: false, staleTime: 5 * 60 * 1000, retry: 1 },
   },
 });
+
+function ScrollToTop() {
+  const [location] = useLocation();
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" }); }, [location]);
+  return null;
+}
 
 function ProtectedHome() {
   const { user, loading } = useAuth();
   const [, navigate] = useLocation();
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/profilecreation");
-    }
+    if (!loading && !user) navigate("/profilecreation");
   }, [loading, user, navigate]);
 
   if (loading || !user) return null;
@@ -38,15 +38,18 @@ function ProtectedHome() {
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={ProtectedHome} />
-      <Route path="/landing" component={Landing} />
-      <Route path="/profilecreation" component={ProfileCreation} />
-      <Route path="/algorithm" component={AlgorithmPage} />
-      <Route path="/indexing" component={IndexingToolPage} />
-      <Route path="/audit" component={AlgorithmAuditPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <>
+      <ScrollToTop />
+      <Switch>
+        <Route path="/" component={ProtectedHome} />
+        <Route path="/landing" component={Landing} />
+        <Route path="/profilecreation" component={ProfileCreation} />
+        <Route path="/algorithm" component={AlgorithmPage} />
+        <Route path="/indexing" component={IndexingToolPage} />
+        <Route path="/audit" component={AlgorithmAuditPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </>
   );
 }
 
