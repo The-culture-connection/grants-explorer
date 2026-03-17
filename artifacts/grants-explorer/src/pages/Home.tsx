@@ -6,7 +6,7 @@ import {
   ChevronRight, ExternalLink, Trophy, AlertCircle, X, Bookmark,
   BookmarkCheck, CheckSquare, Square, Inbox, Clock, Filter, Eye,
   ThumbsUp, ThumbsDown, Database, BookOpen,
-  ShieldAlert, UserPlus, Users, Check, TrendingUp, Target,
+  ShieldAlert, UserPlus, Users, Check, Copy, TrendingUp, Target,
   BarChart3, Zap, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,11 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
 import type { OrgProfile, NormalizedOpportunity } from "@/lib/algorithm/types";
 import type { OrgProfileData } from "@/context/AuthContext";
-import { getTopMatchesV3 } from "@/lib/v3/matcherV3";
-import type { V3ScoreTrace } from "@/lib/v3/types";
+import { scoreMatchV5, DEFAULT_V5_CONFIG } from "@/lib/v5/matcherV5";
+import type { V5ScoreTrace } from "@/lib/v5/matcherV5";
+import { getInterpretedOpportunityForMatcher } from "@/lib/v5/opportunityInterpreter";
 import { OrgProfileForm } from "@/components/OrgProfileForm";
-import { loadOpportunityPool, coerceOrgProfile } from "@/lib/poolLoader";
+import { loadFullOpportunityPool, coerceOrgProfile } from "@/lib/poolLoader";
 import {
   trackOpportunityAnalyzed, trackOpportunityViewed,
   trackOpportunitySaved, trackOpportunityApplied, trackOpportunityOutcome,
@@ -121,10 +122,11 @@ function useOppStatus(userId: string | undefined) {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+// Score tiers aligned with V5 confidence levels
 function scoreLabel(s: number) {
-  if (s >= 80) return { label: "Excellent", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500", ring: "ring-emerald-400/50", light: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800" };
-  if (s >= 60) return { label: "Strong", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500", ring: "ring-blue-400/50", light: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800" };
-  if (s >= 40) return { label: "Moderate", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500", ring: "ring-amber-400/50", light: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800" };
+  if (s >= 70) return { label: "Excellent", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500", ring: "ring-emerald-400/50", light: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800" };
+  if (s >= 55) return { label: "Strong", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500", ring: "ring-blue-400/50", light: "bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800" };
+  if (s >= 38) return { label: "Moderate", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500", ring: "ring-amber-400/50", light: "bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800" };
   return { label: "Low", color: "text-slate-500 dark:text-slate-400", bg: "bg-slate-400", ring: "ring-slate-300/50", light: "bg-muted/30 border-border/40" };
 }
 
@@ -194,11 +196,15 @@ function AddAdminModal({ onClose }: { onClose: () => void }) {
 
 // ─── Grant Card ───────────────────────────────────────────────────────────────
 function GrantCard({ trace, rank, entry, onSave, onApply, onView }: {
-  trace: V3ScoreTrace; rank: number; entry?: OppEntry;
+  trace: V5ScoreTrace; rank: number; entry?: OppEntry;
   onSave: () => void; onApply: () => void; onView: () => void;
 }) {
   const opp = trace.opp;
   const score = Math.round(trace.finalScore);
+  // V5 match signals for display
+  const topReason = trace.reasons?.[0] ?? null;
+  const exactHits = trace.titleTrace?.orgDerivedExactMatches ?? [];
+  const nearHits  = trace.titleTrace?.orgDerivedNearMatches ?? [];
   const sl = scoreLabel(score);
   const isSaved = entry?.status === "saved";
   const isApplied = entry?.status === "applied";
@@ -229,6 +235,25 @@ function GrantCard({ trace, rank, entry, onSave, onApply, onView }: {
 
       {opp.description && (
         <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{opp.description}</p>
+      )}
+
+      {/* V5 match signals */}
+      {(exactHits.length > 0 || nearHits.length > 0 || topReason) && (
+        <div className="flex items-start gap-1.5 flex-wrap">
+          {exactHits.slice(0, 2).map((h) => (
+            <span key={h} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+              ✓ {h}
+            </span>
+          ))}
+          {exactHits.length === 0 && nearHits.slice(0, 2).map((h) => (
+            <span key={h} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+              ~ {h}
+            </span>
+          ))}
+          {exactHits.length === 0 && nearHits.length === 0 && topReason && (
+            <span className="text-[10px] text-muted-foreground italic">{topReason}</span>
+          )}
+        </div>
       )}
 
       {/* Meta chips */}
@@ -478,15 +503,29 @@ function SavedPanel({ statuses, viewedItems, onRemove, onToggleApplied, onSetOut
 function ProfileModal({ onClose }: { onClose: () => void }) {
   const { user, updateProfile, logout } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState<"edit" | "json">("edit");
+  const [copied, setCopied] = useState(false);
 
   async function handleSave(profile: OrgProfileData) {
     setSaving(true);
     try { await updateProfile(profile); onClose(); } finally { setSaving(false); }
   }
 
+  const profileJson = JSON.stringify(
+    { id: user?.id, email: user?.email, role: user?.role, org_profile: user?.org_profile ?? null },
+    null, 2
+  );
+
+  function copyJson() {
+    navigator.clipboard.writeText(profileJson);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  }
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-background border border-border rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <div>
             <div className="flex items-center gap-2">
@@ -508,8 +547,46 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted transition-colors"><X className="h-4 w-4" /></button>
           </div>
         </div>
+
+        {/* Tab switcher */}
+        <div className="flex items-center gap-1 px-5 pt-3 shrink-0">
+          <button
+            onClick={() => setTab("edit")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${tab === "edit" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+          >
+            Edit Profile
+          </button>
+          <button
+            onClick={() => setTab("json")}
+            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${tab === "json" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+          >
+            Profile JSON
+          </button>
+        </div>
+
+        {/* Content */}
         <div className="flex-1 overflow-auto p-5">
-          <OrgProfileForm initial={user?.org_profile} onSave={handleSave} onCancel={onClose} saving={saving} saveLabel="Save Changes" />
+          {tab === "edit" ? (
+            <OrgProfileForm initial={user?.org_profile} onSave={handleSave} onCancel={onClose} saving={saving} saveLabel="Save Changes" />
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">
+                  This is the raw data the AI matching algorithm reads from your account.
+                </p>
+                <button
+                  onClick={copyJson}
+                  className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors"
+                >
+                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? "Copied!" : "Copy"}
+                </button>
+              </div>
+              <pre className="bg-zinc-950 text-green-400 rounded-xl p-4 text-[11px] font-mono leading-relaxed overflow-auto max-h-[55vh] whitespace-pre-wrap break-words">
+                {profileJson}
+              </pre>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -518,16 +595,16 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
 
 type ResultFilter = "all" | "saved" | "applied" | "inactive";
 
-// ─── V3 Panel ─────────────────────────────────────────────────────────────────
+// ─── V5 Panel (AI Matching) ───────────────────────────────────────────────────
 function V3Panel({ statuses, onSave, onApply, onView }: {
   statuses: Record<string, OppEntry>;
-  onSave: (t: V3ScoreTrace) => void;
-  onApply: (t: V3ScoreTrace) => void;
-  onView: (t: V3ScoreTrace) => void;
+  onSave: (t: V5ScoreTrace) => void;
+  onApply: (t: V5ScoreTrace) => void;
+  onView: (t: V5ScoreTrace) => void;
 }) {
   const { user } = useAuth();
   const [v3Running, setV3Running] = useState(false);
-  const [v3Results, setV3Results] = useState<V3ScoreTrace[]>([]);
+  const [v3Results, setV3Results] = useState<V5ScoreTrace[]>([]);
   const [v3Page, setV3Page] = useState(0);
   const [v3Error, setV3Error] = useState("");
   const [v3Ran, setV3Ran] = useState(false);
@@ -539,10 +616,24 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
     if (!user?.org_profile) { setV3Error("Please complete your organization profile first."); return; }
     setV3Running(true); setV3Error(""); setV3Results([]); setV3Page(0); setResultFilter("all");
     try {
-      // Use shared poolLoader — identical data pipeline as AlgorithmAudit
-      const pool = await loadOpportunityPool(API);
+      const { pool } = await loadFullOpportunityPool(API);
       const profile = coerceOrgProfile(user.org_profile, user.id);
-      const allResults = getTopMatchesV3(profile, pool, 200);
+
+      // Score every opportunity with V5 + interpreter, then rank & cap per-source
+      const sourceCount: Record<string, number> = {};
+      const allResults = pool
+        .map((opp) => {
+          const interp = getInterpretedOpportunityForMatcher(opp);
+          return scoreMatchV5(profile, opp, DEFAULT_V5_CONFIG, interp);
+        })
+        .sort((a, b) => b.finalScore - a.finalScore)
+        .filter((t) => {
+          const src = t.opp.source;
+          sourceCount[src] = (sourceCount[src] ?? 0) + 1;
+          return sourceCount[src] <= 50;
+        })
+        .slice(0, 200);
+
       setTotalFound(allResults.length); setV3Results(allResults); setV3Ran(true);
       trackOpportunityAnalyzed(
         user.id,
@@ -573,9 +664,9 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
   };
 
   const scoreGroups = v3Ran ? {
-    excellent: v3Results.filter((t) => t.finalScore >= 80).length,
-    strong: v3Results.filter((t) => t.finalScore >= 60 && t.finalScore < 80).length,
-    moderate: v3Results.filter((t) => t.finalScore >= 40 && t.finalScore < 60).length,
+    excellent: v3Results.filter((t) => t.finalScore >= 70).length,
+    strong:    v3Results.filter((t) => t.finalScore >= 55 && t.finalScore < 70).length,
+    moderate:  v3Results.filter((t) => t.finalScore >= 38 && t.finalScore < 55).length,
   } : null;
 
   const filters: { key: ResultFilter; label: string; icon: React.ReactNode }[] = [
@@ -597,7 +688,7 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-foreground">AI Grant Matching</h2>
-                <p className="text-xs text-muted-foreground">Powered by V3 RankFix algorithm</p>
+                <p className="text-xs text-muted-foreground">Powered by V5 Precision algorithm</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
@@ -617,9 +708,9 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
           </div>
           <div className="shrink-0 grid grid-cols-3 gap-3">
             {[
-              { label: "Sources", value: "4", icon: <Database className="h-4 w-4" />, color: "text-blue-500" },
+              { label: "Sources", value: "8", icon: <Database className="h-4 w-4" />, color: "text-blue-500" },
               { label: "Max Results", value: "200", icon: <BarChart3 className="h-4 w-4" />, color: "text-emerald-500" },
-              { label: "Algorithm", value: "V3", icon: <Zap className="h-4 w-4" />, color: "text-amber-500" },
+              { label: "Algorithm", value: "V5", icon: <Zap className="h-4 w-4" />, color: "text-amber-500" },
             ].map((s) => (
               <div key={s.label} className="text-center px-4 py-3 rounded-2xl bg-background/70 border border-border/50 shadow-sm">
                 <div className={`flex justify-center mb-1 ${s.color}`}>{s.icon}</div>
@@ -645,7 +736,7 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
           <p className="text-sm text-muted-foreground mt-1">Scoring against your organization profile</p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <RefreshCw className="h-4 w-4 animate-spin" /> Running V3 RankFix
+          <RefreshCw className="h-4 w-4 animate-spin" /> Running V5 Precision Matching
         </div>
       </div>
     );
@@ -674,7 +765,7 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
           <div className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-amber-500" />
             <h2 className="text-lg font-bold text-foreground">Your Top Matches</h2>
-            <Badge className="bg-primary/10 text-primary border border-primary/20 font-semibold text-[10px]">V3 AI-ranked</Badge>
+            <Badge className="bg-primary/10 text-primary border border-primary/20 font-semibold text-[10px]">V5 AI-ranked</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{totalFound}</span> grants scored for{" "}
@@ -751,17 +842,17 @@ export default function Home() {
   const { statuses, viewedItems, setStatus, setOutcome, removeStatus, addViewed } = useOppStatus(user?.id);
   const totalSaved = Object.keys(statuses).length;
 
-  function handleSave(trace: V3ScoreTrace) {
+  function handleSave(trace: V5ScoreTrace) {
     const opp = trace.opp;
     setStatus(opp.id, "saved", { title: opp.title, agency: opp.agency, score: trace.finalScore, url: opp.url, source: opp.source, fundingType: opp.funding_type, maxAward: opp.max_award, closeDate: opp.close_date });
     if (user?.id) trackOpportunitySaved(user.id, opp.id, opp.title, opp.source, trace.finalScore);
   }
-  function handleApply(trace: V3ScoreTrace) {
+  function handleApply(trace: V5ScoreTrace) {
     const opp = trace.opp;
     setStatus(opp.id, "applied", { title: opp.title, agency: opp.agency, score: trace.finalScore, url: opp.url, source: opp.source, fundingType: opp.funding_type, maxAward: opp.max_award, closeDate: opp.close_date });
     if (user?.id) trackOpportunityApplied(user.id, opp.id, opp.title, opp.source, trace.finalScore);
   }
-  function handleView(trace: V3ScoreTrace) {
+  function handleView(trace: V5ScoreTrace) {
     addViewed(trace.opp.id, { title: trace.opp.title, agency: trace.opp.agency, url: trace.opp.url, source: trace.opp.source, score: trace.finalScore, viewedAt: Date.now() });
     if (user?.id) trackOpportunityViewed(user.id, trace.opp.id, trace.opp.title, trace.opp.source);
   }

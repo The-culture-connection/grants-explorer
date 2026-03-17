@@ -9,6 +9,7 @@ import Landing from "@/pages/Landing";
 import AlgorithmPage from "@/pages/Algorithm";
 import IndexingToolPage from "@/pages/IndexingTool";
 import AlgorithmAuditPage from "@/pages/AlgorithmAudit";
+import AlgorithmPlayground from "@/pages/AlgorithmPlayground";
 import ProfileCreation from "@/pages/ProfileCreation";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import DevGate from "@/components/DevGate";
@@ -33,7 +34,14 @@ function ProtectedHome() {
     if (!loading && !user) navigate("/profilecreation");
   }, [loading, user, navigate]);
 
-  if (loading || !user) return null;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+  if (!user) return null;
   return <Home />;
 }
 
@@ -53,6 +61,9 @@ function Router() {
         </Route>
         <Route path="/audit">
           <DevGate><AlgorithmAuditPage /></DevGate>
+        </Route>
+        <Route path="/algorithmplayground">
+          <DevGate><AlgorithmPlayground /></DevGate>
         </Route>
         <Route component={NotFound} />
       </Switch>

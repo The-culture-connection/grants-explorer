@@ -1,0 +1,584 @@
+Build a new pre-processing layer called the **Data Normalization + Opportunity Interpreter Layer** that sits directly before the existing matcher.
+
+IMPORTANT:
+- Extend the current codebase; do not rebuild the app from scratch.
+- Do not remove the current matcher.
+- Do not replace the existing indexed data store.
+- Do not introduce mock data, seed data, fallback demo records, or sample opportunities.
+- Use the real indexed opportunity records already in the system.
+- This new layer must run before matching and transform messy real-world opportunities into cleaner structured opportunity profiles that the matcher can score more accurately.
+
+PRIMARY GOAL
+The current matcher performs much better on clean mock opportunities than on real API data.
+This means the ranking logic is not the main bottleneck anymore.
+The main bottleneck is that real opportunity data is messy, vague, inconsistent, and under-structured.
+
+The purpose of this layer is to:
+1. interpret messy real opportunity data
+2. extract structured meaning from titles and descriptions
+3. normalize inconsistent source fields
+4. build a reliable structured opportunity profile
+5. feed that structured profile into the existing matcher
+
+In short:
+Convert messy real API data into a structured internal representation that behaves more like the clean mock data the matcher already performs well on.
+
+==================================================
+HIGH-LEVEL ARCHITECTURE
+==================================================
+
+Build a new layer:
+
+raw indexed opportunity
+→ normalization
+→ interpretation
+→ structured opportunity profile
+→ existing matcher
+
+This layer should sit before the current scoring logic.
+
+The matcher should consume interpreted opportunity profiles rather than relying directly on raw title/description text and inconsistent source fields.
+
+==================================================
+DATA SOURCES
+==================================================
+
+Use the existing indexed real opportunity records from:
+- Simpler Grants
+- Grants.gov
+- SAM.gov
+- SBIR
+- 360Giving
+- California Grants
+- World Bank
+- TED
+
+Do not use:
+- mock opportunities
+- sample fixtures
+- demo arrays
+
+If some sources are missing fields, normalize and interpret what is available.
+
+==================================================
+CORE PROBLEM TO SOLVE
+==================================================
+
+Real opportunities are messy because:
+- titles are vague or bureaucratic
+- eligibility is buried in prose
+- purpose is often hidden in descriptions
+- population, activity, and org-type cues are inconsistent
+- fields vary by source
+- some sources use jargon instead of plain mission terms
+
+The current matcher works best when it receives clean structured signals such as:
+- clear mission phrases
+- normalized domains
+- explicit applicant types
+- explicit population tags
+- explicit activity tags
+
+This new layer must infer those signals from real data.
+
+==================================================
+WHAT TO BUILD
+==================================================
+
+1. NORMALIZED OPPORTUNITY CANONICAL SCHEMA
+Create or extend a canonical interpreted opportunity schema like this:
+
+type InterpretedOpportunityProfile = {
+  id: string
+  source: string
+  rawTitle: string
+  normalizedTitle: string
+  rawDescription: string | null
+  normalizedDescription: string | null
+
+  opportunityType: string | null
+  domainTags: string[]
+  subdomainTags: string[]
+  activityTags: string[]
+  populationTags: string[]
+  applicantTypeTags: string[]
+  geographyTags: string[]
+  geographyScope: 'local' | 'state' | 'national' | 'international' | 'unknown'
+  fundingTypeTags: string[]
+  complexityTags: string[]
+
+  inferredMissionPhrases: string[]
+  inferredHighValuePhrases: string[]
+  genericTerms: string[]
+
+  titleSignals: {
+    exactConcepts: string[]
+    nearConcepts: string[]
+    strongPhrases: string[]
+    weakPhrases: string[]
+  }
+
+  descriptionSignals: {
+    exactConcepts: string[]
+    nearConcepts: string[]
+    strongPhrases: string[]
+    weakPhrases: string[]
+  }
+
+  intendedOrgTypes: string[]
+  targetPopulations: string[]
+  confidence: {
+    domain: number
+    activity: number
+    population: number
+    orgType: number
+  }
+
+  fundingMin: number | null
+  fundingMax: number | null
+  status: string | null
+  closeDate: string | null
+
+  interpretationTrace: string[]
+  rawSourceFields: any
+}
+
+This does not have to match this exact type perfectly, but the idea must be the same:
+- preserve raw fields
+- add interpreted structured fields
+- store trace/debug data
+
+==================================================
+2. SOURCE FIELD NORMALIZATION
+==================================================
+
+Build source-aware normalization so the system can handle different source schemas consistently.
+
+Normalize things like:
+- title
+- description / summary
+- eligibility
+- geography
+- award range
+- status
+- funding type
+- category labels
+
+Examples of source differences:
+- one source may store summary in `description`
+- another may store it in `synopsis`
+- another may only have title + category + agency
+- another may label opportunities as assistance, tender, notice, call, or challenge
+
+Build or extend helper logic like:
+- normalizeRawOpportunity(rawRecord)
+- normalizeSourceSpecificFields(rawRecord, source)
+
+The output should be a consistent intermediate object before interpretation.
+
+==================================================
+3. TITLE INTERPRETER
+==================================================
+
+Build a title interpreter that extracts meaning from vague or bureaucratic titles.
+
+Goal:
+Translate raw title text into structured concepts.
+
+Examples:
+- “Community Services Block Grant” → likely domains: community development, poverty relief, housing/social services
+- “SBIR Phase I” → likely org type: small business, innovation, commercialization, research/development
+- “Workforce Innovation Opportunity” → likely domain: workforce development, employment, training
+
+The title interpreter should extract:
+- strong phrases
+- domain concepts
+- population cues
+- org-type cues
+- activity cues
+
+Title remains high-value, but interpretation should go beyond exact phrase matching.
+
+Build helpers like:
+- interpretOpportunityTitle(normalizedTitle)
+- extractTitleConcepts(normalizedTitle)
+- inferMeaningFromTitlePatterns(normalizedTitle)
+
+==================================================
+4. DESCRIPTION INTERPRETER
+==================================================
+
+Use the description as a controlled secondary meaning source.
+
+IMPORTANT:
+Do not let description text dominate ranking directly.
+Use it primarily to clarify or enrich the interpreted profile.
+
+Use description to infer:
+- domains
+- activity model
+- target population
+- intended org type
+- complexity
+- funding purpose
+
+Examples:
+- “capacity building for community-based organizations” → activity: capacity building, intended org type: nonprofit/community org
+- “research and demonstration” → activity: research/demo
+- “technical assistance to local governments” → target org type: government
+
+Build helpers like:
+- interpretOpportunityDescription(normalizedDescription)
+- extractDescriptionConcepts(normalizedDescription)
+
+==================================================
+5. DOMAIN / TAXONOMY EXTRACTION
+==================================================
+
+Build a reusable taxonomy layer that maps raw language into normalized domains.
+
+Suggested broad domain families:
+- health
+- maternal health
+- mental health
+- workforce development
+- education
+- housing
+- community development
+- climate
+- clean energy
+- entrepreneurship
+- small business support
+- public safety
+- justice
+- transportation
+- arts/culture
+- agriculture/food
+- technology/data
+- research/science
+- international development
+- government services
+
+Also allow subdomains where useful:
+- affordable housing
+- homelessness prevention
+- youth workforce
+- prenatal care
+- violence prevention
+- clean technology
+- tenant support
+
+Build helpers like:
+- extractDomainTags(text)
+- normalizeDomainConcepts(tokens)
+
+==================================================
+6. ACTIVITY MODEL EXTRACTION
+==================================================
+
+Infer what kind of work the opportunity supports.
+
+Normalize into tags like:
+- service_delivery
+- capacity_building
+- technical_assistance
+- research
+- implementation
+- planning
+- pilot
+- commercialization
+- procurement
+- infrastructure
+- training
+- outreach
+- advocacy
+
+This is important because many real titles are generic, but the description reveals the activity model.
+
+Build helpers like:
+- extractActivityTags(title, description, metadata)
+
+==================================================
+7. TARGET POPULATION EXTRACTION
+==================================================
+
+Infer populations served or targeted.
+
+Normalize into tags like:
+- youth
+- women
+- Black women
+- families
+- low income
+- homeless
+- students
+- veterans
+- rural communities
+- underserved communities
+- municipalities
+- public agencies
+- small businesses
+
+Support broad-to-specific normalization:
+- “economically disadvantaged” → low income
+- “young adults” / “young people” → youth
+- “pregnant individuals” → pregnant people
+- “people experiencing homelessness” → homeless
+
+Build helpers like:
+- extractPopulationTags(title, description)
+
+==================================================
+8. INTENDED ORG-TYPE INFERENCE
+==================================================
+
+This is critical.
+
+Infer which kinds of applicants the opportunity appears intended for, using:
+- title
+- eligibility text
+- description
+- source context
+- funding type
+
+Normalize org-type tags like:
+- nonprofit
+- community_based_org
+- small_business
+- startup
+- university
+- higher_education
+- local_government
+- state_government
+- tribal
+- contractor
+- healthcare_provider
+- research_institution
+- public_agency
+- any
+
+Examples:
+- “SBIR Phase I” → small_business/startup
+- “technical assistance to local governments” → local_government
+- “capacity building for community-based organizations” → nonprofit/community_based_org
+- “HBCU initiative” → higher_education / HBCU-specific
+
+Build helpers like:
+- inferIntendedOrgTypes(opportunity)
+
+==================================================
+9. HIGH-VALUE PHRASE EXTRACTION
+==================================================
+
+Extract strong mission-bearing multi-word phrases from raw opportunity data.
+
+Examples:
+- affordable housing
+- homelessness prevention
+- maternal health
+- workforce development
+- youth employment
+- community violence prevention
+- clean energy transition
+- small business support
+
+These should be preserved as first-class concepts in the interpreted profile.
+
+Build helpers like:
+- extractHighValuePhrases(text)
+- normalizePhraseVariants(phrases)
+
+==================================================
+10. GENERICITY DETECTION
+==================================================
+
+Detect vague low-information terms that should not drive matching on their own.
+
+Examples:
+- initiative
+- program
+- opportunity
+- support
+- services
+- development
+- improvement
+- innovation
+- outcomes
+
+Store these in the interpreted profile so the matcher can apply penalties more intelligently.
+
+Build helpers like:
+- extractGenericTerms(text)
+- computeOpportunitySpecificity(profile)
+
+==================================================
+11. OPPORTUNITY TYPE CLASSIFICATION
+==================================================
+
+Classify each opportunity into broad types like:
+- grant
+- foundation_grant
+- contract
+- procurement
+- research_grant
+- technical_assistance
+- pilot_program
+- fellowship
+- challenge
+- loan
+- international_funding
+- other
+
+Use:
+- source
+- title
+- description
+- funding metadata
+
+Build helpers like:
+- classifyOpportunityType(opportunity)
+
+==================================================
+12. INTERPRETATION TRACE / DEBUGGING
+==================================================
+
+For every interpreted opportunity profile, generate a trace that explains how the system interpreted it.
+
+Examples:
+- "Title phrase 'affordable housing' mapped to domainTags=['housing','affordable housing']"
+- "Description phrase 'capacity building for community-based organizations' mapped to activityTags=['capacity_building'] and intendedOrgTypes=['nonprofit','community_based_org']"
+- "Source=sbir added orgType bias toward small_business"
+- "Generic terms detected: ['initiative','program']"
+
+This trace is essential for debugging.
+
+==================================================
+13. INTEGRATION WITH EXISTING MATCHER
+==================================================
+
+Do not replace the matcher.
+Feed the interpreted opportunity profile into the existing matcher so the matcher has better structured inputs.
+
+Update the matcher so that where appropriate it can use:
+- normalizedTitle
+- inferredMissionPhrases
+- inferredHighValuePhrases
+- domainTags
+- activityTags
+- populationTags
+- intendedOrgTypes
+- genericTerms
+- interpretation confidence
+
+Prefer extending existing scoring functions rather than rewriting the whole ranking system.
+
+==================================================
+14. BATCH PROCESSING / PERSISTENCE
+==================================================
+
+Implement this layer so it can process the full indexed opportunity database.
+
+Requirements:
+- operate on real indexed opportunities
+- support batch interpretation
+- cache or persist interpreted profiles if useful
+- avoid recomputing everything unnecessarily
+- preserve raw source fields for traceability
+
+If the system already has a database, persist interpreted opportunity profiles there or persist an interpreted JSON alongside the raw normalized record.
+
+==================================================
+15. FULL-DATABASE COMPATIBILITY
+==================================================
+
+This layer must work with the entire active opportunity corpus, not a small sample.
+
+Do not introduce hidden limits before interpretation.
+Interpret all active opportunities, or interpret in batches/chunks if needed for performance.
+
+If performance is a concern, use:
+- batching
+- caching
+- precomputed fields
+- chunked processing
+
+Do not silently shrink the candidate set.
+
+==================================================
+16. PLAYGROUND / AUDIT INTEGRATION
+==================================================
+
+Extend the existing playground and/or audit tooling so I can inspect:
+- raw opportunity
+- normalized opportunity
+- interpreted opportunity profile
+- interpretation trace
+- which interpreted signals drove the final ranking
+
+Add a toggle or panel like:
+- Raw
+- Normalized
+- Interpreted
+- Match Trace
+
+==================================================
+17. IMPLEMENTATION CONSTRAINTS
+==================================================
+
+- No mock data
+- No fake opportunities
+- No full rewrite
+- Extend the current codebase
+- Preserve existing matcher comparison capabilities
+- Keep code modular and maintainable
+- Favor explicit logic over black-box magic
+- If using heuristics, keep them inspectable
+
+==================================================
+18. SUGGESTED HELPERS / MODULES
+==================================================
+
+Create or extend helpers like:
+- normalizeRawOpportunity(rawRecord)
+- buildInterpretedOpportunityProfile(rawRecord)
+- interpretOpportunityTitle(title)
+- interpretOpportunityDescription(description)
+- extractDomainTags(text)
+- extractActivityTags(text)
+- extractPopulationTags(text)
+- inferIntendedOrgTypes(opportunity)
+- extractHighValuePhrases(text)
+- extractGenericTerms(text)
+- classifyOpportunityType(opportunity)
+- buildInterpretationTrace(profile)
+- getInterpretedOpportunityForMatcher(rawOpportunity)
+
+Use the existing project structure where possible.
+
+==================================================
+19. ACCEPTANCE CRITERIA
+==================================================
+
+This is successful if:
+- real opportunities become much more structured before matching
+- the matcher performs better on real data without changing the core product goal
+- vague titles become more interpretable
+- hidden domain/purpose signals in descriptions are surfaced into structured tags
+- org-type fit becomes more accurate because intended applicant types are inferred better
+- the playground/audit tools clearly show how interpretation happened
+- real-world ranking quality moves closer to the quality seen on mock data
+
+==================================================
+20. FINAL SUMMARY
+==================================================
+
+At the end, provide a concise implementation summary that explains:
+- which files were updated
+- which new modules/helpers were added
+- how raw opportunities are normalized
+- how titles are interpreted
+- how descriptions are interpreted
+- how domain/activity/population/org-type tags are inferred
+- how interpreted profiles are persisted or cached
+- how the matcher now consumes interpreted opportunity profiles
+- where to inspect the interpretation layer in the UI

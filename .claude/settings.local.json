@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs head:*)",
+      "Bash(timeout 10 pnpm run dev:api)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill /F /PID 27236)",
+      "Bash(taskkill //F //PID 27236)",
+      "Bash(curl -s \"http://localhost:5000/api/grants/simpler?keyword=technology&rows=3\")",
+      "Bash(curl -s \"http://localhost:5000/api/grants/simplergrants?keyword=technology&rows=3\")",
+      "Bash(curl -s \"http://localhost:5000/api/healthz\" 2)",
+      "Bash(1 curl:*)",
+      "Bash(curl -s \"http://localhost:3000\")",
+      "Bash(curl -s \"http://localhost:3000/api/healthz\" 2)",
+      "Bash(npx tsx:*)",
+      "Bash(pnpm exec:*)",
+      "Bash(pnpm --filter @workspace/api-server exec tsx ../../scripts/test-v4-algorithm.ts)",
+      "Bash(curl -s \"http://localhost:5000/api/grants/sbir?keyword=technology&rows=25\")",
+      "Bash(pnpm --filter @workspace/grants-explorer exec tsc --noEmit)",
+      "Bash(curl -s \"http://localhost:5000/api/grants/simplergrants?keyword=community&rows=3\")",
+      "Bash(curl -s \"http://localhost:5000/api/grants/grantsgov?keyword=community&rows=3\")",
+      "Bash(curl -s \"http://localhost:5000/api/grants/worldbank?keyword=community&rows=3\")",
+      "Bash(curl -s \"http://localhost:5000/api/grants/threesixtygiving?keyword=health&rows=3\")",
+      "Bash(curl -s \"http://localhost:3000/\")",
+      "Bash(curl -s \"http://localhost:5000/api/grants/simplergrants?keyword=workforce&rows=5\")",
+      "Bash(curl -s \"http://localhost:5000/api/grants/sbir?keyword=technology&rows=5\")",
+      "Bash(pnpm --filter grants-explorer exec tsc --noEmit)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

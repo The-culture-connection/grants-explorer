@@ -31,11 +31,18 @@ import type {
   WeightConfig, FeedbackLabel, EvalLabel, EvalEntry, AuditFeedback, ScoreTrace,
 } from "@/lib/audit/types";
 import type { HybridScoreTrace } from "@/lib/v2/types";
-import { runHybridSweep, computeV1SweepStats, runV3Sweep } from "@/lib/audit/sweep";
+import { runHybridSweep, computeV1SweepStats, runV3Sweep, runV4Sweep } from "@/lib/audit/sweep";
 import type { SweepStats } from "@/lib/audit/sweep";
 import { HYBRID_DIMENSION_MAXES } from "@/lib/v2/types";
 import type { V3ScoreTrace } from "@/lib/v3/types";
 import { V3_DIMENSION_MAXES } from "@/lib/v3/types";
+import type { V4ScoreTrace } from "@/lib/v4/matcherV4";
+
+const V4_DIMENSION_MAXES: Record<string, number> = {
+  conceptFit: 26, conceptCentrality: 10, activityFit: 10, populationFit: 8,
+  targetApplicantFit: 12, eligibility: 10, geographyFit: 8, capacityFit: 7,
+  fundingFit: 6, sourceRelevance: 3,
+};
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -218,13 +225,17 @@ export default function AlgorithmAuditPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [sr, pool] = await Promise.all([
-          fetch(`${API}/indexing/stats`).then((r) => r.json()),
-          loadOpportunityPool(API),          // ← shared canonical loader
-        ]);
-        setPoolStats(sr);
-        setPool(pool);
-      } catch {}
+        const livePool = await loadOpportunityPool(API);
+        setPool(livePool);
+        // Synthesize pool stats from live data
+        const bySource: Record<string, number> = {};
+        for (const o of livePool) {
+          bySource[o.source] = (bySource[o.source] ?? 0) + 1;
+        }
+        setPoolStats({ total: livePool.length, active: livePool.length, bySource });
+      } catch (e) {
+        console.error("[poolLoader] Failed to load live pool:", e);
+      }
       setPoolLoading(false);
     }
     load();
@@ -235,7 +246,7 @@ export default function AlgorithmAuditPage() {
   const activeOrg: OrgProfile = coerceOrgProfile(user?.org_profile, user?.id ?? "unknown");
 
   // ── Scoring ───────────────────────────────────────────────────────────────
-  const [scorerMode, setScorerMode] = useState<"v1" | "hybrid" | "v3">("v1");
+  const [scorerMode, setScorerMode] = useState<"v1" | "hybrid" | "v3" | "v4">("v1");
   const [weights, setWeights] = useState<WeightConfig>({ ...DEFAULT_WEIGHTS });
   const [useSynonyms, setUseSynonyms] = useState(false);
   const [hasRun, setHasRun] = useState(false);
@@ -244,6 +255,7 @@ export default function AlgorithmAuditPage() {
   const [rankedResults, setRankedResults] = useState<ScoreTrace[]>([]);
   const [hybridAuditResults, setHybridAuditResults] = useState<HybridScoreTrace[]>([]);
   const [v3AuditResults, setV3AuditResults] = useState<V3ScoreTrace[]>([]);
+  const [v4AuditResults, setV4AuditResults] = useState<V4ScoreTrace[]>([]);
   const [sweepStats, setSweepStats] = useState<SweepStats | null>(null);
 
   const runAudit = useCallback(() => {
@@ -253,6 +265,7 @@ export default function AlgorithmAuditPage() {
         const { stats, topTraces } = runHybridSweep(activeOrg, pool, 50);
         setHybridAuditResults(topTraces);
         setV3AuditResults([]);
+        setV4AuditResults([]);
         setSweepStats(stats);
         setAllTraces([]);
         setRankedResults([]);
@@ -260,6 +273,15 @@ export default function AlgorithmAuditPage() {
         const { stats, topTraces } = runV3Sweep(activeOrg, pool, 50);
         setV3AuditResults(topTraces);
         setHybridAuditResults([]);
+        setV4AuditResults([]);
+        setSweepStats(stats);
+        setAllTraces([]);
+        setRankedResults([]);
+      } else if (scorerMode === "v4") {
+        const { stats, topTraces } = runV4Sweep(activeOrg, pool, 50);
+        setV4AuditResults(topTraces);
+        setHybridAuditResults([]);
+        setV3AuditResults([]);
         setSweepStats(stats);
         setAllTraces([]);
         setRankedResults([]);
@@ -442,12 +464,14 @@ export default function AlgorithmAuditPage() {
       ? hybridAuditResults.map(t => ({ id: t.opp.id, title: t.opp.title, source: t.opp.source, score: t.finalScore }))
       : scorerMode === "v3"
       ? v3AuditResults.map(t => ({ id: t.opp.id, title: t.opp.title, source: t.opp.source, score: t.finalScore }))
+      : scorerMode === "v4"
+      ? v4AuditResults.map(t => ({ id: t.opp.id, title: t.opp.title, source: t.opp.source, score: t.finalScore }))
       : allTraces.map(t => ({ id: t.opp.id, title: t.opp.title, source: t.opp.source_raw, score: t.scores.total }))
           .sort((a, b) => b.score - a.score);
     if (!verboseSearch.trim()) return list;
     const q = verboseSearch.toLowerCase();
     return list.filter(r => r.title.toLowerCase().includes(q) || r.source.toLowerCase().includes(q));
-  }, [scorerMode, hybridAuditResults, v3AuditResults, allTraces, verboseSearch]);
+  }, [scorerMode, hybridAuditResults, v3AuditResults, v4AuditResults, allTraces, verboseSearch]);
 
   const verboseHybridTrace = useMemo(() =>
     verboseSelectedId ? hybridAuditResults.find(t => t.opp.id === verboseSelectedId) ?? null : null,
@@ -456,6 +480,10 @@ export default function AlgorithmAuditPage() {
   const verboseV3Trace = useMemo(() =>
     verboseSelectedId ? v3AuditResults.find(t => t.opp.id === verboseSelectedId) ?? null : null,
     [verboseSelectedId, v3AuditResults]);
+
+  const verboseV4Trace = useMemo(() =>
+    verboseSelectedId ? v4AuditResults.find(t => t.opp.id === verboseSelectedId) ?? null : null,
+    [verboseSelectedId, v4AuditResults]);
 
   const verboseV1Trace = useMemo(() =>
     verboseSelectedId ? allTraces.find(t => t.opp.id === verboseSelectedId) ?? null : null,
@@ -484,7 +512,7 @@ export default function AlgorithmAuditPage() {
           <div className="flex items-center gap-2 font-semibold text-sm">
             <BookOpen className="h-4 w-4 text-primary" />
             Algorithm Audit
-            <Badge variant="secondary" className="text-xs font-mono">{scorerMode === "hybrid" ? "Hybrid V2" : scorerMode === "v3" ? "V3 RankFix" : "V1 Keyword"}</Badge>
+            <Badge variant="secondary" className="text-xs font-mono">{scorerMode === "hybrid" ? "Hybrid V2" : scorerMode === "v3" ? "V3 RankFix" : scorerMode === "v4" ? "V4 Consolidated" : "V1 Keyword"}</Badge>
           </div>
         </div>
       </nav>
@@ -585,6 +613,8 @@ export default function AlgorithmAuditPage() {
                     onClick={() => setScorerMode("hybrid")}>V2 Hybrid</Button>
                   <Button size="sm" variant={scorerMode === "v3" ? "default" : "outline"} className={`h-8 text-xs ${scorerMode === "v3" ? "bg-violet-600 text-white border-violet-600" : "border-violet-400 text-violet-600"}`}
                     onClick={() => setScorerMode("v3")}>V3 RankFix</Button>
+                  <Button size="sm" variant={scorerMode === "v4" ? "default" : "outline"} className={`h-8 text-xs ${scorerMode === "v4" ? "bg-indigo-600 text-white border-indigo-600" : "border-indigo-400 text-indigo-600"}`}
+                    onClick={() => setScorerMode("v4")}>V4 Consolidated</Button>
                 </div>
               </div>
               {scorerMode === "v1" && (
@@ -1638,7 +1668,7 @@ export default function AlgorithmAuditPage() {
                   <div className="mb-6 space-y-4 border border-border/60 rounded-xl p-4 bg-muted/20">
                     <div className="flex items-center gap-2 mb-1">
                       <Database className="h-4 w-4 text-primary" />
-                      <span className="font-semibold text-sm">Database Sweep — {scorerMode === "hybrid" ? "Hybrid V2" : scorerMode === "v3" ? "V3 RankFix" : "V1 Keyword"} · {s.activeOpps.toLocaleString()} active opportunities scored</span>
+                      <span className="font-semibold text-sm">Database Sweep — {scorerMode === "hybrid" ? "Hybrid V2" : scorerMode === "v3" ? "V3 RankFix" : scorerMode === "v4" ? "V4 Consolidated" : "V1 Keyword"} · {s.activeOpps.toLocaleString()} active opportunities scored</span>
                     </div>
 
                     {/* Elimination Funnel */}
@@ -1812,7 +1842,7 @@ export default function AlgorithmAuditPage() {
                       onChange={e => { setVerboseSearch(e.target.value); }}
                     />
                     <div className="text-[10px] text-muted-foreground mt-1 px-0.5">
-                      {verboseList.length} opportunities · {scorerMode === "hybrid" ? "Hybrid V2" : scorerMode === "v3" ? "V3 RankFix" : "V1 Keyword"} mode
+                      {verboseList.length} opportunities · {scorerMode === "hybrid" ? "Hybrid V2" : scorerMode === "v3" ? "V3 RankFix" : scorerMode === "v4" ? "V4 Consolidated" : "V1 Keyword"} mode
                     </div>
                   </div>
                   <div className="flex-1 overflow-y-auto">
@@ -1842,7 +1872,7 @@ export default function AlgorithmAuditPage() {
                       <div className="text-center">
                         <Code className="h-10 w-10 mx-auto mb-3 opacity-20" />
                         <p className="text-sm">Select an opportunity from the list to inspect its full scoring trace</p>
-                        <p className="text-xs mt-1 opacity-70">Every step of the {scorerMode === "hybrid" ? "Hybrid V2" : scorerMode === "v3" ? "V3 RankFix" : "V1 Keyword"} algorithm will be shown here</p>
+                        <p className="text-xs mt-1 opacity-70">Every step of the {scorerMode === "hybrid" ? "Hybrid V2" : scorerMode === "v3" ? "V3 RankFix" : scorerMode === "v4" ? "V4 Consolidated" : "V1 Keyword"} algorithm will be shown here</p>
                       </div>
                     </div>
                   )}
@@ -2558,6 +2588,152 @@ export default function AlgorithmAuditPage() {
                   })()}
 
                   {verboseSelectedId && scorerMode === "v3" && !verboseV3Trace && (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                      Opportunity not found in scored results
+                    </div>
+                  )}
+
+                  {verboseSelectedId && scorerMode === "v4" && verboseV4Trace && (() => {
+                    const t = verboseV4Trace;
+                    const copyLog = () => {
+                      navigator.clipboard.writeText(t.audit_trace.join("\n"));
+                    };
+                    return (
+                      <div key={t.opp.id} className="h-full overflow-y-auto p-4 space-y-4">
+                        {/* Header */}
+                        <div className={`rounded-xl p-4 border ${scoreBg(t.finalScore)}`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="font-semibold text-sm leading-snug">{t.opp.title}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{t.opp.agency} · {t.opp.source}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className={`text-3xl font-black ${scoreColor(t.finalScore)}`}>{t.finalScore}</div>
+                              <div className="text-[10px] text-muted-foreground capitalize">{t.confidence}</div>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex gap-3 text-xs text-muted-foreground">
+                            <span>base {t.baseScore}</span>
+                            <span>+{t.semanticBoost} boost</span>
+                            {t.recencyBoost > 0 && <span>+{t.recencyBoost} recency</span>}
+                            <span>−{t.penaltyTotal} penalties</span>
+                          </div>
+                        </div>
+
+                        {/* V4 Specificity Signals */}
+                        <div className="border border-indigo-200 bg-indigo-50 rounded-lg p-3">
+                          <div className="text-[10px] font-semibold text-indigo-700 uppercase tracking-wider mb-2">V4 Specificity Signals</div>
+                          <div className="grid grid-cols-2 gap-1.5 text-xs">
+                            <div>
+                              <span className="text-muted-foreground">Exact phrase matches: </span>
+                              <span className="font-mono font-medium">{t.exactPhraseMatches.length > 0 ? t.exactPhraseMatches.join(", ") : "none"}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Specificity ratio: </span>
+                              <span className="font-mono font-medium">{(t.specificityRatio * 100).toFixed(0)}%</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Target applicant: </span>
+                              <span className="font-mono font-medium">{t.targetApplicantInferred}</span>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Population matches: </span>
+                              <span className="font-mono">{t.populationMatches.length > 0 ? t.populationMatches.join(", ") : "none"}</span>
+                            </div>
+                          </div>
+                          {t.highValueConcepts.length > 0 && (
+                            <div className="mt-2 text-xs">
+                              <span className="text-muted-foreground">High-value concepts: </span>
+                              <span className="font-semibold text-indigo-700">{t.highValueConcepts.join(", ")}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* V4 Dimension Breakdown */}
+                        <div>
+                          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">V4 Dimension Scores</div>
+                          <div className="space-y-1.5">
+                            {(Object.entries(t.dimensions) as [string, number][]).map(([dim, score]) => {
+                              const max = V4_DIMENSION_MAXES[dim] ?? 10;
+                              const pct = max > 0 ? (score / max) * 100 : 0;
+                              const isNew = ["sourceRelevance", "recencyBoost"].includes(dim);
+                              return (
+                                <div key={dim} className="flex items-center gap-2">
+                                  <div className="w-36 text-xs text-muted-foreground flex items-center gap-1">
+                                    {isNew && <span className="text-[9px] bg-indigo-100 text-indigo-600 rounded px-0.5 font-bold">NEW</span>}
+                                    {dim.replace(/([A-Z])/g, " $1").toLowerCase().trim()}
+                                  </div>
+                                  <div className="flex-1 bg-muted rounded-full h-1.5">
+                                    <div
+                                      className={`h-1.5 rounded-full ${pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-500" : "bg-red-400"}`}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                  <div className="text-xs font-mono w-12 text-right text-muted-foreground">{score}/{max}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Penalties */}
+                        {t.penalties.length > 0 && (
+                          <div className="border border-red-200 bg-red-50 rounded-lg p-3">
+                            <div className="text-[10px] font-semibold text-red-700 uppercase tracking-wider mb-2">Penalties Applied (−{t.penaltyTotal})</div>
+                            <div className="space-y-1">
+                              {t.penalties.map((p, i) => (
+                                <div key={i} className="text-xs flex items-start gap-1.5">
+                                  <span className="font-mono text-red-600 shrink-0">−{p.value}</span>
+                                  <span className="text-muted-foreground">{p.reason}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reasons */}
+                        {t.reasons.length > 0 && (
+                          <div className="border border-emerald-200 bg-emerald-50 rounded-lg p-3">
+                            <div className="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider mb-2">Why This Matches</div>
+                            <ul className="space-y-1">
+                              {t.reasons.map((r, i) => <li key={i} className="text-xs flex items-start gap-1.5"><CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />{r}</li>)}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Risks */}
+                        {t.risks.length > 0 && (
+                          <div className="border border-amber-200 bg-amber-50 rounded-lg p-3">
+                            <div className="text-[10px] font-semibold text-amber-700 uppercase tracking-wider mb-2">Risks & Concerns</div>
+                            <ul className="space-y-1">
+                              {t.risks.map((r, i) => <li key={i} className="text-xs flex items-start gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />{r}</li>)}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Audit Trace Terminal */}
+                        <div>
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Audit Trace</div>
+                            <Button size="sm" variant="ghost" className="h-5 px-2 text-[10px]" onClick={copyLog}>Copy</Button>
+                          </div>
+                          <div className="bg-zinc-900 rounded-lg p-3 font-mono text-[10px] text-green-400 space-y-0.5 max-h-48 overflow-y-auto">
+                            {t.audit_trace.map((line, i) => <div key={i}>{line}</div>)}
+                          </div>
+                        </div>
+
+                        {/* Eligibility */}
+                        <div className="text-xs text-muted-foreground border-t pt-3">
+                          <span className={t.passes_eligibility ? "text-emerald-600 font-medium" : "text-red-600 font-medium"}>
+                            {t.passes_eligibility ? "✓ Eligible" : "✗ Ineligible"}
+                          </span>
+                          {" — "}{t.eligibility_reason}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {verboseSelectedId && scorerMode === "v4" && !verboseV4Trace && (
                     <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
                       Opportunity not found in scored results
                     </div>

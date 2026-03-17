@@ -1,39 +1,79 @@
 /**
  * poolLoader.ts — Single source of truth for:
- *   1. Converting raw DB records to NormalizedOpportunity (canonical dbRecordToOpportunity)
- *   2. Coercing Firestore org_profile data to OrgProfile (canonical coerceOrgProfile)
- *   3. Fetching and preparing the full opportunity pool from the API
+ *   1. Converting live API responses to NormalizedOpportunity
+ *   2. Coercing Firestore org_profile data to OrgProfile
+ *   3. Fetching the full opportunity pool from all live grant APIs
  *
- * Import from here in EVERY page that runs V3 scoring so the data pipeline
- * is guaranteed to be identical.
+ * The pool is fetched LIVE from all active grant endpoints on each call.
+ * No database is required — this mirrors exactly what the Explore page does.
  */
 
 import type { NormalizedOpportunity } from "@/lib/algorithm/types";
 import type { OrgProfile } from "@/lib/algorithm/types";
 
-// ─── Active sources (must match AlgorithmAudit.tsx) ───────────────────────────
+// ─── Active sources ────────────────────────────────────────────────────────────
 export const ACTIVE_SOURCES = new Set([
   "simpler_grants", "grants_gov", "sam_gov", "sbir",
   "threesixtygiving", "california_grants", "world_bank", "ted_eu",
 ]);
 
-// ─── Canonical DB → NormalizedOpportunity ─────────────────────────────────────
-/**
- * Converts a raw DB record to NormalizedOpportunity.
- * Handles geography stored as JSON string or array.
- * Uses the same field mappings as AlgorithmAudit so scores are identical.
- */
+// Maps the human-readable source strings returned by the API to snake_case keys
+const SOURCE_NAME_MAP: Record<string, string> = {
+  "Simpler Grants": "simpler_grants",
+  "Grants.gov": "grants_gov",
+  "SAM.gov": "sam_gov",
+  "SBIR": "sbir",
+  "SBIR (via USASpending)": "sbir",
+  "360Giving / UKRI": "threesixtygiving",
+  "California Grants": "california_grants",
+  "California Grants (via USASpending)": "california_grants",
+  "World Bank": "world_bank",
+  "TED EU": "ted_eu",
+};
+
+function normalizeSourceName(raw: string): string {
+  return SOURCE_NAME_MAP[raw] ?? raw.toLowerCase().replace(/[^a-z0-9]/g, "_");
+}
+
+function parseAmount(amount?: string): number | undefined {
+  if (!amount) return undefined;
+  const n = Number(amount.replace(/[^0-9.]/g, ""));
+  return isNaN(n) || n === 0 ? undefined : n;
+}
+
+// ─── Live API item → NormalizedOpportunity ────────────────────────────────────
+function liveItemToOpportunity(item: any, sourceRaw: string): NormalizedOpportunity {
+  const source = normalizeSourceName(sourceRaw);
+  return {
+    id: `${source}_${String(item.id ?? Math.random())}`,
+    source,
+    source_raw: sourceRaw,
+    title: item.title ?? "Untitled",
+    description: item.description ?? "",
+    agency: item.agency ?? "",
+    funding_type: "grant" as any,
+    status: "active" as any,
+    open_date: undefined,
+    close_date: item.deadline ?? undefined,
+    min_award: undefined,
+    max_award: parseAmount(item.amount),
+    eligibility: [],
+    categories: [],
+    keywords: [],
+    geography: [],
+    url: item.url ?? "",
+  };
+}
+
+// ─── Canonical DB record → NormalizedOpportunity (kept for legacy use) ────────
 export function dbRecordToOpportunity(rec: any): NormalizedOpportunity {
-  // Geography can be stored as a JSON-encoded string or as a real array
   let geoRaw: any[] = [];
   if (Array.isArray(rec.geography)) {
     geoRaw = rec.geography;
   } else if (typeof rec.geography === "string" && rec.geography) {
     try { geoRaw = JSON.parse(rec.geography); } catch { geoRaw = [rec.geography]; }
   }
-  const geography: string[] = geoRaw
-    .filter((g: any) => g != null)
-    .map((g: any) => String(g));
+  const geography: string[] = geoRaw.filter((g: any) => g != null).map((g: any) => String(g));
 
   return {
     id: rec.id,
@@ -72,10 +112,6 @@ const EMPTY_ORG: OrgProfile = {
   keywords: [],
 };
 
-/**
- * Defensively coerces Firestore org_profile data into a valid OrgProfile.
- * Uses uid as the profile id (Firestore UID is always available).
- */
 export function coerceOrgProfile(raw: any, uid: string): OrgProfile {
   if (!raw) return { ...EMPTY_ORG, id: uid };
   const toArr = (v: any): string[] =>
@@ -96,31 +132,129 @@ export function coerceOrgProfile(raw: any, uid: string): OrgProfile {
   };
 }
 
-// ─── Pool loader ───────────────────────────────────────────────────────────────
-/**
- * Returns true if an opportunity's deadline has clearly passed.
- * Grants with no close_date are treated as rolling/open-ended and kept.
- */
-function isDeadlinePassed(closeDate?: string): boolean {
-  if (!closeDate) return false;
-  return new Date(closeDate) < new Date();
+// ─── Live grant API endpoints ─────────────────────────────────────────────────
+const GRANT_ENDPOINTS = [
+  "/grants/simplergrants",
+  "/grants/grantsgov",
+  "/grants/samgov",
+  "/grants/sbir",
+  "/grants/threesixtygiving",
+  "/grants/cagrants",
+  "/grants/worldbank",
+  "/grants/tedeu",
+];
+
+// Broad keywords to maximize pool diversity
+const POOL_KEYWORDS = ["community", "health", "education", "workforce", "technology", "environment"];
+
+// Extended keywords for full corpus fetch
+const FULL_POOL_KEYWORDS = [
+  "community", "health", "education", "workforce", "technology", "environment",
+  "arts", "housing", "food", "youth", "justice", "research",
+];
+
+const ROWS_PER_FETCH = 25;
+const FULL_ROWS_PER_FETCH = 100;
+
+// ─── Pool Diagnostics ──────────────────────────────────────────────────────────
+export interface PoolDiagnostics {
+  totalFetched: number;       // raw items across all requests (with dupes)
+  totalUnique: number;        // after dedup
+  fetchErrors: number;        // number of failed requests
+  perSource: Record<string, number>;  // unique count per source key
+  durationMs: number;
 }
 
 /**
- * Fetches the opportunity pool from the API and converts all records.
- * Applies two filters so both the explorer and the audit score the same set:
- *   1. ACTIVE_SOURCES  — only supported data sources
- *   2. deadline check  — removes grants whose close_date is already past
- *      (the DB classification is set at index time and doesn't auto-expire)
+ * Fetches the opportunity pool by calling all active grant API endpoints live.
+ * Uses multiple broad keywords to get diverse coverage across categories.
+ * Deduplicates by ID and filters to ACTIVE_SOURCES only.
  */
 export async function loadOpportunityPool(apiBase: string): Promise<NormalizedOpportunity[]> {
-  const resp = await fetch(`${apiBase}/indexing/records/for-algorithm`);
-  if (!resp.ok) throw new Error(`Pool fetch failed: ${resp.status}`);
-  const data = await resp.json();
-  return (data.records ?? [])
-    .map(dbRecordToOpportunity)
-    .filter(
-      (o: NormalizedOpportunity) =>
-        ACTIVE_SOURCES.has(o.source) && !isDeadlinePassed(o.close_date),
-    );
+  // Build all fetch tasks: each endpoint × each keyword
+  const fetches = GRANT_ENDPOINTS.flatMap((endpoint) =>
+    POOL_KEYWORDS.map((kw) =>
+      fetch(`${apiBase}${endpoint}?keyword=${encodeURIComponent(kw)}&rows=${ROWS_PER_FETCH}`, {
+        signal: AbortSignal.timeout(15000),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ),
+  );
+
+  const results = await Promise.all(fetches);
+
+  const seen = new Set<string>();
+  const opps: NormalizedOpportunity[] = [];
+
+  for (const data of results) {
+    if (!data || !Array.isArray(data.items)) continue;
+    const sourceRaw: string = data.source ?? "";
+    for (const item of data.items) {
+      if (!item || !item.id) continue;
+      const uid = `${normalizeSourceName(sourceRaw)}_${item.id}`;
+      if (seen.has(uid)) continue;
+      seen.add(uid);
+      const opp = liveItemToOpportunity(item, sourceRaw);
+      if (ACTIVE_SOURCES.has(opp.source)) opps.push(opp);
+    }
+  }
+
+  return opps;
+}
+
+/**
+ * Fetches the FULL opportunity corpus with extended keywords and 100 rows per request.
+ * Returns both the deduplicated pool and detailed diagnostics for the corpus panel.
+ */
+export async function loadFullOpportunityPool(
+  apiBase: string,
+): Promise<{ pool: NormalizedOpportunity[]; diagnostics: PoolDiagnostics }> {
+  const t0 = Date.now();
+
+  const tasks = GRANT_ENDPOINTS.flatMap((endpoint) =>
+    FULL_POOL_KEYWORDS.map((kw) =>
+      fetch(`${apiBase}${endpoint}?keyword=${encodeURIComponent(kw)}&rows=${FULL_ROWS_PER_FETCH}`, {
+        signal: AbortSignal.timeout(20000),
+      })
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null),
+    ),
+  );
+
+  const results = await Promise.all(tasks);
+
+  const seen = new Set<string>();
+  const opps: NormalizedOpportunity[] = [];
+  const perSource: Record<string, number> = {};
+  let totalFetched = 0;
+  let fetchErrors = 0;
+
+  for (const data of results) {
+    if (!data) { fetchErrors++; continue; }
+    if (!Array.isArray(data.items)) continue;
+    const sourceRaw: string = data.source ?? "";
+    for (const item of data.items) {
+      if (!item || !item.id) continue;
+      totalFetched++;
+      const uid = `${normalizeSourceName(sourceRaw)}_${item.id}`;
+      if (seen.has(uid)) continue;
+      seen.add(uid);
+      const opp = liveItemToOpportunity(item, sourceRaw);
+      if (!ACTIVE_SOURCES.has(opp.source)) continue;
+      opps.push(opp);
+      perSource[opp.source] = (perSource[opp.source] ?? 0) + 1;
+    }
+  }
+
+  return {
+    pool: opps,
+    diagnostics: {
+      totalFetched,
+      totalUnique: opps.length,
+      fetchErrors,
+      perSource,
+      durationMs: Date.now() - t0,
+    },
+  };
 }

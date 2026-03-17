@@ -3,19 +3,21 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "preinstall": "node -e \"const u=process.env.npm_config_user_agent||''; if(u && !/^pnpm\\//.test(u)) { console.error('Use pnpm instead of npm/yarn. Install: npm i -g pnpm'); process.exit(1); }\"",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "railway:build": "BASE_PATH=/ pnpm --filter @workspace/grants-explorer run build && pnpm --filter @workspace/api-server run build",
-    "start": "node artifacts/api-server/dist/index.cjs"
+    "start": "node artifacts/api-server/dist/index.cjs",
+    "dev": "pnpm exec concurrently \"pnpm run dev:api\" \"pnpm run dev:web\"",
+    "dev:api": "pnpm --filter @workspace/api-server run dev",
+    "dev:web": "pnpm --filter @workspace/grants-explorer run dev"
   },
   "private": true,
   "devDependencies": {
+    "concurrently": "^9.1.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.2"
   },
-  "dependencies": {
-    "@replit/connectors-sdk": "^0.3.0"
-  }
+  "dependencies": {}
 }

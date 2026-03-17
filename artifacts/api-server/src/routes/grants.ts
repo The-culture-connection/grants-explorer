@@ -21,7 +21,7 @@ function getKeyword(q: unknown): string {
 
 function getRows(q: unknown): number {
   const n = parseInt(String(q), 10);
-  return isNaN(n) || n <= 0 ? 12 : Math.min(n, 25);
+  return isNaN(n) || n <= 0 ? 12 : Math.min(n, 100);
 }
 
 function getOffset(q: unknown): number {

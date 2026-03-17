@@ -1,0 +1,3927 @@
+{
+  "generated_at": "2026-03-17T21:16:19.125Z",
+  "pool_size": 276,
+  "sources": [
+    "simpler_grants",
+    "grants_gov",
+    "sbir",
+    "threesixtygiving",
+    "world_bank",
+    "ted_eu"
+  ],
+  "profiles_tested": 20,
+  "avg_top_score": 42,
+  "results": [
+    {
+      "profile_id": "org_002",
+      "profile_name": "GreenFuture Labs",
+      "org_type": "small_business",
+      "opportunities_scored": 260,
+      "eligible_count": 260,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 2,
+        "25-37 (weak)": 23,
+        "<25 or ineligible": 235
+      },
+      "source_coverage": {
+        "simpler_grants": 3,
+        "world_bank": 3,
+        "grants_gov": 3,
+        "threesixtygiving": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "The Genesis Mission:  Transforming Science and Energy with AI",
+          "source": "simpler_grants",
+          "agency": "Office of Science",
+          "score": 40,
+          "confidence": "moderate",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/0228b895-9cb3-4160-8acc-58709e75c3c7"
+        },
+        {
+          "rank": 2,
+          "title": "Burundi Colline Climate Resilience Project",
+          "source": "world_bank",
+          "agency": "Republic of Burundi",
+          "score": 38,
+          "confidence": "moderate",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180864"
+        },
+        {
+          "rank": 3,
+          "title": "Renewable Energy Systems and Energy Efficiency Improvements Program",
+          "source": "grants_gov",
+          "agency": "Rural Business-Cooperative Service ",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/279638"
+        },
+        {
+          "rank": 4,
+          "title": "Honduras Sustainable Connectivity Project",
+          "source": "world_bank",
+          "agency": "Republic of Honduras",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181166"
+        },
+        {
+          "rank": 5,
+          "title": "Sustainable Financing for Rogun Hydropower Project",
+          "source": "world_bank",
+          "agency": "Republic of Tajikistan",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181029"
+        },
+        {
+          "rank": 6,
+          "title": "FY 2026 Energizing Insular Communities Program",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/674800aa-362e-45d4-be83-fabf9c6ca918"
+        },
+        {
+          "rank": 7,
+          "title": "Sus-Health. Sustainable and Healthy diets for all.",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=0E64B826-9B83-4DBA-A326-5EBF7722F7A2"
+        },
+        {
+          "rank": 8,
+          "title": "OIA Maintenance Assistance Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/1e679766-f68e-4f07-ad68-609e687ec3bb"
+        },
+        {
+          "rank": 9,
+          "title": "The Genesis Mission:  Transforming Science and Energy with AI",
+          "source": "grants_gov",
+          "agency": "Office of Science",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361526"
+        },
+        {
+          "rank": 10,
+          "title": "SEEDING CRITICAL ADVANCES FOR LEADING ENERGY TECHNOLOGIES WITH UNTAPPED POTENTIAL (SCALEUP) READY",
+          "source": "grants_gov",
+          "agency": "Advanced Research Projects Agency Energy ",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/356623"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_003",
+      "profile_name": "Youth Pathways Initiative",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 2,
+        "38-54 (moderate)": 1,
+        "25-37 (weak)": 3,
+        "<25 or ineligible": 254
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "simpler_grants": 3,
+        "world_bank": 2,
+        "threesixtygiving": 2
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Training-based Workforce Development for Advanced Cyberinfrastructure  (CyberTraining)",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 55,
+          "confidence": "strong",
+          "exact_phrases": [
+            "workforce development"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"workforce development\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/344608"
+        },
+        {
+          "rank": 2,
+          "title": "MCH Workforce Development and Training Center",
+          "source": "grants_gov",
+          "agency": "Health Resources and Services Administration",
+          "score": 55,
+          "confidence": "strong",
+          "exact_phrases": [
+            "workforce development"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"workforce development\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/360960"
+        },
+        {
+          "rank": 3,
+          "title": "Agriculture and Food Research Initiative Competitive Grants Program Education and Workforce Developm",
+          "source": "grants_gov",
+          "agency": "National Institute of Food and Agriculture",
+          "score": 45,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "workforce development"
+          ],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Exact match: \"workforce development\"",
+            "Core concept in opportunity title"
+          ],
+          "risks": [
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361169"
+        },
+        {
+          "rank": 4,
+          "title": "Freedom 250: Kazakhstan Youth Leadership Camp",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Kazakhstan",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "small_business",
+          "reasons": [
+            "Population: youth"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/6b073b7c-64f4-4436-b745-ebbae3c8ad53"
+        },
+        {
+          "rank": 5,
+          "title": "Ryan White HIV/AIDS Program Part F Dental Reimbursement Program",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 22,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: low income"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2cf5be3f-2316-4ca0-879a-60b71096a3a9"
+        },
+        {
+          "rank": 6,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 19,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 7,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 8,
+          "title": "Burundi Colline Climate Resilience Project",
+          "source": "world_bank",
+          "agency": "Republic of Burundi",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180864"
+        },
+        {
+          "rank": 9,
+          "title": "ShipShape 3D Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=78C295D5-3294-4D49-889D-0840DF3ECC5E"
+        },
+        {
+          "rank": 10,
+          "title": "Community Resource Entrepreneurs",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "small_business",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=50C3327F-C94D-4EC0-B76C-68998F080ACD"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_004",
+      "profile_name": "Urban Housing Collective",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 5,
+        "<25 or ineligible": 255
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "threesixtygiving": 3,
+        "simpler_grants": 3,
+        "world_bank": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Housing-Related Hazards and Lead-Based Paint Capital Fund Program",
+          "source": "grants_gov",
+          "agency": "Department of Housing and Urban Development",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361421"
+        },
+        {
+          "rank": 2,
+          "title": "Managing Restrictive Housing Populations Training",
+          "source": "grants_gov",
+          "agency": "National Institute of Corrections",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361495"
+        },
+        {
+          "rank": 3,
+          "title": "Where is the 'community' in Community Wealth Building?",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [
+            "community development"
+          ],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Exact match: \"community development\""
+          ],
+          "risks": [
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=7F508363-ED55-499C-BDE2-0A0F0DC0D2F3"
+        },
+        {
+          "rank": 4,
+          "title": "OIA Brown Treesnake Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 30,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/896bca38-367b-41be-b1d2-66f6f6e264ed"
+        },
+        {
+          "rank": 5,
+          "title": "Community Travel Platform",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=1B635E72-4696-462A-9C45-180F79A06E9B"
+        },
+        {
+          "rank": 6,
+          "title": "A longitudinal mixed-methods population study of the UK during the COVID-19 pandemic: Psychological ",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 24,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=E60DFEF7-213E-4294-A756-AC114DB38C20"
+        },
+        {
+          "rank": 7,
+          "title": "Ryan White HIV/AIDS Program Part F Dental Reimbursement Program",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 22,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: low income"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2cf5be3f-2316-4ca0-879a-60b71096a3a9"
+        },
+        {
+          "rank": 8,
+          "title": "Regional Pediatric Prevention Network",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 19,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality",
+            "Research grants typically require PI credentials and academic infrastructure",
+            "Pop mismatch: opp targets children"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/6e37e586-4460-4191-bee3-72cb25b9922c"
+        },
+        {
+          "rank": 9,
+          "title": "Understanding and Promoting Resources and Opportunities for People with Autism and Fragile X and the",
+          "source": "grants_gov",
+          "agency": "Centers for Disease Control - NCBDDD",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: families"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/360357"
+        },
+        {
+          "rank": 10,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_005",
+      "profile_name": "STEM Sisters",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 2,
+        "25-37 (weak)": 12,
+        "<25 or ineligible": 246
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "simpler_grants": 3,
+        "threesixtygiving": 3,
+        "world_bank": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Improving Undergraduate STEM Education: Directorate for STEM Education",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 48,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "stem education"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"stem education\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/344124"
+        },
+        {
+          "rank": 2,
+          "title": "FY25 ONR Office Of Naval Research (ONR) Science, Technology, Engineering, and Mathematics(STEM) Educ",
+          "source": "grants_gov",
+          "agency": "Office of Naval Research",
+          "score": 38,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "stem education"
+          ],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Exact match: \"stem education\"",
+            "Core concept in opportunity title"
+          ],
+          "risks": [
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/359932"
+        },
+        {
+          "rank": 3,
+          "title": "Alumni Engagement Innovation Fund",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Uganda",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/9e425f9a-52ac-49a3-ae4f-ffa1ae8de41d"
+        },
+        {
+          "rank": 4,
+          "title": "FY 2026 Young Southeast Asian Leaders Initiative (YSEALI) Academic Fellows Program",
+          "source": "simpler_grants",
+          "agency": "Bureau Of Educational and Cultural Affairs",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/9e009071-aab9-4a60-90c6-87e299d3d37a"
+        },
+        {
+          "rank": 5,
+          "title": "Optimizing Behavioral Sleep Interventions for Adolescents and Young Adults",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 30,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/359159"
+        },
+        {
+          "rank": 6,
+          "title": "Community Catalyst",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=3B35A4DE-C64B-4D70-85B7-2B5609FC91D8"
+        },
+        {
+          "rank": 7,
+          "title": "Neighbourhoods and Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: women"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=D1D2E465-9E97-45FC-AC6C-464297C34E01"
+        },
+        {
+          "rank": 8,
+          "title": "The Genesis Mission:  Transforming Science and Energy with AI",
+          "source": "simpler_grants",
+          "agency": "Office of Science",
+          "score": 28,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/0228b895-9cb3-4160-8acc-58709e75c3c7"
+        },
+        {
+          "rank": 9,
+          "title": "STEM Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 24,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality",
+            "Pop mismatch: opp targets children"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=E43264F1-47D0-48A3-B53A-FEE18C7FA41B"
+        },
+        {
+          "rank": 10,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_006",
+      "profile_name": "FarmLink Cooperative",
+      "org_type": "small_business",
+      "opportunities_scored": 260,
+      "eligible_count": 257,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 1,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 19,
+        "<25 or ineligible": 240
+      },
+      "source_coverage": {
+        "world_bank": 2,
+        "simpler_grants": 2,
+        "grants_gov": 3,
+        "threesixtygiving": 3
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 56,
+          "confidence": "strong",
+          "exact_phrases": [
+            "food systems"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"food systems\"",
+            "Core concept in opportunity title",
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 2,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 3,
+          "title": "Preventing global health threats by strengthening surveillance systems to accelerate outbreak detect",
+          "source": "grants_gov",
+          "agency": "Centers for Disease Control-GHC",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/360617"
+        },
+        {
+          "rank": 4,
+          "title": "Renewable Energy Systems and Energy Efficiency Improvements Program",
+          "source": "grants_gov",
+          "agency": "Rural Business-Cooperative Service ",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/279638"
+        },
+        {
+          "rank": 5,
+          "title": "Uttar Pradesh Agriculture Growth and Rural Enterprise Ecosystem Strengthening Project",
+          "source": "world_bank",
+          "agency": "Republic of India",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P178253"
+        },
+        {
+          "rank": 6,
+          "title": "Community Catalyst",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=3B35A4DE-C64B-4D70-85B7-2B5609FC91D8"
+        },
+        {
+          "rank": 7,
+          "title": "Combustion and Fire Systems",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/347509"
+        },
+        {
+          "rank": 8,
+          "title": "Exploiting Community Drivers for Population Control in Microbial Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=28DB29D9-7AD8-49CE-84D2-0E89AA957757"
+        },
+        {
+          "rank": 9,
+          "title": "Connecting communities: transformative impacts of community garden networks",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=33149FEE-39A8-4406-9CA8-FB020B8F00D5"
+        },
+        {
+          "rank": 10,
+          "title": "OIA Brown Treesnake Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/896bca38-367b-41be-b1d2-66f6f6e264ed"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_007",
+      "profile_name": "Safe Streets Alliance",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 1,
+        "25-37 (weak)": 15,
+        "<25 or ineligible": 244
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "simpler_grants": 3,
+        "world_bank": 1,
+        "threesixtygiving": 3
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Accelerating Solutions to Improve Access and Quality of Empirically-Supported Practices for Youth Me",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 39,
+          "confidence": "moderate",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: youth"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/357524"
+        },
+        {
+          "rank": 2,
+          "title": "Freedom 250: Kazakhstan Youth Leadership Camp",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Kazakhstan",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "small_business",
+          "reasons": [
+            "Population: youth"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/6b073b7c-64f4-4436-b745-ebbae3c8ad53"
+        },
+        {
+          "rank": 3,
+          "title": "Sudan SANAD - Emergency Crisis Response Safety Net Project",
+          "source": "world_bank",
+          "agency": "Republic of the Sudan",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P505963"
+        },
+        {
+          "rank": 4,
+          "title": "Alumni Engagement Innovation Fund",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Uganda",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/9e425f9a-52ac-49a3-ae4f-ffa1ae8de41d"
+        },
+        {
+          "rank": 5,
+          "title": "SUDAN Alumni Engagement Innovation Fund - FY26",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Sudan",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/3a74efdf-1633-4964-9f00-e4e5912c287c"
+        },
+        {
+          "rank": 6,
+          "title": "BJA FY25 Public Safety and Mental Health Initiative",
+          "source": "grants_gov",
+          "agency": "Bureau of Justice Assistance",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361325"
+        },
+        {
+          "rank": 7,
+          "title": "Notice of Funding Opportunity (NOFO) SUSI Civic Engagement and Environmental Issues Selection Proces",
+          "source": "grants_gov",
+          "agency": "U.S. Mission to Spain",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/344137"
+        },
+        {
+          "rank": 8,
+          "title": "Healthy Performer",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 25,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=582444E3-176A-467A-B5AB-BB771C15D0C8"
+        },
+        {
+          "rank": 9,
+          "title": "LIMB Health - Limb Impedance of Muscle for Better Health",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 25,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=9D0F411D-E301-4229-BA02-47C21DB08FBD"
+        },
+        {
+          "rank": 10,
+          "title": "Community Catalyst",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 24,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=3B35A4DE-C64B-4D70-85B7-2B5609FC91D8"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_008",
+      "profile_name": "DataBridge Solutions",
+      "org_type": "small_business",
+      "opportunities_scored": 260,
+      "eligible_count": 260,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 25,
+        "<25 or ineligible": 235
+      },
+      "source_coverage": {
+        "simpler_grants": 3,
+        "grants_gov": 2,
+        "threesixtygiving": 1,
+        "world_bank": 1,
+        "ted_eu": 3
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "OIA Maintenance Assistance Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/1e679766-f68e-4f07-ad68-609e687ec3bb"
+        },
+        {
+          "rank": 2,
+          "title": "Alumni Engagement Innovation Fund",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Uganda",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/9e425f9a-52ac-49a3-ae4f-ffa1ae8de41d"
+        },
+        {
+          "rank": 3,
+          "title": "OIA Technical Assistance Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/f863346e-81fb-4c30-aeab-dc59754e2cdd"
+        },
+        {
+          "rank": 4,
+          "title": "Mathematical Sciences Infrastructure Program",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/328573"
+        },
+        {
+          "rank": 5,
+          "title": "RFI - DOE Infrastructure Work Scope Development",
+          "source": "grants_gov",
+          "agency": "Idaho Field Office",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/280970"
+        },
+        {
+          "rank": 6,
+          "title": "Community Travel Platform",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=1B635E72-4696-462A-9C45-180F79A06E9B"
+        },
+        {
+          "rank": 7,
+          "title": "Kiribati Kiritimati Infrastructure Project",
+          "source": "world_bank",
+          "agency": "Republic of Kiribati",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P506425"
+        },
+        {
+          "rank": 8,
+          "title": "Luxembourg-Luxembourg: EIB - Western Balkan Investment Framework, Infrastructure Project Facility, T",
+          "source": "ted_eu",
+          "agency": "LUX",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "contractor",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://ted.europa.eu/en/notice/-/detail/87984-2016"
+        },
+        {
+          "rank": 9,
+          "title": "Poland-Krakow: Network infrastructure",
+          "source": "ted_eu",
+          "agency": "POL",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "contractor",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://ted.europa.eu/en/notice/-/detail/88363-2016"
+        },
+        {
+          "rank": 10,
+          "title": "Czech Republic-Prague: Network infrastructure",
+          "source": "ted_eu",
+          "agency": "CZE",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "contractor",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://ted.europa.eu/en/notice/-/detail/88666-2016"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_009",
+      "profile_name": "Healthy Moms Network",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 2,
+        "<25 or ineligible": 258
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "simpler_grants": 3,
+        "threesixtygiving": 3,
+        "world_bank": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Pediatric Mental Health Care Access Program (PMHCA)",
+          "source": "grants_gov",
+          "agency": "Health Resources and Services Administration",
+          "score": 26,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/360963"
+        },
+        {
+          "rank": 2,
+          "title": "Rural Hospital Provider Assistance Program",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 25,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/818d2c61-f65f-4d60-acfc-d2c772aaf089"
+        },
+        {
+          "rank": 3,
+          "title": "Digital Nutritional Assessment Tool",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 22,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=BF624716-256F-44E0-81A9-AF17CAC1519A"
+        },
+        {
+          "rank": 4,
+          "title": "Ryan White HIV/AIDS Program Part F Dental Reimbursement Program",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 20,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2cf5be3f-2316-4ca0-879a-60b71096a3a9"
+        },
+        {
+          "rank": 5,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 19,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 6,
+          "title": "Nolea Health",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=23E274C0-F6B9-4A16-A0AC-7058996076E2"
+        },
+        {
+          "rank": 7,
+          "title": "Training-based Workforce Development for Advanced Cyberinfrastructure  (CyberTraining)",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/344608"
+        },
+        {
+          "rank": 8,
+          "title": "MCH Workforce Development and Training Center",
+          "source": "grants_gov",
+          "agency": "Health Resources and Services Administration",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/360960"
+        },
+        {
+          "rank": 9,
+          "title": "ShipShape 3D Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=78C295D5-3294-4D49-889D-0840DF3ECC5E"
+        },
+        {
+          "rank": 10,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_010",
+      "profile_name": "CleanWater Initiative",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 225,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 17,
+        "<25 or ineligible": 243
+      },
+      "source_coverage": {
+        "simpler_grants": 3,
+        "world_bank": 2,
+        "grants_gov": 3,
+        "threesixtygiving": 2
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 37,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 2,
+          "title": "Chattogram Water Supply Improvement Project",
+          "source": "world_bank",
+          "agency": "People's Republic of Bangladesh",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P176429"
+        },
+        {
+          "rank": 3,
+          "title": "Second Karachi Water and Sewerage Services Improvement Project (KWSSIP-2)",
+          "source": "world_bank",
+          "agency": "Islamic Republic of Pakistan",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P171422"
+        },
+        {
+          "rank": 4,
+          "title": "Calendar Year 2022 Disaster Water Grants",
+          "source": "grants_gov",
+          "agency": "Rural Utilities Service",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/348809"
+        },
+        {
+          "rank": 5,
+          "title": "FY 2026 Energizing Insular Communities Program",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/674800aa-362e-45d4-be83-fabf9c6ca918"
+        },
+        {
+          "rank": 6,
+          "title": "Rural Hospital Provider Assistance Program",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/818d2c61-f65f-4d60-acfc-d2c772aaf089"
+        },
+        {
+          "rank": 7,
+          "title": "Exploiting Community Drivers for Population Control in Microbial Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=28DB29D9-7AD8-49CE-84D2-0E89AA957757"
+        },
+        {
+          "rank": 8,
+          "title": "Developing public health policies for the out of home food sector to improve diet and reduce obesity",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=6E0F7DAE-B2CE-4BC8-AEFE-3FD9B25FDB7C"
+        },
+        {
+          "rank": 9,
+          "title": "NSF's Eddie Bernice Johnson Inclusion across the Nation of Communities of Learners of Underrepresent",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/359103"
+        },
+        {
+          "rank": 10,
+          "title": "FY 2026 Energizing Insular Communities Program",
+          "source": "grants_gov",
+          "agency": "Department of the Interior",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361517"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_011",
+      "profile_name": "NextGen Coders",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 3,
+        "25-37 (weak)": 6,
+        "<25 or ineligible": 251
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "simpler_grants": 3,
+        "threesixtygiving": 2,
+        "world_bank": 2
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Improving Undergraduate STEM Education: Directorate for STEM Education",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 48,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "stem education"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"stem education\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/344124"
+        },
+        {
+          "rank": 2,
+          "title": "Accelerating Solutions to Improve Access and Quality of Empirically-Supported Practices for Youth Me",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 38,
+          "confidence": "moderate",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: youth"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/357524"
+        },
+        {
+          "rank": 3,
+          "title": "FY25 ONR Office Of Naval Research (ONR) Science, Technology, Engineering, and Mathematics(STEM) Educ",
+          "source": "grants_gov",
+          "agency": "Office of Naval Research",
+          "score": 38,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "stem education"
+          ],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Exact match: \"stem education\"",
+            "Core concept in opportunity title"
+          ],
+          "risks": [
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/359932"
+        },
+        {
+          "rank": 4,
+          "title": "Freedom 250: Kazakhstan Youth Leadership Camp",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Kazakhstan",
+          "score": 36,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "small_business",
+          "reasons": [
+            "Population: youth"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/6b073b7c-64f4-4436-b745-ebbae3c8ad53"
+        },
+        {
+          "rank": 5,
+          "title": "Advanced Laboratories for Accelerating the Reach and Impact of Treatments for Youth and Adults with ",
+          "source": "simpler_grants",
+          "agency": "National Institutes of Health",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Population: youth"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality",
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/3021f11a-dd6c-4d15-9406-c2d7594a2e79"
+        },
+        {
+          "rank": 6,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 19,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 7,
+          "title": "STEM Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality",
+            "Pop mismatch: opp targets children"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=E43264F1-47D0-48A3-B53A-FEE18C7FA41B"
+        },
+        {
+          "rank": 8,
+          "title": "ShipShape 3D Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=78C295D5-3294-4D49-889D-0840DF3ECC5E"
+        },
+        {
+          "rank": 9,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 10,
+          "title": "Burundi Colline Climate Resilience Project",
+          "source": "world_bank",
+          "agency": "Republic of Burundi",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180864"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_012",
+      "profile_name": "SolarGrid Systems",
+      "org_type": "small_business",
+      "opportunities_scored": 260,
+      "eligible_count": 260,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 1,
+        "38-54 (moderate)": 1,
+        "25-37 (weak)": 18,
+        "<25 or ineligible": 240
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "world_bank": 3,
+        "simpler_grants": 2,
+        "threesixtygiving": 1,
+        "ted_eu": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Renewable Energy Systems and Energy Efficiency Improvements Program",
+          "source": "grants_gov",
+          "agency": "Rural Business-Cooperative Service ",
+          "score": 58,
+          "confidence": "strong",
+          "exact_phrases": [
+            "renewable energy"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"renewable energy\"",
+            "Core concept in opportunity title",
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/279638"
+        },
+        {
+          "rank": 2,
+          "title": "Burundi Colline Climate Resilience Project",
+          "source": "world_bank",
+          "agency": "Republic of Burundi",
+          "score": 38,
+          "confidence": "moderate",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180864"
+        },
+        {
+          "rank": 3,
+          "title": "The Genesis Mission:  Transforming Science and Energy with AI",
+          "source": "simpler_grants",
+          "agency": "Office of Science",
+          "score": 37,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/0228b895-9cb3-4160-8acc-58709e75c3c7"
+        },
+        {
+          "rank": 4,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 5,
+          "title": "Uzbekistan - Khorezm Solar IPP Project",
+          "source": "world_bank",
+          "agency": "Republic of Uzbekistan",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181627"
+        },
+        {
+          "rank": 6,
+          "title": "FY 2026 Energizing Insular Communities Program",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/674800aa-362e-45d4-be83-fabf9c6ca918"
+        },
+        {
+          "rank": 7,
+          "title": "Healthy Homes, Healthy Lives",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=9DC9F40B-E5BE-444F-AA9E-1AAD61D6622F"
+        },
+        {
+          "rank": 8,
+          "title": "Preventing global health threats by strengthening surveillance systems to accelerate outbreak detect",
+          "source": "grants_gov",
+          "agency": "Centers for Disease Control-GHC",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/360617"
+        },
+        {
+          "rank": 9,
+          "title": "The Genesis Mission:  Transforming Science and Energy with AI",
+          "source": "grants_gov",
+          "agency": "Office of Science",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361526"
+        },
+        {
+          "rank": 10,
+          "title": "Luxembourg-Luxembourg: EIB - Western Balkan Investment Framework, Infrastructure Project Facility, T",
+          "source": "ted_eu",
+          "agency": "LUX",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "contractor",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://ted.europa.eu/en/notice/-/detail/87984-2016"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_013",
+      "profile_name": "Arts for All",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 1,
+        "25-37 (weak)": 16,
+        "<25 or ineligible": 243
+      },
+      "source_coverage": {
+        "threesixtygiving": 3,
+        "simpler_grants": 3,
+        "grants_gov": 3,
+        "world_bank": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Creative Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 40,
+          "confidence": "moderate",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "No central concept connection"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=DE19F93B-983F-4595-BD09-098A68ACAA9F"
+        },
+        {
+          "rank": 2,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 36,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 3,
+          "title": "Alumni Engagement Innovation Fund",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Uganda",
+          "score": 36,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/9e425f9a-52ac-49a3-ae4f-ffa1ae8de41d"
+        },
+        {
+          "rank": 4,
+          "title": "SUDAN Alumni Engagement Innovation Fund - FY26",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Sudan",
+          "score": 36,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/3a74efdf-1633-4964-9f00-e4e5912c287c"
+        },
+        {
+          "rank": 5,
+          "title": "Education Programs in Atmospheric and Geospace Sciences",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/332012"
+        },
+        {
+          "rank": 6,
+          "title": "PEPFAR Community Led Monitoring &ndash; Mozambique Relief Programs",
+          "source": "grants_gov",
+          "agency": "U.S. Mission to Mozambique",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/334259"
+        },
+        {
+          "rank": 7,
+          "title": "NSF's Eddie Bernice Johnson Inclusion across the Nation of Communities of Learners of Underrepresent",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 30,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/359103"
+        },
+        {
+          "rank": 8,
+          "title": "Communities Centered",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 28,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=09341393-6751-4EA5-9A15-5192279C06DF"
+        },
+        {
+          "rank": 9,
+          "title": "Music Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 28,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=539A0D2B-A9BB-4E24-91A3-8147C1C08BCF"
+        },
+        {
+          "rank": 10,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_014",
+      "profile_name": "Veterans First Support",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 6,
+        "38-54 (moderate)": 15,
+        "25-37 (weak)": 2,
+        "<25 or ineligible": 237
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "threesixtygiving": 3,
+        "simpler_grants": 3,
+        "world_bank": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Navigator Emergency Department Diversion Models for Non-Urgent Mental Health Concerns (R34 Clinical ",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 55,
+          "confidence": "strong",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/357386"
+        },
+        {
+          "rank": 2,
+          "title": "Effectiveness Trials to Test Mental Health System Interventions (R61/R33 Clinical Trial Required)",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 55,
+          "confidence": "strong",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/357434"
+        },
+        {
+          "rank": 3,
+          "title": "BJA FY25 Public Safety and Mental Health Initiative",
+          "source": "grants_gov",
+          "agency": "Bureau of Justice Assistance",
+          "score": 55,
+          "confidence": "strong",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/361325"
+        },
+        {
+          "rank": 4,
+          "title": "The impact of the Covid-19 pandemic on the mental health of workers in health services: building res",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 53,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://gtr.ukri.org/projects?ref=E19ACBD6-607B-479D-A908-B318AB21F134"
+        },
+        {
+          "rank": 5,
+          "title": "Nolea Health",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 53,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://gtr.ukri.org/projects?ref=23E274C0-F6B9-4A16-A0AC-7058996076E2"
+        },
+        {
+          "rank": 6,
+          "title": "A longitudinal mixed-methods population study of the UK during the COVID-19 pandemic: Psychological ",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 50,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://gtr.ukri.org/projects?ref=E60DFEF7-213E-4294-A756-AC114DB38C20"
+        },
+        {
+          "rank": 7,
+          "title": "Impact of Immunotherapies on CNS Outcomes in People with HIV: Potential Benefits, Challenges and Ris",
+          "source": "simpler_grants",
+          "agency": "National Institutes of Health",
+          "score": 45,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Exact match: \"mental health\""
+          ],
+          "risks": [
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2fdf6077-9b03-431f-a642-73044d110f34"
+        },
+        {
+          "rank": 8,
+          "title": "Advanced Laboratories for Accelerating the Reach and Impact of Treatments for Youth and Adults with ",
+          "source": "simpler_grants",
+          "agency": "National Institutes of Health",
+          "score": 41,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Exact match: \"mental health\""
+          ],
+          "risks": [
+            "Research grants typically require PI credentials and academic infrastructure",
+            "Pop mismatch: opp targets youth"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/3021f11a-dd6c-4d15-9406-c2d7594a2e79"
+        },
+        {
+          "rank": 9,
+          "title": "Ryan White HIV/AIDS Program Part F Dental Reimbursement Program",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 19,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2cf5be3f-2316-4ca0-879a-60b71096a3a9"
+        },
+        {
+          "rank": 10,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_015",
+      "profile_name": "AgriTech Ventures",
+      "org_type": "small_business",
+      "opportunities_scored": 260,
+      "eligible_count": 257,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 6,
+        "<25 or ineligible": 254
+      },
+      "source_coverage": {
+        "world_bank": 3,
+        "grants_gov": 3,
+        "simpler_grants": 3,
+        "threesixtygiving": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Uttar Pradesh Agriculture Growth and Rural Enterprise Ecosystem Strengthening Project",
+          "source": "world_bank",
+          "agency": "Republic of India",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P178253"
+        },
+        {
+          "rank": 2,
+          "title": "F24AS00298 Cooperative Agriculture",
+          "source": "grants_gov",
+          "agency": "Fish and Wildlife Service",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/352845"
+        },
+        {
+          "rank": 3,
+          "title": "Rural Access and Agricultural Marketing Project - Scale Up",
+          "source": "world_bank",
+          "agency": "Federal Republic of Nigeria",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180640"
+        },
+        {
+          "rank": 4,
+          "title": "Coordinating Agricultural Development & Innovation (CADI) Uzbekistan: U.S. Soy Marketing Promotion",
+          "source": "simpler_grants",
+          "agency": "Foreign Agricultural Service",
+          "score": 30,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2a2236a2-6c8d-4d5f-aea9-51a036d6383c"
+        },
+        {
+          "rank": 5,
+          "title": "Coordinating Agricultural Development & Innovation (CADI) Uzbekistan Exchanges: Promotion of U.S. Di",
+          "source": "simpler_grants",
+          "agency": "Foreign Agricultural Service",
+          "score": 30,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/0b402e67-d10b-4df8-8ea7-e8d738d525f7"
+        },
+        {
+          "rank": 6,
+          "title": "Exploiting Community Drivers for Population Control in Microbial Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 25,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=28DB29D9-7AD8-49CE-84D2-0E89AA957757"
+        },
+        {
+          "rank": 7,
+          "title": "Agriculture and Food Research Initiative Competitive Grants Program Education and Workforce Developm",
+          "source": "grants_gov",
+          "agency": "National Institute of Food and Agriculture",
+          "score": 20,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality",
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361169"
+        },
+        {
+          "rank": 8,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 9,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 10,
+          "title": "Tribal Colleges and Universities Program",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/334326"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_016",
+      "profile_name": "Community Legal Aid",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 6,
+        "<25 or ineligible": 254
+      },
+      "source_coverage": {
+        "simpler_grants": 3,
+        "grants_gov": 3,
+        "threesixtygiving": 3,
+        "world_bank": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Talent Search Program",
+          "source": "simpler_grants",
+          "agency": "Office of Postsecondary Education ",
+          "score": 36,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: individuals"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/c21c5cee-04dc-46cb-816a-29bd8f2ff317"
+        },
+        {
+          "rank": 2,
+          "title": "Ryan White HIV/AIDS Program Part F Dental Reimbursement Program",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: low income"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2cf5be3f-2316-4ca0-879a-60b71096a3a9"
+        },
+        {
+          "rank": 3,
+          "title": "Legal Assistance Enhancement Program Grants",
+          "source": "grants_gov",
+          "agency": "Administration for Community Living",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/355865"
+        },
+        {
+          "rank": 4,
+          "title": "Community Catalyst",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 34,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: individuals"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=3B35A4DE-C64B-4D70-85B7-2B5609FC91D8"
+        },
+        {
+          "rank": 5,
+          "title": "Healthy Homes, Healthy Lives",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: low income"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=9DC9F40B-E5BE-444F-AA9E-1AAD61D6622F"
+        },
+        {
+          "rank": 6,
+          "title": "Safely Social – Healthy People, Healthy Economy",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type",
+            "Population: individuals"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=FC134231-D3CB-45AE-98FB-76DE958A94A0"
+        },
+        {
+          "rank": 7,
+          "title": "Ethical, Legal and Social Implications (ELSI) Research (R01 Clinical Trial Optional)",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 24,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality",
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/358181"
+        },
+        {
+          "rank": 8,
+          "title": "Ethical, Legal and Social Implications (ELSI) Exploratory/Developmental Research Grant (R21 Clinical",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 24,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality",
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/358176"
+        },
+        {
+          "rank": 9,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 19,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 10,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_017",
+      "profile_name": "EduTech Innovations",
+      "org_type": "small_business",
+      "opportunities_scored": 260,
+      "eligible_count": 260,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 6,
+        "<25 or ineligible": 254
+      },
+      "source_coverage": {
+        "simpler_grants": 3,
+        "grants_gov": 2,
+        "threesixtygiving": 3,
+        "world_bank": 2
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Ocean and Coastal Mapping Center 2026",
+          "source": "simpler_grants",
+          "agency": "DOC NOAA - ERA Production",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/6afe48dc-9140-4d4c-9a4d-68a1e07ccaaa"
+        },
+        {
+          "rank": 2,
+          "title": "OIA Maintenance Assistance Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 28,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/1e679766-f68e-4f07-ad68-609e687ec3bb"
+        },
+        {
+          "rank": 3,
+          "title": "Collaboratory to Advance Mathematics Education and Learning (CAMEL) for K-12",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 28,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361008"
+        },
+        {
+          "rank": 4,
+          "title": "Understanding the psychological basis of obesity",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 28,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=ECC53976-F703-495C-9506-4585523660B8"
+        },
+        {
+          "rank": 5,
+          "title": "Creative Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 25,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=DE19F93B-983F-4595-BD09-098A68ACAA9F"
+        },
+        {
+          "rank": 6,
+          "title": "Digital Nutritional Assessment Tool",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 25,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=BF624716-256F-44E0-81A9-AF17CAC1519A"
+        },
+        {
+          "rank": 7,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 8,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 9,
+          "title": "Burundi Colline Climate Resilience Project",
+          "source": "world_bank",
+          "agency": "Republic of Burundi",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180864"
+        },
+        {
+          "rank": 10,
+          "title": "Tribal Colleges and Universities Program",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/334326"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_018",
+      "profile_name": "Mental Health Collective",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 1,
+        "38-54 (moderate)": 20,
+        "25-37 (weak)": 14,
+        "<25 or ineligible": 225
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "simpler_grants": 3,
+        "threesixtygiving": 3,
+        "world_bank": 1
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Accelerating Solutions to Improve Access and Quality of Empirically-Supported Practices for Youth Me",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 59,
+          "confidence": "strong",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type",
+            "Population: youth"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/357524"
+        },
+        {
+          "rank": 2,
+          "title": "Navigator Emergency Department Diversion Models for Non-Urgent Mental Health Concerns (R34 Clinical ",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 54,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/357386"
+        },
+        {
+          "rank": 3,
+          "title": "Effectiveness Trials to Test Mental Health System Interventions (R61/R33 Clinical Trial Required)",
+          "source": "grants_gov",
+          "agency": "National Institutes of Health",
+          "score": 54,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://www.grants.gov/search-results-detail/357434"
+        },
+        {
+          "rank": 4,
+          "title": "Advanced Laboratories for Accelerating the Reach and Impact of Treatments for Youth and Adults with ",
+          "source": "simpler_grants",
+          "agency": "National Institutes of Health",
+          "score": 52,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Population: youth"
+          ],
+          "risks": [
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/3021f11a-dd6c-4d15-9406-c2d7594a2e79"
+        },
+        {
+          "rank": 5,
+          "title": "The impact of the Covid-19 pandemic on the mental health of workers in health services: building res",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 52,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "Core concept in opportunity title",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://gtr.ukri.org/projects?ref=E19ACBD6-607B-479D-A908-B318AB21F134"
+        },
+        {
+          "rank": 6,
+          "title": "Nolea Health",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 52,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://gtr.ukri.org/projects?ref=23E274C0-F6B9-4A16-A0AC-7058996076E2"
+        },
+        {
+          "rank": 7,
+          "title": "A longitudinal mixed-methods population study of the UK during the COVID-19 pandemic: Psychological ",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 49,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "open",
+          "reasons": [
+            "Exact match: \"mental health\"",
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [],
+          "url": "https://gtr.ukri.org/projects?ref=E60DFEF7-213E-4294-A756-AC114DB38C20"
+        },
+        {
+          "rank": 8,
+          "title": "Impact of Immunotherapies on CNS Outcomes in People with HIV: Potential Benefits, Challenges and Ris",
+          "source": "simpler_grants",
+          "agency": "National Institutes of Health",
+          "score": 44,
+          "confidence": "moderate",
+          "exact_phrases": [
+            "mental health"
+          ],
+          "target_applicant": "research_university",
+          "reasons": [
+            "Exact match: \"mental health\""
+          ],
+          "risks": [
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2fdf6077-9b03-431f-a642-73044d110f34"
+        },
+        {
+          "rank": 9,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 36,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 10,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_019",
+      "profile_name": "Transit Equity Project",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 224,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 15,
+        "<25 or ineligible": 245
+      },
+      "source_coverage": {
+        "simpler_grants": 3,
+        "threesixtygiving": 3,
+        "grants_gov": 2,
+        "world_bank": 2
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 37,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 2,
+          "title": "FY 2026 Energizing Insular Communities Program",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/674800aa-362e-45d4-be83-fabf9c6ca918"
+        },
+        {
+          "rank": 3,
+          "title": "Rural Hospital Provider Assistance Program",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 33,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/818d2c61-f65f-4d60-acfc-d2c772aaf089"
+        },
+        {
+          "rank": 4,
+          "title": "Community Travel Platform",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=1B635E72-4696-462A-9C45-180F79A06E9B"
+        },
+        {
+          "rank": 5,
+          "title": "NSF's Eddie Bernice Johnson Inclusion across the Nation of Communities of Learners of Underrepresent",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/359103"
+        },
+        {
+          "rank": 6,
+          "title": "FY 2026 Energizing Insular Communities Program",
+          "source": "grants_gov",
+          "agency": "Department of the Interior",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/361517"
+        },
+        {
+          "rank": 7,
+          "title": "Creative Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 31,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=DE19F93B-983F-4595-BD09-098A68ACAA9F"
+        },
+        {
+          "rank": 8,
+          "title": "Communities Centered",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=09341393-6751-4EA5-9A15-5192279C06DF"
+        },
+        {
+          "rank": 9,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 10,
+          "title": "Burundi Colline Climate Resilience Project",
+          "source": "world_bank",
+          "agency": "Republic of Burundi",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"nonprofit\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180864"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_020",
+      "profile_name": "Global Relief Network",
+      "org_type": "nonprofit",
+      "opportunities_scored": 260,
+      "eligible_count": 259,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 0,
+        "25-37 (weak)": 7,
+        "<25 or ineligible": 253
+      },
+      "source_coverage": {
+        "grants_gov": 3,
+        "world_bank": 3,
+        "threesixtygiving": 1,
+        "simpler_grants": 3
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Calendar Year 2022 Disaster Water Grants",
+          "source": "grants_gov",
+          "agency": "Rural Utilities Service",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/348809"
+        },
+        {
+          "rank": 2,
+          "title": "Ending HIV as a public health threat through an accelerated and sustained comprehensive response in ",
+          "source": "grants_gov",
+          "agency": "Centers for Disease Control-GHC",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/360710"
+        },
+        {
+          "rank": 3,
+          "title": "PEPFAR Community Led Monitoring &ndash; Mozambique Relief Programs",
+          "source": "grants_gov",
+          "agency": "U.S. Mission to Mozambique",
+          "score": 29,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/334259"
+        },
+        {
+          "rank": 4,
+          "title": "Bhutan Climate and Disaster Resilience Development Policy Financing with a Catastrophe Deferred Draw",
+          "source": "world_bank",
+          "agency": "Kingdom of Bhutan",
+          "score": 27,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P500536"
+        },
+        {
+          "rank": 5,
+          "title": "Community Travel Platform",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 26,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=1B635E72-4696-462A-9C45-180F79A06E9B"
+        },
+        {
+          "rank": 6,
+          "title": "Regional Pediatric Prevention Network",
+          "source": "simpler_grants",
+          "agency": "Health Resources and Services Administration",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality",
+            "Research grants typically require PI credentials and academic infrastructure"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/6e37e586-4460-4191-bee3-72cb25b9922c"
+        },
+        {
+          "rank": 7,
+          "title": "Alumni Engagement Innovation Fund",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Uganda",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/9e425f9a-52ac-49a3-ae4f-ffa1ae8de41d"
+        },
+        {
+          "rank": 8,
+          "title": "Coordinating Agricultural Development & Innovation (CADI) Uzbekistan: U.S. Soy Marketing Promotion",
+          "source": "simpler_grants",
+          "agency": "Foreign Agricultural Service",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/2a2236a2-6c8d-4d5f-aea9-51a036d6383c"
+        },
+        {
+          "rank": 9,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 10,
+          "title": "Burundi Colline Climate Resilience Project",
+          "source": "world_bank",
+          "agency": "Republic of Burundi",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180864"
+        }
+      ]
+    },
+    {
+      "profile_id": "org_021",
+      "profile_name": "Women Build Tech",
+      "org_type": "small_business",
+      "opportunities_scored": 260,
+      "eligible_count": 260,
+      "score_distribution": {
+        "70-100 (excellent)": 0,
+        "55-69 (strong)": 0,
+        "38-54 (moderate)": 1,
+        "25-37 (weak)": 4,
+        "<25 or ineligible": 255
+      },
+      "source_coverage": {
+        "simpler_grants": 3,
+        "threesixtygiving": 3,
+        "world_bank": 2,
+        "grants_gov": 2
+      },
+      "top_matches": [
+        {
+          "rank": 1,
+          "title": "Freedom 250: Kazakhstan Youth Leadership Camp",
+          "source": "simpler_grants",
+          "agency": "U.S. Mission to Kazakhstan",
+          "score": 38,
+          "confidence": "moderate",
+          "exact_phrases": [],
+          "target_applicant": "small_business",
+          "reasons": [
+            "\"small_business\" is the intended applicant type",
+            "Population: entrepreneurs"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/6b073b7c-64f4-4436-b745-ebbae3c8ad53"
+        },
+        {
+          "rank": 2,
+          "title": "Neighbourhoods and Communities",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 35,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type",
+            "Population: women"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=D1D2E465-9E97-45FC-AC6C-464297C34E01"
+        },
+        {
+          "rank": 3,
+          "title": "Community Resource Entrepreneurs",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "small_business",
+          "reasons": [
+            "\"small_business\" is the intended applicant type",
+            "Population: entrepreneurs"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=50C3327F-C94D-4EC0-B76C-68998F080ACD"
+        },
+        {
+          "rank": 4,
+          "title": "The impact of the Covid-19 pandemic on the mental health of workers in health services: building res",
+          "source": "threesixtygiving",
+          "agency": "UKRI",
+          "score": 32,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://gtr.ukri.org/projects?ref=E19ACBD6-607B-479D-A908-B318AB21F134"
+        },
+        {
+          "rank": 5,
+          "title": "2026 National Unemployment Insurance Convening Reimbursement Instructions",
+          "source": "simpler_grants",
+          "agency": "Employment and Training Administration",
+          "score": 28,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/0843383b-7ede-4ce3-91c0-cdb2a4655f35"
+        },
+        {
+          "rank": 6,
+          "title": "OIA Coral Reef Initiative and Natural Resources (CRNR) Program 2026",
+          "source": "simpler_grants",
+          "agency": "Department of the Interior",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://simpler.grants.gov/opportunity/5954b39b-33b5-4d30-9952-c9edccbf6cef"
+        },
+        {
+          "rank": 7,
+          "title": "Transforming Agri-food Systems in Morocco",
+          "source": "world_bank",
+          "agency": "Kingdom of Morocco",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P181587"
+        },
+        {
+          "rank": 8,
+          "title": "Burundi Colline Climate Resilience Project",
+          "source": "world_bank",
+          "agency": "Republic of Burundi",
+          "score": 18,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "open",
+          "reasons": [
+            "\"small_business\" is the intended applicant type"
+          ],
+          "risks": [
+            "Score driven largely by generic terms",
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://projects.worldbank.org/en/projects-operations/project-detail/P180864"
+        },
+        {
+          "rank": 9,
+          "title": "Tribal Colleges and Universities Program",
+          "source": "grants_gov",
+          "agency": "U.S. National Science Foundation",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/334326"
+        },
+        {
+          "rank": 10,
+          "title": "University Nuclear Leadership Program&ndash; Scholarship and Fellowship Support",
+          "source": "grants_gov",
+          "agency": "Idaho Field Office",
+          "score": 17,
+          "confidence": "weak",
+          "exact_phrases": [],
+          "target_applicant": "research_university",
+          "reasons": [],
+          "risks": [
+            "Weak concept fit and low centrality"
+          ],
+          "url": "https://www.grants.gov/search-results-detail/329436"
+        }
+      ]
+    }
+  ]
+}

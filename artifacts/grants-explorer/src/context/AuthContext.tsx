@@ -93,11 +93,30 @@ async function loadOrCreateUser(firebaseUser: FirebaseUser): Promise<AuthUser> {
 // ─── Context ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Firebase may be unconfigured locally (empty env). Avoid blocking the UI forever.
+declare const __FIREBASE_CONFIG__: { apiKey?: string };
+const firebaseConfigured = typeof __FIREBASE_CONFIG__ !== "undefined" && !!__FIREBASE_CONFIG__?.apiKey?.trim();
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser]       = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!firebaseConfigured) {
+      setLoading(false);
+      return;
+    }
+    if (typeof auth?.onAuthStateChanged !== "function") {
+      setLoading(false);
+      return;
+    }
+    let initialLoadDone = false;
+    const timeout = window.setTimeout(() => {
+      if (!initialLoadDone) {
+        initialLoadDone = true;
+        setLoading(false);
+      }
+    }, 3000);
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
@@ -109,25 +128,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUser(null);
       }
+      if (!initialLoadDone) {
+        initialLoadDone = true;
+        window.clearTimeout(timeout);
+      }
       setLoading(false);
     });
-    return unsub;
+    return () => {
+      initialLoadDone = true;
+      window.clearTimeout(timeout);
+      unsub();
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
+    if (!firebaseConfigured) {
+      throw new Error("Auth is not configured. Add Firebase env vars (apiKey, authDomain, projectId, etc.) to .env to enable sign-in.");
+    }
     await signInWithEmailAndPassword(auth, email, password);
   }, []);
 
   const signup = useCallback(async (email: string, password: string) => {
+    if (!firebaseConfigured) {
+      throw new Error("Auth is not configured. Add Firebase env vars (apiKey, authDomain, projectId, etc.) to .env to enable sign-in.");
+    }
     await createUserWithEmailAndPassword(auth, email, password);
   }, []);
 
   const logout = useCallback(async () => {
+    if (!firebaseConfigured) {
+      setUser(null);
+      return;
+    }
     await signOut(auth);
     setUser(null);
   }, []);
 
   const updateProfile = useCallback(async (profile: OrgProfileData) => {
+    if (!firebaseConfigured) throw new Error("Auth is not configured.");
     const firebaseUser = auth.currentUser;
     if (!firebaseUser) throw new Error("Not authenticated");
     const ref = doc(db, "users", firebaseUser.uid);
@@ -136,6 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const addAdmin = useCallback(async (email: string) => {
+    if (!firebaseConfigured) throw new Error("Auth is not configured.");
     const normalized = email.toLowerCase().trim();
     const q = query(collection(db, "users"), where("email", "==", normalized));
     const snap = await getDocs(q);

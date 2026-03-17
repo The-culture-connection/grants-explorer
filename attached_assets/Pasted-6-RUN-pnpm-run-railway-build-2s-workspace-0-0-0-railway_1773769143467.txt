@@ -1,0 +1,41 @@
+6
+RUN pnpm run railway:build
+2s
+> workspace@0.0.0 railway:build /app
+> BASE_PATH=/ pnpm --filter @workspace/grants-explorer run build && pnpm --filter @workspace/api-server run build
+> @workspace/grants-explorer@0.0.0 build /app/artifacts/grants-explorer
+> vite build --config vite.config.ts
+vite v7.3.1 building client environment for production...
+transforming...
+src/components/ui/tooltip.tsx (2:0): Error when using sourcemap for reporting an error: Can't resolve original location of error.
+
+✓ 48 modules transformed.
+✗ Build failed in 729ms
+error during build:
+[vite]: Rollup failed to resolve import "firebase/auth" from "/app/artifacts/grants-explorer/src/context/AuthContext.tsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:33635:57)
+    at file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:33669:73
+    at onwarn (file:///app/node_modules/.pnpm/@vitejs+plugin-react@5.1.4_vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2_/node_modules/@vitejs/plugin-react/dist/index.js:76:7)
+    at file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:33669:28
+    at onRollupLog (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:33664:63)
+    at onLog (file:///app/node_modules/.pnpm/vite@7.3.1_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:33467:4)
+    at file:///app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:20981:32
+    at Object.logger [as onLog] (file:///app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:22968:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:21712:26)
+    at file:///app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:21670:26
+/app/artifacts/grants-explorer:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/grants-explorer@0.0.0 build: `vite build --config vite.config.ts`
+Exit status 1
+ ELIFECYCLE  Command failed with exit code 1.
+Dockerfile:18
+-------------------
+16 |     # then bundle the Express API server with esbuild
+17 |     ENV BASE_PATH=/
+18 | >>> RUN pnpm run railway:build
+19 |
+20 |     # Railway injects PORT at runtime; the Express server reads it
+-------------------
+ERROR: failed to build: failed to solve: process "/bin/sh -c pnpm run railway:build" did not complete successfully: exit code: 1

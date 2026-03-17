@@ -1,6 +1,6 @@
-import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
+import { getAuth, type Auth } from "firebase/auth";
+import { getFirestore, type Firestore } from "firebase/firestore";
 
 declare const __FIREBASE_CONFIG__: {
   apiKey: string;
@@ -13,8 +13,13 @@ declare const __FIREBASE_CONFIG__: {
 };
 
 const firebaseConfig = __FIREBASE_CONFIG__;
+const hasConfig = !!firebaseConfig?.apiKey?.trim();
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+let app: FirebaseApp | null = null;
+if (hasConfig && getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+}
 
-export const auth = getAuth(app);
-export const db   = getFirestore(app);
+const _app = app ?? getApps()[0] ?? null;
+export const auth: Auth = _app ? getAuth(_app) : ({} as unknown as Auth);
+export const db: Firestore = _app ? getFirestore(_app) : ({} as unknown as Firestore);
