@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth, type OrgProfileData } from "@/context/AuthContext";
+import { trackUserCreated } from "@/lib/events";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +63,7 @@ export default function ProfileCreation() {
     try {
       if (authMode === "signup") {
         await signup(email, password);
+        trackUserCreated(email, email);
       } else {
         await login(email, password);
       }

@@ -1,0 +1,70 @@
+Complete OpportuniLynk Integration Guide for RFP Matcher
+Partner: RFP Matcher
+Endpoint
+POST https://xeskrwkcpoqptkkrrjci.supabase.co/functions/v1/eiaas-webhook-receiver/rfp-
+matcher
+Authentication
+All requests must include an HMAC-SHA256 signature for verification.
+Header Value
+Content-Type application/json
+x-webhook-signature HMAC-SHA256 signature (see below)
+Secret Key:
+5045582e04e044e598322d7a53d66b533686d37a11a145eba948791b7ebb87ab
+Signature Generation:
+const crypto = require('crypto');
+const signature = crypto
+.createHmac('sha256', SECRET_KEY)
+.update(JSON.stringify(payload))
+.digest('hex');
+1
+Allowed Event Types
+Event Description Priority
+user.created New user signup High
+document.uploaded Document uploaded for analysis Medium
+opportunity.viewed User views an opportunity Medium
+opportunity.analyzed Analysis/scoring completed High
+opportunity.saved User saves opportunity High
+opportunity.applied User applies to opportunity High
+opportunity.outcome Win/loss outcome recorded Critical
+Payload Format
+{
+"event_type": "opportunity.outcome",
+"source_user_id": "firebase-uid-or-email",
+"timestamp": "2026-02-05T14:30:00Z",
+"data": {
+"opportunity_id": "opp_12345",
+"outcome": "won",
+"revenue_value": 75000,
+"close_date": "2026-02-05",
+"notes": "Optional context"
+}
+}
+2
+Required Fields:
+ event_type — Must match one of the allowed events above
+ source_user_id — Your system's user identifier (for mapping)
+ data — Event-specific payload object
+Response Codes
+Code Meaning
+200 Success — data staged for processing
+400 Invalid payload or unsupported event type
+401 Invalid or missing signature
+404 Product not found or inactive
+503 Kill switch active — integration suspended
+Testing
+Send a test webhook:
+curl -X POST \
+'https://xeskrwkcpoqptkkrrjci.supabase.co/functions/v1/eiaas-webhook-receiver/rfp-matcher' \
+-H 'Content-Type: application/json' \
+-H 'x-webhook-signature: YOUR_GENERATED_SIGNATURE' \
+-d '{
+"event_type": "user.created",
+"source_user_id": "test-user-001",
+"data": { "email": "test@example.com", "created_at": "2026-02-05T12:00:00Z" }
+}'
+3
+Data Flow
+1. Webhook received → signature verified
+2. Data staged in quarantine (pending status)
+3. OpportuniLynk admin reviews & approves
+4. Approved data imported to core intelligence

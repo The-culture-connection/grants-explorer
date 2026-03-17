@@ -18,6 +18,10 @@ import { getTopMatchesV3 } from "@/lib/v3/matcherV3";
 import type { V3ScoreTrace } from "@/lib/v3/types";
 import { OrgProfileForm } from "@/components/OrgProfileForm";
 import { loadOpportunityPool, coerceOrgProfile } from "@/lib/poolLoader";
+import {
+  trackOpportunityAnalyzed, trackOpportunityViewed,
+  trackOpportunitySaved, trackOpportunityApplied, trackOpportunityOutcome,
+} from "@/lib/events";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
@@ -540,6 +544,12 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
       const profile = coerceOrgProfile(user.org_profile, user.id);
       const allResults = getTopMatchesV3(profile, pool, 200);
       setTotalFound(allResults.length); setV3Results(allResults); setV3Ran(true);
+      trackOpportunityAnalyzed(
+        user.id,
+        allResults.length,
+        allResults[0]?.finalScore ?? 0,
+        (user.org_profile as any)?.name ?? "",
+      );
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch { setV3Error("Failed to load opportunity pool. Please try again."); }
     finally { setV3Running(false); }
@@ -744,13 +754,16 @@ export default function Home() {
   function handleSave(trace: V3ScoreTrace) {
     const opp = trace.opp;
     setStatus(opp.id, "saved", { title: opp.title, agency: opp.agency, score: trace.finalScore, url: opp.url, source: opp.source, fundingType: opp.funding_type, maxAward: opp.max_award, closeDate: opp.close_date });
+    if (user?.id) trackOpportunitySaved(user.id, opp.id, opp.title, opp.source, trace.finalScore);
   }
   function handleApply(trace: V3ScoreTrace) {
     const opp = trace.opp;
     setStatus(opp.id, "applied", { title: opp.title, agency: opp.agency, score: trace.finalScore, url: opp.url, source: opp.source, fundingType: opp.funding_type, maxAward: opp.max_award, closeDate: opp.close_date });
+    if (user?.id) trackOpportunityApplied(user.id, opp.id, opp.title, opp.source, trace.finalScore);
   }
   function handleView(trace: V3ScoreTrace) {
     addViewed(trace.opp.id, { title: trace.opp.title, agency: trace.opp.agency, url: trace.opp.url, source: trace.opp.source, score: trace.finalScore, viewedAt: Date.now() });
+    if (user?.id) trackOpportunityViewed(user.id, trace.opp.id, trace.opp.title, trace.opp.source);
   }
 
   // Adapters for GrantItem save/apply (SourceTabs explorer cards)
@@ -759,12 +772,19 @@ export default function Home() {
     const cur = statuses[grant.id]?.status;
     if (cur === "saved") { removeStatus(grant.id); return; }
     setStatus(grant.id, "saved", { title: grant.title ?? "", agency: grant.agency ?? "", url: grant.url ?? "", source: grant.source ?? "", fundingType: "grant", closeDate: grant.deadline ?? undefined });
+    if (user?.id) trackOpportunitySaved(user.id, grant.id, grant.title ?? "", grant.source ?? "");
   }
   function handleApplyGrant(grant: ExplorerGrant) {
     if (!grant.id) return;
     const cur = statuses[grant.id]?.status;
     if (cur === "applied") { removeStatus(grant.id); return; }
     setStatus(grant.id, "applied", { title: grant.title ?? "", agency: grant.agency ?? "", url: grant.url ?? "", source: grant.source ?? "", fundingType: "grant", closeDate: grant.deadline ?? undefined });
+    if (user?.id) trackOpportunityApplied(user.id, grant.id, grant.title ?? "", grant.source ?? "");
+  }
+
+  function handleSetOutcome(id: string, outcome: "win" | "loss") {
+    setOutcome(id, outcome);
+    if (user?.id) trackOpportunityOutcome(user.id, id, outcome, statuses[id]?.title);
   }
 
   // Map OppEntry statuses to GrantStatus for explorer cards
@@ -790,7 +810,7 @@ export default function Home() {
           statuses={statuses} viewedItems={viewedItems}
           onRemove={removeStatus}
           onToggleApplied={(id, e) => { const n: OppStatus = e.status === "applied" ? "saved" : "applied"; setStatus(id, n, e); }}
-          onSetOutcome={setOutcome}
+          onSetOutcome={handleSetOutcome}
           onView={(id, e) => addViewed(id, e)}
           onClose={() => setShowSaved(false)}
         />
