@@ -29,8 +29,9 @@ import { ALGORITHM_VARIANTS, DEFAULT_WEIGHTS } from "@/lib/audit/types";
 import type {
   WeightConfig, FeedbackLabel, EvalLabel, EvalEntry, AuditFeedback, ScoreTrace,
 } from "@/lib/audit/types";
-import { getTopMatchesHybrid } from "@/lib/v2/matcherHybrid";
 import type { HybridScoreTrace } from "@/lib/v2/types";
+import { runHybridSweep, computeV1SweepStats } from "@/lib/audit/sweep";
+import type { SweepStats } from "@/lib/audit/sweep";
 import { HYBRID_DIMENSION_MAXES } from "@/lib/v2/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -294,13 +295,15 @@ export default function AlgorithmAuditPage() {
   const [allTraces, setAllTraces] = useState<ScoreTrace[]>([]);
   const [rankedResults, setRankedResults] = useState<ScoreTrace[]>([]);
   const [hybridAuditResults, setHybridAuditResults] = useState<HybridScoreTrace[]>([]);
+  const [sweepStats, setSweepStats] = useState<SweepStats | null>(null);
 
   const runAudit = useCallback(() => {
     setRunning(true);
     setTimeout(() => {
       if (scorerMode === "hybrid") {
-        const results = getTopMatchesHybrid(activeOrg, pool, 50);
-        setHybridAuditResults(results);
+        const { stats, topTraces } = runHybridSweep(activeOrg, pool, 50);
+        setHybridAuditResults(topTraces);
+        setSweepStats(stats);
         setAllTraces([]);
         setRankedResults([]);
       } else {
@@ -311,6 +314,7 @@ export default function AlgorithmAuditPage() {
         setAllTraces(all);
         setRankedResults(ranked);
         setHybridAuditResults([]);
+        setSweepStats(computeV1SweepStats(all, pool.length, all.length));
       }
       setHasRun(true);
       setRunning(false);
@@ -1635,6 +1639,182 @@ export default function AlgorithmAuditPage() {
 
             {/* ── Verbose Log ──────────────────────────────────────────────────── */}
             <TabsContent value="verbose">
+
+              {/* ── Sweep Analytics (full-database sweep) ── */}
+              {sweepStats && (() => {
+                const s = sweepStats;
+                const histMax = Math.max(...s.histogram, 1);
+                const BUCKET_LABELS = ["1–10","11–20","21–30","31–40","41–50","51–60","61–70","71–80","81–90","91–100"];
+                const topRisks = Object.entries(s.riskCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+                const topOppTypes = Object.entries(s.oppTypeCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+                const dimMaxes: Record<string,number> = { missionDomain:25,eligibility:20,orgTypeFit:12,activityFit:10,geographyFit:10,capacityFit:10,fundingFit:8,populationFit:5 };
+                const dimLabels: Record<string,string> = { missionDomain:"Mission/Domain",eligibility:"Eligibility",orgTypeFit:"Org Type Fit",activityFit:"Activity Fit",geographyFit:"Geography Fit",capacityFit:"Capacity Fit",fundingFit:"Funding Fit",populationFit:"Population Fit" };
+                return (
+                  <div className="mb-6 space-y-4 border border-border/60 rounded-xl p-4 bg-muted/20">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Database className="h-4 w-4 text-primary" />
+                      <span className="font-semibold text-sm">Database Sweep — {scorerMode === "hybrid" ? "Hybrid V2" : "V1 Keyword"} · {s.activeOpps.toLocaleString()} active opportunities scored</span>
+                    </div>
+
+                    {/* Elimination Funnel */}
+                    <div>
+                      <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Elimination Funnel</div>
+                      <div className="flex flex-col gap-1">
+                        {[
+                          { label: "Total pool", count: s.totalPool, color: "bg-gray-400", pct: 100 },
+                          { label: "Active (status-filtered)", count: s.activeOpps, color: "bg-blue-400", pct: Math.round((s.activeOpps/s.totalPool)*100) },
+                          { label: "Passed eligibility gate", count: s.activeOpps - s.ineligibleCount, color: "bg-violet-400", pct: Math.round(((s.activeOpps-s.ineligibleCount)/s.totalPool)*100) },
+                          { label: "Scored > 0", count: s.scoredCount, color: "bg-amber-400", pct: Math.round((s.scoredCount/s.totalPool)*100) },
+                          { label: "Score > 30", count: s.above30, color: "bg-orange-400", pct: Math.round((s.above30/s.totalPool)*100) },
+                          { label: "Score > 50", count: s.above50, color: "bg-emerald-400", pct: Math.round((s.above50/s.totalPool)*100) },
+                          { label: "Score > 70", count: s.above70, color: "bg-emerald-600", pct: Math.round((s.above70/s.totalPool)*100) },
+                          { label: "Score > 85 (top tier)", count: s.above85, color: "bg-green-700", pct: Math.round((s.above85/s.totalPool)*100) },
+                        ].map(({ label, count, color, pct }) => (
+                          <div key={label} className="flex items-center gap-3 text-xs">
+                            <div className="w-44 shrink-0 text-muted-foreground truncate">{label}</div>
+                            <div className="flex-1 h-4 bg-muted rounded-sm overflow-hidden relative">
+                              <div className={`h-full ${color} rounded-sm transition-all`} style={{ width: `${pct}%` }} />
+                              <span className="absolute inset-0 flex items-center pl-1.5 text-white font-mono text-[10px] font-semibold drop-shadow">{count.toLocaleString()}</span>
+                            </div>
+                            <div className="w-8 text-right font-mono tabular-nums text-muted-foreground">{pct}%</div>
+                          </div>
+                        ))}
+                        {s.ineligibleCount > 0 && (
+                          <div className="text-[10px] text-muted-foreground pl-44 pl-[11.5rem] mt-0.5">
+                            ⤷ {s.ineligibleCount.toLocaleString()} eliminated at eligibility gate · {s.eligibleZeroCount.toLocaleString()} eligible but zero-scored
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Score histogram + dimension averages */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Histogram */}
+                      <div>
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Score Distribution (scored &gt; 0 only)</div>
+                        <div className="flex items-end gap-1 h-24">
+                          {s.histogram.map((count, i) => {
+                            const h = histMax > 0 ? Math.round((count / histMax) * 96) : 0;
+                            const isHigh = i >= 7;
+                            const isMid  = i >= 5;
+                            return (
+                              <div key={i} className="flex-1 flex flex-col items-center gap-0.5" title={`${BUCKET_LABELS[i]}: ${count}`}>
+                                <span className="text-[9px] text-muted-foreground tabular-nums">{count > 0 ? count : ""}</span>
+                                <div
+                                  className={`w-full rounded-t-sm ${isHigh ? "bg-emerald-500" : isMid ? "bg-amber-400" : "bg-blue-400"}`}
+                                  style={{ height: `${h}px` }}
+                                />
+                                <span className="text-[8px] text-muted-foreground rotate-0 leading-tight text-center">{BUCKET_LABELS[i].split("–")[0]}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-1 text-center">Score range</div>
+                      </div>
+
+                      {/* Dimension averages (hybrid only) */}
+                      {scorerMode === "hybrid" && Object.keys(s.dimensionAvgs).length > 0 && (
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Avg Dimension Score (across {s.scoredCount.toLocaleString()} scored)</div>
+                          <div className="space-y-1">
+                            {Object.entries(s.dimensionAvgs).map(([dim, avg]) => {
+                              const max = dimMaxes[dim] ?? 10;
+                              const pct = Math.round((avg / max) * 100);
+                              return (
+                                <div key={dim} className="flex items-center gap-2 text-xs">
+                                  <div className="w-28 shrink-0 text-muted-foreground truncate">{dimLabels[dim] ?? dim}</div>
+                                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <span className="font-mono tabular-nums w-12 text-right">{avg}/{max}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Source breakdown + opportunity type distribution */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Source table */}
+                      <div>
+                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Source Breakdown</div>
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-border/40">
+                              <th className="text-left pb-1 text-muted-foreground font-medium">Source</th>
+                              <th className="text-right pb-1 text-muted-foreground font-medium w-14">Active</th>
+                              <th className="text-right pb-1 text-muted-foreground font-medium w-14">Elig.</th>
+                              <th className="text-right pb-1 text-muted-foreground font-medium w-14">Scored</th>
+                              <th className="text-right pb-1 text-muted-foreground font-medium w-16">Avg</th>
+                              <th className="text-right pb-1 text-muted-foreground font-medium w-12">Top</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {Object.entries(s.bySource).sort((a,b)=>b[1].scored-a[1].scored).map(([src, ss]) => (
+                              <tr key={src} className="border-b border-border/20 hover:bg-muted/30">
+                                <td className="py-0.5 font-mono">{src}</td>
+                                <td className="py-0.5 text-right tabular-nums text-muted-foreground">{ss.total.toLocaleString()}</td>
+                                <td className="py-0.5 text-right tabular-nums text-muted-foreground">{ss.eligible.toLocaleString()}</td>
+                                <td className="py-0.5 text-right tabular-nums text-muted-foreground">{ss.scored.toLocaleString()}</td>
+                                <td className="py-0.5 text-right tabular-nums">{ss.avgScore.toFixed(1)}</td>
+                                <td className={`py-0.5 text-right tabular-nums font-bold ${ss.topScore >= 70 ? "text-emerald-600" : ss.topScore >= 50 ? "text-amber-600" : "text-muted-foreground"}`}>{ss.topScore}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Opp type + top risks */}
+                      <div className="space-y-3">
+                        {topOppTypes.length > 0 && (
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Opportunity Types (scored &gt; 0)</div>
+                            <div className="space-y-1">
+                              {topOppTypes.map(([type, count]) => {
+                                const pct = Math.round((count / s.scoredCount) * 100);
+                                return (
+                                  <div key={type} className="flex items-center gap-2 text-xs">
+                                    <div className="w-32 shrink-0 text-muted-foreground truncate capitalize">{type.replace(/_/g," ")}</div>
+                                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full bg-violet-400 rounded-full" style={{ width: `${pct}%` }} />
+                                    </div>
+                                    <span className="font-mono tabular-nums w-8 text-right">{count}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        {topRisks.length > 0 && (
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Top Risk Patterns (across scored)</div>
+                            <div className="space-y-1">
+                              {topRisks.map(([risk, count]) => (
+                                <div key={risk} className="flex items-start justify-between gap-2 text-xs">
+                                  <span className="text-amber-700 truncate flex-1">{risk}</span>
+                                  <Badge variant="outline" className="text-[9px] shrink-0">{count}×</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Boost / penalty summary (hybrid only) */}
+                    {scorerMode === "hybrid" && s.scoredCount > 0 && (
+                      <div className="flex flex-wrap gap-4 pt-2 border-t border-border/40 text-xs">
+                        <div><span className="text-muted-foreground">Total semantic boosts: </span><span className="font-mono font-semibold text-blue-600">+{s.semanticBoostTotal}</span><span className="text-muted-foreground ml-1">(avg +{(s.semanticBoostTotal/s.scoredCount).toFixed(1)} per scored opp)</span></div>
+                        <div><span className="text-muted-foreground">Total maturity boosts: </span><span className="font-mono font-semibold text-blue-600">+{s.maturityBoostTotal}</span><span className="text-muted-foreground ml-1">(avg +{(s.maturityBoostTotal/s.scoredCount).toFixed(1)})</span></div>
+                        <div><span className="text-muted-foreground">Total penalties applied: </span><span className="font-mono font-semibold text-red-500">−{s.penaltyTotal}</span><span className="text-muted-foreground ml-1">(avg −{(s.penaltyTotal/s.scoredCount).toFixed(1)})</span></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[600px]">
 
                 {/* Left panel — opportunity picker */}
