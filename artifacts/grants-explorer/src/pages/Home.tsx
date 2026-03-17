@@ -220,8 +220,16 @@ function GrantCard({ trace, rank, entry, onSave, onApply }: GrantCardProps) {
 
 // ─── Saved Entry Card (for the panel) ────────────────────────────────────────
 
-function SavedEntryCard({ id, entry, onRemove }: { id: string; entry: OppEntry; onRemove: () => void }) {
+function SavedEntryCard({
+  id, entry, onRemove, onToggleApplied,
+}: {
+  id: string;
+  entry: OppEntry;
+  onRemove: () => void;
+  onToggleApplied: () => void;
+}) {
   const expired = isExpired(entry.closeDate);
+  const isApplied = entry.status === "applied";
   return (
     <div className={`border rounded-xl p-4 space-y-2.5 bg-background ${expired ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-3">
@@ -229,9 +237,9 @@ function SavedEntryCard({ id, entry, onRemove }: { id: string; entry: OppEntry; 
           <div className="flex items-center gap-2 mb-0.5">
             <Badge
               variant="outline"
-              className={`text-[10px] px-1.5 py-0 ${entry.status === "applied" ? "border-emerald-400/60 text-emerald-600 dark:text-emerald-400" : "border-primary/40 text-primary"}`}
+              className={`text-[10px] px-1.5 py-0 ${isApplied ? "border-emerald-400/60 text-emerald-600 dark:text-emerald-400" : "border-primary/40 text-primary"}`}
             >
-              {entry.status === "applied" ? "✓ Applied" : "Saved"}
+              {isApplied ? "✓ Applied" : "Saved"}
             </Badge>
             {expired && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-300 text-red-500">Expired</Badge>}
           </div>
@@ -254,13 +262,23 @@ function SavedEntryCard({ id, entry, onRemove }: { id: string; entry: OppEntry; 
           </Badge>
         )}
       </div>
-      <div className="flex items-center gap-2 pt-1 border-t border-border/30">
+      <div className="flex items-center gap-2 pt-1 border-t border-border/30 flex-wrap">
         {entry.url && (
           <a href={entry.url} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-1 text-xs text-primary hover:underline font-medium">
             View grant <ExternalLink className="h-3 w-3" />
           </a>
         )}
+        <button
+          onClick={onToggleApplied}
+          className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition-all
+            ${isApplied
+              ? "border-emerald-400/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400"
+              : "border-border/50 text-muted-foreground hover:border-emerald-400/40 hover:text-emerald-600"}`}
+        >
+          {isApplied ? <CheckSquare className="h-3 w-3" /> : <Square className="h-3 w-3" />}
+          {isApplied ? "Applied" : "Mark Applied"}
+        </button>
         <button onClick={onRemove} className="ml-auto text-xs text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1">
           <X className="h-3 w-3" /> Remove
         </button>
@@ -273,9 +291,10 @@ function SavedEntryCard({ id, entry, onRemove }: { id: string; entry: OppEntry; 
 
 type SavedFilter = "saved" | "applied" | "inactive";
 
-function SavedPanel({ statuses, onRemove, onClose }: {
+function SavedPanel({ statuses, onRemove, onToggleApplied, onClose }: {
   statuses: Record<string, OppEntry>;
   onRemove: (id: string) => void;
+  onToggleApplied: (id: string, entry: OppEntry) => void;
   onClose: () => void;
 }) {
   const [filter, setFilter] = useState<SavedFilter>("saved");
@@ -351,7 +370,7 @@ function SavedPanel({ statuses, onRemove, onClose }: {
             </div>
           ) : (
             filtered.map(([id, entry]) => (
-              <SavedEntryCard key={id} id={id} entry={entry} onRemove={() => onRemove(id)} />
+              <SavedEntryCard key={id} id={id} entry={entry} onRemove={() => onRemove(id)} onToggleApplied={() => onToggleApplied(id, entry)} />
             ))
           )}
         </div>
@@ -499,7 +518,7 @@ export default function Home() {
     if (resultFilter === "saved") return entry?.status === "saved" && !expired;
     if (resultFilter === "applied") return entry?.status === "applied" && !expired;
     if (resultFilter === "inactive") return expired;
-    return true;
+    return !expired;
   });
 
   const pagedResults = filteredResults.slice(0, (v3Page + 1) * PAGE_SIZE);
@@ -526,6 +545,10 @@ export default function Home() {
         <SavedPanel
           statuses={statuses}
           onRemove={removeStatus}
+          onToggleApplied={(id, entry) => {
+            const newStatus: OppStatus = entry.status === "applied" ? "saved" : "applied";
+            setStatus(id, newStatus, entry);
+          }}
           onClose={() => setShowSaved(false)}
         />
       )}
