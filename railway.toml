@@ -1,7 +1,3 @@
-[build]
-builder = "NIXPACKS"
-buildCommand = "pnpm install && pnpm run railway:build"
-
 [deploy]
 startCommand = "node artifacts/api-server/dist/index.cjs"
 healthcheckPath = "/api/healthz"
