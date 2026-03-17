@@ -88,11 +88,20 @@ export default function ProfileCreation() {
       await loginWithGoogle();
       // useEffect handles routing
     } catch (err: any) {
-      const msg: string = err.message ?? "";
-      if (msg.includes("popup-closed-by-user") || msg.includes("cancelled-popup-request")) {
-        // User dismissed — not an error
+      const code: string = err.code ?? "";
+      const msg: string  = err.message ?? "";
+      if (msg.includes("popup-closed-by-user") || msg.includes("cancelled-popup-request") || code === "auth/popup-cancelled-by-user") {
+        // User dismissed — not an error worth showing
+      } else if (code === "account-exists") {
+        // Same email, different provider — show helpful guidance
+        setAuthError(err.message ?? "An account already exists. Please sign in with your email and password, then link Google from your profile.");
+        // Pre-fill email if we have it and switch to login mode
+        if (err.pendingEmail) {
+          setEmail(err.pendingEmail);
+          setAuthMode("login");
+        }
       } else {
-        setAuthError("Google sign-in failed. Please try again.");
+        setAuthError(msg || "Google sign-in failed. Please try again.");
       }
     } finally {
       setGoogleLoading(false);

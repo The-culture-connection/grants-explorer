@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { GrantCard } from "./GrantCard";
+import { GrantCard, type GrantStatus } from "./GrantCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, FileSearch, Loader2, ChevronDown } from "lucide-react";
 import { GrantItem } from "@workspace/api-client-react/src/generated/api.schemas";
@@ -16,19 +16,17 @@ interface GrantListProps {
   sourceName: string;
   onLoadMore?: () => void;
   hasMore?: boolean;
+  statuses?: Record<string, GrantStatus>;
+  onSave?: (grant: GrantItem) => void;
+  onApply?: (grant: GrantItem) => void;
 }
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05
-    }
-  }
+  show: { opacity: 1, transition: { staggerChildren: 0.05 } }
 };
 
-export function GrantList({ items, isLoading, isLoadingMore, error, total, sourceName, onLoadMore, hasMore }: GrantListProps) {
+export function GrantList({ items, isLoading, isLoadingMore, error, total, sourceName, onLoadMore, hasMore, statuses, onSave, onApply }: GrantListProps) {
   if (isLoading) {
     return (
       <div className="space-y-6 animate-in fade-in duration-500">
@@ -61,7 +59,7 @@ export function GrantList({ items, isLoading, isLoadingMore, error, total, sourc
         <AlertCircle className="h-5 w-5" />
         <AlertTitle className="text-lg font-display">Connection Error</AlertTitle>
         <AlertDescription className="mt-2 text-sm leading-relaxed">
-          Failed to fetch data from <strong>{sourceName}</strong>. The external service might be down, or there is a network issue. 
+          Failed to fetch data from <strong>{sourceName}</strong>. The external service might be down, or there is a network issue.
           <br /><br />
           <span className="font-mono text-xs bg-black/10 px-2 py-1 rounded">{error.message || "Unknown error occurred"}</span>
         </AlertDescription>
@@ -103,7 +101,14 @@ export function GrantList({ items, isLoading, isLoadingMore, error, total, sourc
         animate="show"
       >
         {items.map((grant, index) => (
-          <GrantCard key={grant.id || index} grant={grant} index={index} />
+          <GrantCard
+            key={grant.id || index}
+            grant={grant}
+            index={index}
+            status={grant.id ? (statuses?.[grant.id] ?? null) : null}
+            onSave={onSave}
+            onApply={onApply}
+          />
         ))}
       </motion.div>
 
@@ -117,15 +122,9 @@ export function GrantList({ items, isLoading, isLoadingMore, error, total, sourc
             className="h-12 px-8 rounded-xl border-2 border-border hover:border-primary hover:text-primary font-medium text-base transition-all gap-2"
           >
             {isLoadingMore ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading more...
-              </>
+              <><Loader2 className="h-4 w-4 animate-spin" /> Loading more...</>
             ) : (
-              <>
-                <ChevronDown className="h-4 w-4" />
-                Load more results
-              </>
+              <><ChevronDown className="h-4 w-4" /> Load more results</>
             )}
           </Button>
         </div>

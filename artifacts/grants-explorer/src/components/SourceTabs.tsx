@@ -9,6 +9,7 @@ import { Search, Layers } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "use-debounce";
 import type { GrantItem } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { GrantStatus } from "./GrantCard";
 
 const PAGE_SIZE = 12;
 
@@ -26,7 +27,7 @@ const SOURCES = [
   { id: "worldbank",     label: "World Bank" },
 ];
 
-/* ── Per-source pager (hook passed as parameter — always called in same order) ── */
+/* ── Per-source pager ── */
 function useSourcePager(
   useHookFn: (p: { keyword: string; rows: number; offset: number }) => any,
   keyword: string,
@@ -61,13 +62,18 @@ function useSourcePager(
   return { items, total, isLoading: q.isLoading, isFetching: q.isFetching, error: q.error as Error | null, loadMore, hasMore };
 }
 
+interface SourceTabsProps {
+  statuses?: Record<string, GrantStatus>;
+  onSave?: (grant: GrantItem) => void;
+  onApply?: (grant: GrantItem) => void;
+}
+
 /* ── Main export ── */
-export function SourceTabs() {
+export function SourceTabs({ statuses, onSave, onApply }: SourceTabsProps = {}) {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedKeyword] = useDebounce(searchTerm, 600);
   const [activeSource, setActiveSource] = useState<string>("all");
 
-  // Lift all source hooks to parent (stable hook call order — never in loops)
   const simpler     = useSourcePager(useGetSimplerGrants,   debouncedKeyword);
   const sam         = useSourcePager(useGetSamGov,           debouncedKeyword);
   const ted         = useSourcePager(useGetTedEu,            debouncedKeyword);
@@ -81,20 +87,10 @@ export function SourceTabs() {
   const worldBank   = useSourcePager(useGetWorldBank,        debouncedKeyword);
 
   const sourceDataMap: Record<string, typeof simpler> = {
-    simplergrants:    simpler,
-    samgov:           sam,
-    tedeu:            ted,
-    grantsgov:        grantsGov,
-    sbir:             sbir,
-    nsf:              nsf,
-    nih:              nih,
-    usaspending:      usa,
-    cagrants:         ca,
-    threesixtygiving: threeSixty,
-    worldbank:        worldBank,
+    simplergrants: simpler, samgov: sam, tedeu: ted, grantsgov: grantsGov,
+    sbir, nsf, nih, usaspending: usa, cagrants: ca, threesixtygiving: threeSixty, worldbank: worldBank,
   };
 
-  // Merged items for "All" view
   const allItems: GrantItem[] = [
     ...simpler.items, ...sam.items, ...ted.items, ...grantsGov.items,
     ...sbir.items, ...nsf.items, ...nih.items, ...usa.items,
@@ -104,36 +100,31 @@ export function SourceTabs() {
     .reduce((acc, s) => acc + (s.total ?? 0), 0);
   const allLoading = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
     .some((s) => s.isLoading && s.items.length === 0);
-  // Only surface errors on the All tab when every source fails with no items at all
   const allSources = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank];
   const allError = allSources.every((s) => s.error && s.items.length === 0)
     ? (allSources.find((s) => s.error)?.error ?? null)
     : null;
-  const allHasMore = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
-    .some((s) => s.hasMore);
+  const allHasMore = allSources.some((s) => s.hasMore);
 
   function loadMoreAll() {
-    [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
-      .forEach((s) => { if (s.hasMore) s.loadMore(); });
+    allSources.forEach((s) => { if (s.hasMore) s.loadMore(); });
   }
 
-  // Displayed data
   const isAll = activeSource === "all";
   const activeData = isAll ? null : sourceDataMap[activeSource];
-  const displayItems = isAll ? allItems : (activeData?.items ?? []);
-  const displayTotal = isAll ? allTotal : activeData?.total;
+  const displayItems   = isAll ? allItems  : (activeData?.items ?? []);
+  const displayTotal   = isAll ? allTotal  : activeData?.total;
   const displayLoading = isAll ? allLoading : (activeData?.isLoading ?? false) && displayItems.length === 0;
-  const displayError = isAll ? allError : (activeData?.error ?? null);
+  const displayError   = isAll ? allError  : (activeData?.error ?? null);
   const displayHasMore = isAll ? allHasMore : (activeData?.hasMore ?? false);
   const displayLoadMore = isAll ? loadMoreAll : (activeData?.loadMore ?? (() => {}));
   const displayIsFetching = isAll
-    ? [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank].some((s) => s.isFetching)
+    ? allSources.some((s) => s.isFetching)
     : (activeData?.isFetching ?? false);
   const displaySourceName = isAll
     ? "All Sources"
     : SOURCES.find((s) => s.id === activeSource)?.label ?? activeSource;
 
-  // Per-source item counts for filter pills
   const countFor = (id: string) => sourceDataMap[id]?.items.length ?? 0;
 
   return (
@@ -161,7 +152,6 @@ export function SourceTabs() {
       {/* Source filter pills */}
       <div className="overflow-x-auto pb-2 -mx-1 px-1">
         <div className="flex items-center gap-2 w-max">
-          {/* All pill */}
           <button
             onClick={() => setActiveSource("all")}
             className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium border transition-all shrink-0
@@ -178,7 +168,6 @@ export function SourceTabs() {
             )}
           </button>
 
-          {/* Per-source pills */}
           {SOURCES.map((src) => {
             const count = countFor(src.id);
             const isActive = activeSource === src.id;
@@ -214,6 +203,9 @@ export function SourceTabs() {
           sourceName={displaySourceName}
           onLoadMore={displayLoadMore}
           hasMore={displayHasMore}
+          statuses={statuses}
+          onSave={onSave}
+          onApply={onApply}
         />
       </div>
     </div>
