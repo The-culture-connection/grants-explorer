@@ -98,8 +98,20 @@ export function coerceOrgProfile(raw: any, uid: string): OrgProfile {
 
 // ─── Pool loader ───────────────────────────────────────────────────────────────
 /**
+ * Returns true if an opportunity's deadline has clearly passed.
+ * Grants with no close_date are treated as rolling/open-ended and kept.
+ */
+function isDeadlinePassed(closeDate?: string): boolean {
+  if (!closeDate) return false;
+  return new Date(closeDate) < new Date();
+}
+
+/**
  * Fetches the opportunity pool from the API and converts all records.
- * Applies ACTIVE_SOURCES filter so only supported sources are included.
+ * Applies two filters so both the explorer and the audit score the same set:
+ *   1. ACTIVE_SOURCES  — only supported data sources
+ *   2. deadline check  — removes grants whose close_date is already past
+ *      (the DB classification is set at index time and doesn't auto-expire)
  */
 export async function loadOpportunityPool(apiBase: string): Promise<NormalizedOpportunity[]> {
   const resp = await fetch(`${apiBase}/indexing/records/for-algorithm`);
@@ -107,5 +119,8 @@ export async function loadOpportunityPool(apiBase: string): Promise<NormalizedOp
   const data = await resp.json();
   return (data.records ?? [])
     .map(dbRecordToOpportunity)
-    .filter((o: NormalizedOpportunity) => ACTIVE_SOURCES.has(o.source));
+    .filter(
+      (o: NormalizedOpportunity) =>
+        ACTIVE_SOURCES.has(o.source) && !isDeadlinePassed(o.close_date),
+    );
 }
