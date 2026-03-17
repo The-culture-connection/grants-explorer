@@ -10,7 +10,7 @@ COPY . .
 
 # Install dependencies — bypass frozen-lockfile since pnpm-workspace.yaml
 # has platform-scoped overrides that only partially appear in the lockfile
-RUN pnpm install --no-frozen-lockfile
+RUN pnpm install --no-frozen-lockfile --shamefully-hoist
 
 # Build the Vite frontend (BASE_PATH=/ for root-domain Railway deployment)
 ENV BASE_PATH=/
