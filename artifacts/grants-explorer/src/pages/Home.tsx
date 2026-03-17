@@ -4,16 +4,16 @@ import { SourceTabs } from "@/components/SourceTabs";
 import {
   LayoutDashboard, ShieldCheck, FlaskConical, Database, BookOpen,
   Sparkles, RefreshCw, User, LogOut, ChevronRight, ExternalLink,
-  Trophy, AlertCircle, X, Save, CheckCircle2
+  Trophy, AlertCircle, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/context/AuthContext";
 import type { OrgProfile, NormalizedOpportunity } from "@/lib/algorithm/types";
 import type { OrgProfileData } from "@/context/AuthContext";
 import { getTopMatchesV3 } from "@/lib/v3/matcherV3";
 import type { V3ScoreTrace } from "@/lib/v3/types";
+import { OrgProfileForm } from "@/components/OrgProfileForm";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
@@ -115,29 +115,13 @@ function GrantCard({ trace, rank }: { trace: V3ScoreTrace; rank: number }) {
 
 function ProfileModal({ onClose }: { onClose: () => void }) {
   const { user, updateProfile, logout } = useAuth();
-  const [json, setJson] = useState(
-    user?.org_profile ? JSON.stringify(user.org_profile, null, 2) : ""
-  );
-  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
 
-  async function handleSave() {
-    setError("");
-    let parsed: OrgProfileData;
-    try {
-      parsed = JSON.parse(json);
-    } catch {
-      setError("Invalid JSON — please fix the syntax");
-      return;
-    }
+  async function handleSave(profile: OrgProfileData) {
     setSaving(true);
     try {
-      await updateProfile(parsed);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch (err: any) {
-      setError(err.message);
+      await updateProfile(profile);
+      onClose();
     } finally {
       setSaving(false);
     }
@@ -146,9 +130,9 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-background border border-border rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Organization Profile</h2>
+            <h2 className="text-sm font-semibold text-foreground">Edit Organization Profile</h2>
             <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -166,31 +150,14 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-5 space-y-3">
-          <div className="border border-border/60 rounded-xl overflow-hidden">
-            <div className="flex items-center bg-muted/50 px-4 py-2 border-b border-border/60">
-              <span className="text-xs font-mono font-medium text-muted-foreground">org_profile.json</span>
-            </div>
-            <Textarea
-              value={json}
-              onChange={(e) => setJson(e.target.value)}
-              className="font-mono text-xs min-h-[300px] rounded-none border-0 resize-none focus-visible:ring-0 focus-visible:ring-offset-0 bg-background"
-              spellCheck={false}
-            />
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 text-xs text-red-500 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
-              <AlertCircle className="h-3.5 w-3.5 shrink-0" /> {error}
-            </div>
-          )}
-        </div>
-
-        <div className="px-5 py-4 border-t border-border flex gap-2 justify-end">
-          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
-          <Button size="sm" onClick={handleSave} disabled={saving} className="gap-1.5">
-            {saved ? <><CheckCircle2 className="h-3.5 w-3.5" /> Saved!</> : saving ? "Saving…" : <><Save className="h-3.5 w-3.5" /> Save Profile</>}
-          </Button>
+        <div className="flex-1 overflow-auto p-5">
+          <OrgProfileForm
+            initial={user?.org_profile}
+            onSave={handleSave}
+            onCancel={onClose}
+            saving={saving}
+            saveLabel="Save Changes"
+          />
         </div>
       </div>
     </div>
