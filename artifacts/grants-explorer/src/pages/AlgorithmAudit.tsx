@@ -471,6 +471,28 @@ export default function AlgorithmAuditPage() {
   const eligOpp = pool.find((o) => o.id === eligOppId);
   const eligTrace = eligOpp ? buildScoreTrace(activeOrg, eligOpp, weights) : null;
 
+  // ── Verbose Log ───────────────────────────────────────────────────────────
+  const [verboseSearch, setVerboseSearch] = useState("");
+  const [verboseSelectedId, setVerboseSelectedId] = useState<string | null>(null);
+
+  const verboseList = useMemo(() => {
+    const list = scorerMode === "hybrid"
+      ? hybridAuditResults.map(t => ({ id: t.opp.id, title: t.opp.title, source: t.opp.source, score: t.finalScore }))
+      : allTraces.map(t => ({ id: t.opp.id, title: t.opp.title, source: t.opp.source_raw, score: t.scores.total }))
+          .sort((a, b) => b.score - a.score);
+    if (!verboseSearch.trim()) return list;
+    const q = verboseSearch.toLowerCase();
+    return list.filter(r => r.title.toLowerCase().includes(q) || r.source.toLowerCase().includes(q));
+  }, [scorerMode, hybridAuditResults, allTraces, verboseSearch]);
+
+  const verboseHybridTrace = useMemo(() =>
+    verboseSelectedId ? hybridAuditResults.find(t => t.opp.id === verboseSelectedId) ?? null : null,
+    [verboseSelectedId, hybridAuditResults]);
+
+  const verboseV1Trace = useMemo(() =>
+    verboseSelectedId ? allTraces.find(t => t.opp.id === verboseSelectedId) ?? null : null,
+    [verboseSelectedId, allTraces]);
+
   // ── Org JSON quick build ──────────────────────────────────────────────────
   const [showOrgJson, setShowOrgJson] = useState(false);
 
@@ -633,6 +655,7 @@ export default function AlgorithmAuditPage() {
               <TabsTrigger value="evaluation">Eval Set</TabsTrigger>
               <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
               <TabsTrigger value="raw_results">Raw Results</TabsTrigger>
+              <TabsTrigger value="verbose" className="border border-primary/30 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Verbose Log</TabsTrigger>
             </TabsList>
 
             {/* ── 1. Overview ──────────────────────────────────────────────────── */}
@@ -1607,6 +1630,622 @@ export default function AlgorithmAuditPage() {
                     </Button>
                   </div>
                 )}
+              </div>
+            </TabsContent>
+
+            {/* ── Verbose Log ──────────────────────────────────────────────────── */}
+            <TabsContent value="verbose">
+              <div className="flex gap-4 h-[calc(100vh-280px)] min-h-[600px]">
+
+                {/* Left panel — opportunity picker */}
+                <div className="w-72 shrink-0 flex flex-col border border-border/60 rounded-lg overflow-hidden">
+                  <div className="p-2 border-b border-border/60 bg-muted/40">
+                    <Input
+                      className="h-7 text-xs"
+                      placeholder="Filter opportunities…"
+                      value={verboseSearch}
+                      onChange={e => { setVerboseSearch(e.target.value); }}
+                    />
+                    <div className="text-[10px] text-muted-foreground mt-1 px-0.5">
+                      {verboseList.length} opportunities · {scorerMode === "hybrid" ? "Hybrid V2" : "V1 Keyword"} mode
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {verboseList.length === 0 && (
+                      <div className="p-4 text-xs text-muted-foreground text-center">No results to inspect</div>
+                    )}
+                    {verboseList.map(r => (
+                      <button
+                        key={r.id}
+                        onClick={() => setVerboseSelectedId(r.id)}
+                        className={`w-full text-left px-3 py-2 border-b border-border/30 hover:bg-muted/40 transition-colors ${verboseSelectedId === r.id ? "bg-primary/10 border-l-2 border-l-primary" : ""}`}
+                      >
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <span className={`text-xs font-bold tabular-nums ${r.score >= 70 ? "text-emerald-600" : r.score >= 50 ? "text-amber-600" : "text-red-500"}`}>{r.score}</span>
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 font-mono">{r.source}</Badge>
+                        </div>
+                        <div className="text-xs line-clamp-2 font-medium leading-tight">{r.title}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right panel — verbose trace */}
+                <div className="flex-1 overflow-y-auto">
+                  {!verboseSelectedId && (
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                      <div className="text-center">
+                        <Code className="h-10 w-10 mx-auto mb-3 opacity-20" />
+                        <p className="text-sm">Select an opportunity from the list to inspect its full scoring trace</p>
+                        <p className="text-xs mt-1 opacity-70">Every step of the {scorerMode === "hybrid" ? "Hybrid V2" : "V1 Keyword"} algorithm will be shown here</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ─── HYBRID V2 VERBOSE TRACE ─── */}
+                  {verboseSelectedId && scorerMode === "hybrid" && verboseHybridTrace && (() => {
+                    const t = verboseHybridTrace;
+                    const s = t.subSignals;
+                    const copyLog = () => {
+                      const text = [
+                        `=== HYBRID V2 VERBOSE LOG ===`,
+                        `Opportunity: ${t.opp.title}`,
+                        `Source: ${t.opp.source}`,
+                        `Organization: ${t.org.name}`,
+                        `Final Score: ${t.finalScore}/100`,
+                        ``,
+                        `--- RAW SUB-SIGNALS ---`,
+                        `V1 Keyword:     ${s.v1KeywordScore}/60`,
+                        `V1 Eligibility: ${s.v1EligibilityScore}/20`,
+                        `V1 Geography:   ${s.v1GeoScore}/10`,
+                        `V1 Funding:     ${s.v1FundingScore}/5`,
+                        `V1 Maturity:    ${s.v1MaturityScore}/5`,
+                        `V2 Domain:      ${s.v2DomainScore}/20`,
+                        `V2 Eligibility: ${s.v2EligibilityScore}/20`,
+                        `V2 Geography:   ${s.v2GeoScore}/10`,
+                        `V2 Funding:     ${s.v2FundingScore}/5`,
+                        ``,
+                        `--- COMPUTATION TRACE ---`,
+                        ...t.audit_trace,
+                        ``,
+                        `--- REASONS ---`,
+                        ...t.reasons.map(r => `✓ ${r}`),
+                        ``,
+                        `--- RISKS ---`,
+                        ...t.risks.map(r => `⚠ ${r}`),
+                      ].join("\n");
+                      navigator.clipboard.writeText(text);
+                    };
+                    return (
+                      <div className="space-y-5 pr-2">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <Badge variant="outline" className="text-xs font-mono">{t.opp.source}</Badge>
+                              <Badge variant="secondary" className="text-xs">{t.oppProfile.opportunityType.replace(/_/g, " ")}</Badge>
+                              <Badge className="text-xs bg-primary/10 text-primary border-primary/20">{t.orgProfile.orgClass}</Badge>
+                              <Badge className={`text-xs ${t.passes_eligibility ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-red-100 text-red-700 border-red-200"}`}>
+                                {t.passes_eligibility ? "ELIGIBLE" : "INELIGIBLE"}
+                              </Badge>
+                            </div>
+                            <h2 className="font-semibold text-base leading-snug">{t.opp.title}</h2>
+                            {t.opp.agency && <p className="text-xs text-muted-foreground mt-0.5">{t.opp.agency}</p>}
+                          </div>
+                          <div className="text-right shrink-0 flex flex-col items-end gap-2">
+                            <div>
+                              <div className={`text-4xl font-bold tabular-nums ${t.finalScore >= 70 ? "text-emerald-600" : t.finalScore >= 50 ? "text-amber-600" : "text-red-500"}`}>{t.finalScore}</div>
+                              <div className="text-xs text-muted-foreground">/ 100</div>
+                            </div>
+                            <button onClick={copyLog} className="text-[10px] text-muted-foreground hover:text-foreground border border-border/50 rounded px-2 py-0.5 flex items-center gap-1">
+                              <Download className="h-2.5 w-2.5" /> Copy log
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Section 1 — Raw Sub-Signals */}
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="bg-muted px-2 py-0.5 rounded font-mono">STEP 1</span> Raw Input Signals (9 sub-scores)
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 p-3 bg-muted/30 rounded-lg border border-border/40">
+                            <div>
+                              <div className="text-[10px] font-semibold text-blue-700 uppercase tracking-wider mb-1.5">V1 Keyword Engine</div>
+                              <div className="space-y-1 font-mono text-xs">
+                                {[
+                                  { label: "Mission / Keyword overlap", val: s.v1KeywordScore, max: 60 },
+                                  { label: "Eligibility gate",          val: s.v1EligibilityScore, max: 20 },
+                                  { label: "Geography text match",      val: s.v1GeoScore, max: 10 },
+                                  { label: "Funding realism",           val: s.v1FundingScore, max: 5 },
+                                  { label: "Maturity (years in op.)",   val: s.v1MaturityScore, max: 5 },
+                                ].map(({ label, val, max }) => (
+                                  <div key={label} className="flex items-center gap-2">
+                                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full bg-blue-400 rounded-full" style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                    </div>
+                                    <span className="w-10 text-right tabular-nums">{val}/{max}</span>
+                                    <span className="text-muted-foreground text-[10px] w-40 truncate">{label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] font-semibold text-violet-700 uppercase tracking-wider mb-1.5">V2 Profile Engine</div>
+                              <div className="space-y-1 font-mono text-xs">
+                                {[
+                                  { label: "Taxonomy domain tags",  val: s.v2DomainScore, max: 20 },
+                                  { label: "Eligibility (profile)", val: s.v2EligibilityScore, max: 20 },
+                                  { label: "Geography scope",       val: s.v2GeoScore, max: 10 },
+                                  { label: "Funding band fit",      val: s.v2FundingScore, max: 5 },
+                                ].map(({ label, val, max }) => (
+                                  <div key={label} className="flex items-center gap-2">
+                                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full bg-violet-400 rounded-full" style={{ width: `${Math.round((val/max)*100)}%` }} />
+                                    </div>
+                                    <span className="w-10 text-right tabular-nums">{val}/{max}</span>
+                                    <span className="text-muted-foreground text-[10px] w-40 truncate">{label}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section 2 — Dimension Blending */}
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="bg-muted px-2 py-0.5 rounded font-mono">STEP 2</span> Dimension Blending (8 hybrid dimensions → base score)
+                          </div>
+                          <div className="space-y-2">
+                            {[
+                              {
+                                key: "missionDomain" as const, label: "Mission / Domain", max: 25,
+                                formula: `60%×(V1kw ${s.v1KeywordScore}/60)×25 + 40%×(V2domain ${s.v2DomainScore}/20)×25`,
+                                contrib: `= ${(0.6*(s.v1KeywordScore/60)*25).toFixed(1)} + ${(0.4*(s.v2DomainScore/20)*25).toFixed(1)}`,
+                              },
+                              {
+                                key: "eligibility" as const, label: "Eligibility", max: 20,
+                                formula: `max(V1elig ${s.v1EligibilityScore}, V2elig ${s.v2EligibilityScore})`,
+                                contrib: `= ${Math.max(s.v1EligibilityScore, s.v2EligibilityScore)}`,
+                              },
+                              {
+                                key: "orgTypeFit" as const, label: "Org Type Fit", max: 12,
+                                formula: `(V2orgType/10)×12 — V2 only`,
+                                contrib: `org: ${t.orgProfile.orgClass} → opp type: ${t.oppProfile.opportunityType.replace(/_/g, " ")}`,
+                              },
+                              {
+                                key: "activityFit" as const, label: "Activity Fit", max: 10,
+                                formula: `(V2activity/15)×10 — V2 only`,
+                                contrib: `${t.orgProfile.activityTags.slice(0,3).join(", ") || "no activity tags"} ↔ ${t.oppProfile.activityTags.slice(0,3).join(", ") || "no activity tags"}`,
+                              },
+                              {
+                                key: "geographyFit" as const, label: "Geography Fit", max: 10,
+                                formula: `50%×V1geo ${s.v1GeoScore} + 50%×V2geo ${s.v2GeoScore}`,
+                                contrib: `= ${(0.5*s.v1GeoScore + 0.5*s.v2GeoScore).toFixed(1)} → rounded ${t.dimensions.geographyFit}`,
+                              },
+                              {
+                                key: "capacityFit" as const, label: "Capacity Fit", max: 10,
+                                formula: `V2 only — org capacity vs opp complexity`,
+                                contrib: `org: ${t.orgProfile.capacityBand} ↔ opp: ${t.oppProfile.complexityBand}`,
+                              },
+                              {
+                                key: "fundingFit" as const, label: "Funding Fit", max: 8,
+                                formula: `50%×(V1fund ${s.v1FundingScore}/5)×8 + 50%×(V2fund ${s.v2FundingScore}/5)×8`,
+                                contrib: `= ${(0.5*(s.v1FundingScore/5)*8).toFixed(1)} + ${(0.5*(s.v2FundingScore/5)*8).toFixed(1)}`,
+                              },
+                              {
+                                key: "populationFit" as const, label: "Population Fit", max: 5,
+                                formula: `(V2population/10)×5 — V2 only`,
+                                contrib: `${t.orgProfile.populationTags.slice(0,3).join(", ") || "no population tags"} ↔ ${t.oppProfile.populationTags.slice(0,3).join(", ") || "no population tags"}`,
+                              },
+                            ].map(({ key, label, max, formula, contrib }) => {
+                              const val = t.dimensions[key];
+                              const pct = Math.round((val/max)*100);
+                              return (
+                                <div key={key} className="p-2.5 bg-background rounded-lg border border-border/40">
+                                  <div className="flex items-center gap-3 mb-1.5">
+                                    <span className="text-xs font-semibold w-28 shrink-0">{label}</span>
+                                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+                                    </div>
+                                    <span className="font-mono text-sm font-bold tabular-nums w-12 text-right">{val}/{max}</span>
+                                  </div>
+                                  <div className="ml-28 space-y-0.5">
+                                    <div className="text-[10px] font-mono text-muted-foreground">{formula}</div>
+                                    <div className="text-[10px] text-muted-foreground italic">{contrib}</div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <div className="p-2 bg-primary/5 border border-primary/20 rounded-lg flex items-center justify-between font-mono text-sm">
+                              <span className="text-muted-foreground">Base score (sum of 8 dimensions)</span>
+                              <span className="font-bold text-primary">{t.baseScore}/100</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section 3 — Boosts & Penalties */}
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="bg-muted px-2 py-0.5 rounded font-mono">STEP 3</span> Boosts & Penalties
+                          </div>
+                          <div className="space-y-1.5 p-3 bg-muted/30 rounded-lg border border-border/40 font-mono text-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Base score</span>
+                              <span>{t.baseScore}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Semantic boost (V2 multi-signal alignment, max +10)</span>
+                              <span className={t.semanticBoost > 0 ? "text-emerald-600" : "text-muted-foreground"}>
+                                {t.semanticBoost > 0 ? `+${t.semanticBoost}` : "±0"}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Maturity boost (V1 years-in-operation, max +4) — {t.orgProfile.yearsInOperation ?? "?"} yrs → {s.v1MaturityScore}/5 × 4</span>
+                              <span className={t.maturityBoost > 0 ? "text-blue-600" : "text-muted-foreground"}>
+                                {t.maturityBoost > 0 ? `+${t.maturityBoost}` : "±0"}
+                              </span>
+                            </div>
+                            {t.penalties.length === 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Penalties</span>
+                                <span className="text-muted-foreground">none</span>
+                              </div>
+                            )}
+                            {t.penalties.map((p, pi) => (
+                              <div key={pi} className="flex items-start justify-between gap-4">
+                                <span className="text-red-600">{p.type.replace(/_/g, " ")}: {p.reason}</span>
+                                <span className="text-red-600 shrink-0">−{p.value}</span>
+                              </div>
+                            ))}
+                            <div className="border-t border-border/60 pt-1.5 flex items-center justify-between font-bold">
+                              <span>{t.baseScore} base + {t.semanticBoost} + {t.maturityBoost} − {t.penaltyTotal} = capped(0–100)</span>
+                              <span className={`text-base ${t.finalScore >= 70 ? "text-emerald-600" : t.finalScore >= 50 ? "text-amber-600" : "text-red-500"}`}>{t.finalScore}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Section 4 — Raw computation log */}
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="bg-muted px-2 py-0.5 rounded font-mono">STEP 4</span> Raw Computation Log
+                          </div>
+                          <div className="bg-gray-950 rounded-lg border border-gray-800 p-3 space-y-0.5 font-mono text-xs overflow-x-auto">
+                            {t.audit_trace.map((line, i) => {
+                              const isSignal   = line.startsWith("[V1") || line.startsWith("[V2");
+                              const isDim      = line.startsWith("[Mission") || line.startsWith("[Elig") || line.startsWith("[Org") || line.startsWith("[Activity") || line.startsWith("[Geography") || line.startsWith("[Capacity") || line.startsWith("[Funding") || line.startsWith("[Population");
+                              const isBoost    = line.startsWith("[Semantic") || line.startsWith("[Maturity");
+                              const isPenalty  = line.startsWith("[Penalties");
+                              const isFinal    = line.startsWith("[Final") || line.startsWith("[Base");
+                              const isFail     = line.includes("FAILED");
+                              return (
+                                <div key={i} className={`leading-relaxed whitespace-pre-wrap ${
+                                  isFail    ? "text-red-400" :
+                                  isFinal   ? "text-yellow-300 font-bold" :
+                                  isPenalty ? "text-red-400" :
+                                  isBoost   ? "text-blue-300" :
+                                  isDim     ? "text-emerald-300" :
+                                  isSignal  ? "text-violet-300" :
+                                  "text-gray-300"}`}>
+                                  <span className="text-gray-600 select-none mr-2">{String(i+1).padStart(2,"0")}</span>{line}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Section 5 — All Reasons & Risks */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                              <span className="bg-muted px-2 py-0.5 rounded font-mono">WHY</span> All Reasons ({t.reasons.length})
+                            </div>
+                            {t.reasons.length === 0
+                              ? <div className="text-xs text-muted-foreground italic p-2">No positive signals flagged</div>
+                              : <ul className="space-y-1.5">
+                                  {t.reasons.map((r, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-xs p-2 bg-emerald-50 border border-emerald-100 rounded">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                                      <span className="text-emerald-800">{r}</span>
+                                    </li>
+                                  ))}
+                                </ul>}
+                          </div>
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                              <span className="bg-muted px-2 py-0.5 rounded font-mono">RISK</span> All Risks ({t.risks.length})
+                            </div>
+                            {t.risks.length === 0
+                              ? <div className="text-xs text-muted-foreground italic p-2">No caution flags raised</div>
+                              : <ul className="space-y-1.5">
+                                  {t.risks.map((r, i) => (
+                                    <li key={i} className="flex items-start gap-2 text-xs p-2 bg-amber-50 border border-amber-100 rounded">
+                                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
+                                      <span className="text-amber-800">{r}</span>
+                                    </li>
+                                  ))}
+                                </ul>}
+                          </div>
+                        </div>
+
+                        {/* Section 6 — Profile inference */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="p-3 bg-muted/30 rounded-lg border border-border/40 space-y-2 text-xs">
+                            <div className="font-semibold mb-1 flex items-center gap-1.5">
+                              <Building2 className="h-3.5 w-3.5 text-primary" /> Inferred Org Profile
+                            </div>
+                            {[
+                              ["Org Class",      t.orgProfile.orgClass],
+                              ["Capacity Band",  t.orgProfile.capacityBand],
+                              ["Geo Scope",      t.orgProfile.geographyScope],
+                              ["Budget",         t.orgProfile.annualBudget != null ? `$${t.orgProfile.annualBudget.toLocaleString()}` : "unknown"],
+                              ["Years in Op.",   t.orgProfile.yearsInOperation != null ? `${t.orgProfile.yearsInOperation} yrs` : "unknown"],
+                              ["501(c)(3)",      t.orgProfile.has501c3 ? "Yes" : "No"],
+                              ["Small Biz",      t.orgProfile.isSmallBusiness ? "Yes" : "No"],
+                              ["Fund Readiness", t.orgProfile.fundingReadiness],
+                              ["Research Ready", t.orgProfile.researchReadiness],
+                              ["Procurement",    t.orgProfile.procurementReadiness],
+                            ].map(([k, v]) => (
+                              <div key={k} className="flex items-center justify-between border-b border-border/30 pb-1 last:border-0 last:pb-0">
+                                <span className="text-muted-foreground">{k}</span>
+                                <span className="font-mono font-medium">{v}</span>
+                              </div>
+                            ))}
+                            {t.orgProfile.sectorTags.length > 0 && (
+                              <div><span className="text-muted-foreground">Sector tags: </span>
+                                <span className="font-mono">{t.orgProfile.sectorTags.join(", ")}</span></div>
+                            )}
+                            {t.orgProfile.activityTags.length > 0 && (
+                              <div><span className="text-muted-foreground">Activity tags: </span>
+                                <span className="font-mono">{t.orgProfile.activityTags.join(", ")}</span></div>
+                            )}
+                            {t.orgProfile.populationTags.length > 0 && (
+                              <div><span className="text-muted-foreground">Population tags: </span>
+                                <span className="font-mono">{t.orgProfile.populationTags.join(", ")}</span></div>
+                            )}
+                            {t.orgProfile.geographyTags.length > 0 && (
+                              <div><span className="text-muted-foreground">Geo tags: </span>
+                                <span className="font-mono">{t.orgProfile.geographyTags.join(", ")}</span></div>
+                            )}
+                          </div>
+                          <div className="p-3 bg-muted/30 rounded-lg border border-border/40 space-y-2 text-xs">
+                            <div className="font-semibold mb-1 flex items-center gap-1.5">
+                              <Target className="h-3.5 w-3.5 text-primary" /> Inferred Opportunity Profile
+                            </div>
+                            {[
+                              ["Opp Type",       t.oppProfile.opportunityType.replace(/_/g, " ")],
+                              ["Complexity",     t.oppProfile.complexityBand],
+                              ["Funding Band",   t.oppProfile.fundingBand],
+                              ["Funding Min",    t.oppProfile.fundingMin != null ? `$${t.oppProfile.fundingMin.toLocaleString()}` : "unknown"],
+                              ["Funding Max",    t.oppProfile.fundingMax != null ? `$${t.oppProfile.fundingMax.toLocaleString()}` : "unknown"],
+                              ["Geo Scope",      t.oppProfile.geographyScope],
+                              ["Status",         t.oppProfile.status],
+                              ["Close Date",     t.oppProfile.closeDate ?? "not specified"],
+                            ].map(([k, v]) => (
+                              <div key={k} className="flex items-center justify-between border-b border-border/30 pb-1 last:border-0 last:pb-0">
+                                <span className="text-muted-foreground">{k}</span>
+                                <span className="font-mono font-medium capitalize">{v}</span>
+                              </div>
+                            ))}
+                            {t.oppProfile.domainTags.length > 0 && (
+                              <div><span className="text-muted-foreground">Domain tags: </span>
+                                <span className="font-mono">{t.oppProfile.domainTags.join(", ")}</span></div>
+                            )}
+                            {t.oppProfile.activityTags.length > 0 && (
+                              <div><span className="text-muted-foreground">Activity tags: </span>
+                                <span className="font-mono">{t.oppProfile.activityTags.join(", ")}</span></div>
+                            )}
+                            {t.oppProfile.populationTags.length > 0 && (
+                              <div><span className="text-muted-foreground">Population tags: </span>
+                                <span className="font-mono">{t.oppProfile.populationTags.join(", ")}</span></div>
+                            )}
+                            {t.oppProfile.applicantTypes.length > 0 && (
+                              <div><span className="text-muted-foreground">Applicant types: </span>
+                                <span className="font-mono">{t.oppProfile.applicantTypes.join(", ")}</span></div>
+                            )}
+                            {t.oppProfile.geographyRestrictions.length > 0 && (
+                              <div><span className="text-muted-foreground">Geo restrictions: </span>
+                                <span className="font-mono">{t.oppProfile.geographyRestrictions.join(", ")}</span></div>
+                            )}
+                            {t.oppProfile.rawEligibilityText && (
+                              <div className="mt-1">
+                                <div className="text-muted-foreground mb-0.5">Raw eligibility text:</div>
+                                <div className="bg-background border border-border/50 rounded p-1.5 font-mono text-[10px] leading-relaxed">{t.oppProfile.rawEligibilityText}</div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* ─── V1 VERBOSE TRACE ─── */}
+                  {verboseSelectedId && scorerMode === "v1" && verboseV1Trace && (() => {
+                    const t = verboseV1Trace;
+                    const s = t.scores;
+                    const copyLog = () => {
+                      const text = [
+                        `=== V1 KEYWORD VERBOSE LOG ===`,
+                        `Opportunity: ${t.opp.title}`,
+                        `Source: ${t.opp.source_raw}`,
+                        `Organization: ${t.org.name}`,
+                        `Final Score: ${s.total}/100`,
+                        ``,
+                        `--- SCORES ---`,
+                        `Mission/Topic: ${s.mission_topic_fit}/${t.weights.mission_topic_fit}`,
+                        `Eligibility:   ${s.eligibility_fit}/${t.weights.eligibility_fit}`,
+                        `Geography:     ${s.geography_fit}/${t.weights.geography_fit}`,
+                        `Funding:       ${s.funding_size_fit}/${t.weights.funding_size_fit}`,
+                        `Maturity:      ${s.maturity_fit}/${t.weights.maturity_fit}`,
+                        ``,
+                        `--- MATCHED TOKENS ---`,
+                        t.matched_tokens.join(", "),
+                        ``,
+                        `--- COMPUTATION TRACE ---`,
+                        ...t.audit_trace,
+                      ].join("\n");
+                      navigator.clipboard.writeText(text);
+                    };
+                    return (
+                      <div className="space-y-5 pr-2">
+                        {/* Header */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <Badge variant="outline" className="text-xs font-mono">{t.opp.source_raw}</Badge>
+                              <Badge variant="secondary" className="text-xs capitalize">{t.opp.funding_type.replace("_"," ")}</Badge>
+                              <Badge className={`text-xs ${t.passes_eligibility ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-red-100 text-red-700 border-red-200"}`}>
+                                {t.passes_eligibility ? "ELIGIBLE" : "INELIGIBLE"}
+                              </Badge>
+                            </div>
+                            <h2 className="font-semibold text-base leading-snug">{t.opp.title}</h2>
+                            {t.opp.agency && <p className="text-xs text-muted-foreground mt-0.5">{t.opp.agency}</p>}
+                          </div>
+                          <div className="text-right shrink-0 flex flex-col items-end gap-2">
+                            <div>
+                              <div className={`text-4xl font-bold tabular-nums ${s.total >= 70 ? "text-emerald-600" : s.total >= 50 ? "text-amber-600" : "text-red-500"}`}>{s.total}</div>
+                              <div className="text-xs text-muted-foreground">/ 100</div>
+                            </div>
+                            <button onClick={copyLog} className="text-[10px] text-muted-foreground hover:text-foreground border border-border/50 rounded px-2 py-0.5 flex items-center gap-1">
+                              <Download className="h-2.5 w-2.5" /> Copy log
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* V1 Score Breakdown */}
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="bg-muted px-2 py-0.5 rounded font-mono">SCORES</span> V1 Keyword Dimension Breakdown
+                          </div>
+                          <div className="space-y-2 p-3 bg-muted/30 rounded-lg border border-border/40">
+                            {[
+                              { label: "Mission / Topic Fit", val: s.mission_topic_fit, max: t.weights.mission_topic_fit, note: "keyword overlap between org mission/keywords and opp title/description/categories" },
+                              { label: "Eligibility Fit",     val: s.eligibility_fit,   max: t.weights.eligibility_fit,   note: "org type vs opp eligibility tags" },
+                              { label: "Geography Fit",       val: s.geography_fit,     max: t.weights.geography_fit,     note: "org geography vs opp geography restrictions" },
+                              { label: "Funding Size Fit",    val: s.funding_size_fit,  max: t.weights.funding_size_fit,  note: "org budget vs opp award range realism" },
+                              { label: "Maturity Fit",        val: s.maturity_fit,      max: t.weights.maturity_fit,      note: "org years in operation vs opp requirements" },
+                            ].map(({ label, val, max, note }) => (
+                              <div key={label} className="space-y-0.5">
+                                <div className="flex items-center gap-3">
+                                  <span className="text-xs font-medium w-36 shrink-0">{label}</span>
+                                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: `${max > 0 ? Math.round((val/max)*100) : 0}%` }} />
+                                  </div>
+                                  <span className="font-mono text-sm font-bold tabular-nums w-12 text-right">{val}/{max}</span>
+                                </div>
+                                <div className="ml-36 text-[10px] text-muted-foreground italic pl-3">{note}</div>
+                              </div>
+                            ))}
+                            <div className="border-t border-border/60 pt-2 flex items-center justify-between font-bold text-sm">
+                              <span className="text-muted-foreground font-mono">Total</span>
+                              <span className={s.total >= 70 ? "text-emerald-600" : s.total >= 50 ? "text-amber-600" : "text-red-500"}>{s.total}/100</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Matched tokens */}
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="bg-muted px-2 py-0.5 rounded font-mono">TOKENS</span> Matched Keyword Tokens ({t.matched_tokens.length})
+                          </div>
+                          {t.matched_tokens.length === 0
+                            ? <div className="text-xs text-red-500 bg-red-50 border border-red-100 p-2 rounded">⚠ No keyword overlap found — score driven entirely by eligibility/funding/maturity signals</div>
+                            : <div className="flex flex-wrap gap-1.5">
+                                {t.matched_tokens.map(tok => (
+                                  <span key={tok} className="text-xs bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded font-mono">{tok}</span>
+                                ))}
+                              </div>}
+                        </div>
+
+                        {/* Eligibility reason */}
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="bg-muted px-2 py-0.5 rounded font-mono">ELIGIB.</span> Eligibility Ruling
+                          </div>
+                          <div className={`text-xs font-mono p-3 rounded-lg border ${t.passes_eligibility ? "bg-emerald-50 border-emerald-200 text-emerald-800" : "bg-red-50 border-red-200 text-red-800"}`}>
+                            {t.eligibility_reason}
+                          </div>
+                          {t.opp.eligibility.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              <span className="text-[10px] text-muted-foreground mr-1">Raw tags:</span>
+                              {t.opp.eligibility.map(e => <span key={e} className="text-[10px] bg-muted px-1.5 py-0.5 rounded font-mono">{e}</span>)}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Raw computation log */}
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
+                            <span className="bg-muted px-2 py-0.5 rounded font-mono">LOG</span> Raw Computation Trace
+                          </div>
+                          <div className="bg-gray-950 rounded-lg border border-gray-800 p-3 space-y-0.5 font-mono text-xs overflow-x-auto">
+                            {t.audit_trace.map((line, i) => {
+                              const isElig   = line.toLowerCase().startsWith("eligib");
+                              const isFail   = line.toLowerCase().includes("failed");
+                              const isPass   = line.toLowerCase().includes("passed");
+                              const isMission = line.toLowerCase().includes("mission") || line.toLowerCase().includes("keyword") || line.toLowerCase().includes("token");
+                              return (
+                                <div key={i} className={`leading-relaxed whitespace-pre-wrap ${
+                                  isFail   ? "text-red-400" :
+                                  isPass   ? "text-emerald-400" :
+                                  isElig   ? "text-violet-300" :
+                                  isMission ? "text-blue-300" :
+                                  "text-gray-300"}`}>
+                                  <span className="text-gray-600 select-none mr-2">{String(i+1).padStart(2,"0")}</span>{line}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Raw opp data */}
+                        <div className="p-3 bg-muted/30 rounded-lg border border-border/40 text-xs space-y-2">
+                          <div className="font-semibold flex items-center gap-1.5"><Target className="h-3.5 w-3.5 text-primary" /> Raw Opportunity Data</div>
+                          {[
+                            ["Funding Type", t.opp.funding_type.replace("_"," ")],
+                            ["Status",       t.opp.status],
+                            ["Open Date",    t.opp.open_date ?? "—"],
+                            ["Close Date",   t.opp.close_date ?? "—"],
+                            ["Min Award",    t.opp.min_award != null ? `$${t.opp.min_award.toLocaleString()}` : "—"],
+                            ["Max Award",    t.opp.max_award != null ? `$${t.opp.max_award.toLocaleString()}` : "—"],
+                          ].map(([k, v]) => (
+                            <div key={k} className="flex justify-between border-b border-border/30 pb-1 last:border-0">
+                              <span className="text-muted-foreground">{k}</span>
+                              <span className="font-mono capitalize">{v}</span>
+                            </div>
+                          ))}
+                          {t.opp.eligibility.length > 0 && (
+                            <div><span className="text-muted-foreground">Eligibility: </span>
+                              <span className="font-mono">{t.opp.eligibility.join(", ")}</span></div>
+                          )}
+                          {t.opp.categories.length > 0 && (
+                            <div><span className="text-muted-foreground">Categories: </span>
+                              <span className="font-mono">{t.opp.categories.join(", ")}</span></div>
+                          )}
+                          {t.opp.keywords.length > 0 && (
+                            <div><span className="text-muted-foreground">Keywords: </span>
+                              <span className="font-mono">{t.opp.keywords.join(", ")}</span></div>
+                          )}
+                          {t.opp.geography.length > 0 && (
+                            <div><span className="text-muted-foreground">Geography: </span>
+                              <span className="font-mono">{t.opp.geography.join(", ")}</span></div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {verboseSelectedId && scorerMode === "hybrid" && !verboseHybridTrace && (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                      Opportunity not found in scored results
+                    </div>
+                  )}
+                  {verboseSelectedId && scorerMode === "v1" && !verboseV1Trace && (
+                    <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+                      Opportunity not found in scored results
+                    </div>
+                  )}
+                </div>
               </div>
             </TabsContent>
 
