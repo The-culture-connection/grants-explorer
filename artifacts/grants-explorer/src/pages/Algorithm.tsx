@@ -21,7 +21,10 @@ import { MOCK_ORGANIZATIONS } from "@/lib/algorithm/mockData";
 import { getTopMatches, scoreMatch } from "@/lib/algorithm/matcher";
 import type { OrgProfile, NormalizedOpportunity, MatchResult } from "@/lib/algorithm/types";
 import { getTopMatchesV2, compareV1V2 } from "@/lib/v2/matcherV2";
-import type { V2ScoreTrace, V2ScoreDimensions, V2Penalty } from "@/lib/v2/types";
+import type { V2ScoreTrace, V2Penalty } from "@/lib/v2/types";
+import { getTopMatchesHybrid } from "@/lib/v2/matcherHybrid";
+import type { HybridScoreTrace, HybridDimensions } from "@/lib/v2/types";
+import { HYBRID_DIMENSION_MAXES } from "@/lib/v2/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -151,24 +154,31 @@ function MatchCard({ result, index }: { result: MatchResult; index: number }) {
   );
 }
 
-// ─── V2 Match Card ────────────────────────────────────────────────────────────
 
-const DIM_CONFIG: Array<{ key: keyof V2ScoreDimensions; label: string; max: number; color: string }> = [
-  { key: "eligibilityFit",      label: "Eligibility Fit",      max: 20, color: "bg-violet-500" },
-  { key: "domainFit",           label: "Domain / Mission",     max: 20, color: "bg-blue-500" },
-  { key: "activityFit",         label: "Activity Model",       max: 15, color: "bg-cyan-500" },
-  { key: "populationFit",       label: "Population Served",    max: 10, color: "bg-pink-500" },
-  { key: "geographyFit",        label: "Geography",            max: 10, color: "bg-emerald-500" },
-  { key: "organizationTypeFit", label: "Org Type Fit",         max: 10, color: "bg-indigo-500" },
-  { key: "capacityFit",         label: "Capacity / Complexity",max: 10, color: "bg-amber-500" },
-  { key: "fundingFit",          label: "Funding Fit",          max: 5,  color: "bg-orange-400" },
+// ─── Hybrid Match Card ────────────────────────────────────────────────────────
+
+const HYBRID_DIM_CONFIG: Array<{
+  key: keyof HybridDimensions;
+  label: string;
+  color: string;
+  signal?: string;
+}> = [
+  { key: "missionDomain", label: "Mission / Domain",     color: "bg-blue-500",    signal: "60% V1 keyword + 40% V2 taxonomy" },
+  { key: "eligibility",   label: "Eligibility",          color: "bg-violet-500",  signal: "max(V1 type check, V2 classifier)" },
+  { key: "orgTypeFit",    label: "Org Type Fit",         color: "bg-indigo-500",  signal: "V2 org-vs-opp type matrix" },
+  { key: "activityFit",   label: "Activity Model",       color: "bg-cyan-500",    signal: "V2 activity tag matching" },
+  { key: "geographyFit",  label: "Geography",            color: "bg-emerald-500", signal: "50% V1 text geo + 50% V2 scope" },
+  { key: "capacityFit",   label: "Capacity Fit",         color: "bg-amber-500",   signal: "V2 capacity vs complexity" },
+  { key: "fundingFit",    label: "Funding Fit",          color: "bg-orange-400",  signal: "50% V1 realism + 50% V2 band" },
+  { key: "populationFit", label: "Population Served",    color: "bg-pink-500",    signal: "V2 population tag matching" },
 ];
 
-function V2MatchCard({ trace, index }: { trace: V2ScoreTrace; index: number }) {
+function HybridMatchCard({ trace, index }: { trace: HybridScoreTrace; index: number }) {
   const [showTrace, setShowTrace] = useState(false);
-  const [showJson, setShowJson] = useState(false);
+  const [showSubs, setShowSubs]   = useState(false);
+  const [showJson, setShowJson]   = useState(false);
   const opp = trace.opp;
-  const op = trace.oppProfile;
+  const op  = trace.oppProfile;
   const org = trace.orgProfile;
 
   return (
@@ -193,19 +203,33 @@ function V2MatchCard({ trace, index }: { trace: V2ScoreTrace; index: number }) {
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Score breakdown bars */}
-        <div className="space-y-1.5 p-3 bg-background/60 rounded-lg border border-border/40">
-          {DIM_CONFIG.map(({ key, label, max, color }) => (
-            <ScoreBar key={key} label={label} value={trace.dimensions[key]} max={max} color={color} />
-          ))}
+        {/* 8 hybrid dimension bars */}
+        <div className="space-y-2">
+          {HYBRID_DIM_CONFIG.map(({ key, label, color, signal }) => {
+            const val = trace.dimensions[key];
+            const max = HYBRID_DIMENSION_MAXES[key];
+            const pct = Math.round((val / max) * 100);
+            return (
+              <div key={key} className="space-y-0.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span title={signal}>{label}</span>
+                  <span className="font-mono font-semibold">{val}/{max}</span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Score formula */}
-        <div className="flex items-center gap-2 text-xs font-mono flex-wrap">
+        <div className="flex items-center gap-2 text-xs font-mono flex-wrap bg-muted/40 rounded-lg px-3 py-2">
           <span className="text-muted-foreground">Base {trace.baseScore}</span>
-          {trace.semanticBoost > 0 && <span className="text-emerald-600">+{trace.semanticBoost} boost</span>}
+          {trace.semanticBoost > 0 && <span className="text-emerald-600">+{trace.semanticBoost} semantic</span>}
+          {trace.maturityBoost > 0 && <span className="text-emerald-600">+{trace.maturityBoost} maturity</span>}
           {trace.penaltyTotal > 0 && <span className="text-red-500">−{trace.penaltyTotal} penalty</span>}
-          <span className="font-bold text-foreground">= {trace.finalScore}</span>
+          <span className="font-bold text-foreground ml-auto">= {trace.finalScore}</span>
         </div>
 
         {/* Penalties */}
@@ -220,7 +244,7 @@ function V2MatchCard({ trace, index }: { trace: V2ScoreTrace; index: number }) {
           </div>
         )}
 
-        {/* Meta */}
+        {/* Meta row */}
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><DollarSign className="h-3 w-3" />{fmt(opp.min_award)} – {fmt(opp.max_award)}</span>
           {opp.close_date && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Closes {opp.close_date}</span>}
@@ -228,11 +252,11 @@ function V2MatchCard({ trace, index }: { trace: V2ScoreTrace; index: number }) {
           <span className="text-primary/70">complexity: {op.complexityBand}</span>
         </div>
 
-        {/* Reasons/Risks accordion */}
+        {/* Reasons/Risks + sub-signals accordion */}
         <Accordion type="single" collapsible>
           <AccordionItem value="explain" className="border rounded-lg px-3">
             <AccordionTrigger className="text-xs py-2 hover:no-underline font-medium">
-              V2 Analysis ({trace.reasons.length} signals, {trace.risks.length} risks)
+              Analysis ({trace.reasons.length} signals · {trace.risks.length} risks)
             </AccordionTrigger>
             <AccordionContent className="pb-3 space-y-3">
               {trace.reasons.length > 0 && (
@@ -255,9 +279,10 @@ function V2MatchCard({ trace, index }: { trace: V2ScoreTrace; index: number }) {
                   </ul>
                 </div>
               )}
-              {/* Profile summary */}
+
+              {/* Profile classification */}
               <div className="bg-muted/40 rounded-lg p-2.5 space-y-1.5 border border-border/40 text-xs">
-                <div className="font-medium text-muted-foreground mb-1">V2 Profile Inference</div>
+                <div className="font-medium text-muted-foreground mb-1">Profile Classification</div>
                 <div className="flex flex-wrap gap-1">
                   <span className="text-muted-foreground">Org class:</span>
                   <Badge variant="outline" className="text-xs py-0 h-4">{org.orgClass}</Badge>
@@ -270,22 +295,29 @@ function V2MatchCard({ trace, index }: { trace: V2ScoreTrace; index: number }) {
                   <span className="text-muted-foreground ml-2">Complexity:</span>
                   <Badge variant="outline" className="text-xs py-0 h-4">{op.complexityBand}</Badge>
                 </div>
-                {org.sectorTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    <span className="text-muted-foreground">Org domains:</span>
-                    {org.sectorTags.slice(0, 4).map(t => <Badge key={t} variant="secondary" className="text-xs py-0 h-4">{t}</Badge>)}
-                  </div>
-                )}
-                {op.domainTags.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    <span className="text-muted-foreground">Opp domains:</span>
-                    {op.domainTags.slice(0, 4).map(t => <Badge key={t} variant="secondary" className="text-xs py-0 h-4">{t}</Badge>)}
-                  </div>
-                )}
               </div>
+
+              {/* Sub-signals toggle */}
+              <button onClick={() => setShowSubs(v => !v)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                <BarChart3 className="h-3 w-3" />{showSubs ? "Hide" : "Show"} V1 + V2 sub-signals
+              </button>
+              {showSubs && (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs font-mono bg-muted/30 p-2.5 rounded-lg border border-border/30">
+                  <span className="text-muted-foreground">V1 keyword</span><span>{trace.subSignals.v1KeywordScore}/60</span>
+                  <span className="text-muted-foreground">V2 domain tags</span><span>{trace.subSignals.v2DomainScore}/20</span>
+                  <span className="text-muted-foreground">V1 eligibility</span><span>{trace.subSignals.v1EligibilityScore}/20</span>
+                  <span className="text-muted-foreground">V2 eligibility</span><span>{trace.subSignals.v2EligibilityScore}/20</span>
+                  <span className="text-muted-foreground">V1 geo</span><span>{trace.subSignals.v1GeoScore}/10</span>
+                  <span className="text-muted-foreground">V2 geo</span><span>{trace.subSignals.v2GeoScore}/10</span>
+                  <span className="text-muted-foreground">V1 funding</span><span>{trace.subSignals.v1FundingScore}/5</span>
+                  <span className="text-muted-foreground">V2 funding</span><span>{trace.subSignals.v2FundingScore}/5</span>
+                  <span className="text-muted-foreground">V1 maturity</span><span>{trace.subSignals.v1MaturityScore}/5</span>
+                </div>
+              )}
+
               {/* Audit trace toggle */}
               <button onClick={() => setShowTrace(v => !v)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                <Code className="h-3 w-3" />{showTrace ? "Hide" : "Show"} V2 scoring trace
+                <Code className="h-3 w-3" />{showTrace ? "Hide" : "Show"} full scoring trace
               </button>
               {showTrace && (
                 <div className="space-y-0.5">
@@ -294,12 +326,13 @@ function V2MatchCard({ trace, index }: { trace: V2ScoreTrace; index: number }) {
                   ))}
                 </div>
               )}
+
               <button onClick={() => setShowJson(v => !v)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
                 <Code className="h-3 w-3" />{showJson ? "Hide" : "Show"} raw JSON
               </button>
               {showJson && (
                 <pre className="mt-1 text-xs bg-muted p-3 rounded-lg overflow-auto max-h-64 border border-border/50 leading-relaxed">
-                  {JSON.stringify({ finalScore: trace.finalScore, dimensions: trace.dimensions, baseScore: trace.baseScore, semanticBoost: trace.semanticBoost, penalties: trace.penalties }, null, 2)}
+                  {JSON.stringify({ finalScore: trace.finalScore, dimensions: trace.dimensions, subSignals: trace.subSignals, baseScore: trace.baseScore, semanticBoost: trace.semanticBoost, maturityBoost: trace.maturityBoost, penalties: trace.penalties }, null, 2)}
                 </pre>
               )}
             </AccordionContent>
@@ -387,7 +420,7 @@ export default function AlgorithmPage() {
 
   const refreshPool = () => {
     setPool([]); setPoolStats(null);
-    setV1Results(null); setV2Results(null); setRunStats(null);
+    setV1Results(null); setHybridResults(null); setRunStats(null);
     loadPool();
   };
 
@@ -403,51 +436,58 @@ export default function AlgorithmPage() {
     return true;
   }), [pool, poolFilter]);
 
-  // ── Algorithm version / compare ───────────────────────────────────────────
-  const [version, setVersion] = useState<"v1" | "v2">("v2");
+  // ── Compare mode toggle ───────────────────────────────────────────────────
   const [compareMode, setCompareMode] = useState(false);
 
   // ── Results ───────────────────────────────────────────────────────────────
   const [v1Results, setV1Results] = useState<MatchResult[] | null>(null);
-  const [v2Results, setV2Results] = useState<V2ScoreTrace[] | null>(null);
+  const [hybridResults, setHybridResults] = useState<HybridScoreTrace[] | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [runStats, setRunStats] = useState<{ total: number; eligible: number; scored: number } | null>(null);
 
   const runAlgorithm = () => {
     setIsRunning(true);
     setTimeout(() => {
-      if (version === "v1" || compareMode) {
-        const all = pool.map(opp => scoreMatch(activeOrg, opp));
-        const top = getTopMatches(activeOrg, pool, 10);
-        setV1Results(top);
-        if (!compareMode) {
-          setRunStats({ total: pool.length, eligible: all.filter(r => r.passes_eligibility).length, scored: top.length });
-        }
-      }
-      if (version === "v2" || compareMode) {
-        const top2 = getTopMatchesV2(activeOrg, pool, 10);
-        setV2Results(top2);
-        if (!compareMode) {
-          setRunStats({ total: pool.length, eligible: top2.length, scored: top2.length });
-        }
-      }
+      // Primary: Hybrid V2 scorer
+      const hybrid = getTopMatchesHybrid(activeOrg, pool, compareMode ? 20 : 10);
+      setHybridResults(hybrid);
+      setRunStats({ total: pool.length, eligible: hybrid.length, scored: hybrid.length });
+
+      // V1 only needed for compare mode
       if (compareMode) {
         const v1 = getTopMatches(activeOrg, pool, 20);
-        const v2 = getTopMatchesV2(activeOrg, pool, 20);
         setV1Results(v1);
-        setV2Results(v2);
-        setRunStats({ total: pool.length, eligible: v1.length, scored: v1.length });
+      } else {
+        setV1Results(null);
       }
       setIsRunning(false);
     }, 800);
   };
 
-  // ── Comparison data ───────────────────────────────────────────────────────
+  // ── Comparison data (V1 vs Hybrid) ────────────────────────────────────────
   const comparisonRows = useMemo(() => {
-    if (!v1Results || !v2Results || !compareMode) return [];
+    if (!v1Results || !hybridResults || !compareMode) return [];
+    // Map hybrid results to V2ScoreTrace shape for comparison (uses finalScore)
     const v1Mapped = v1Results.map(r => ({ opp: r.opportunity, score: r.score }));
-    return compareV1V2(v1Mapped, v2Results);
-  }, [v1Results, v2Results, compareMode]);
+    const hybridAsV2: V2ScoreTrace[] = hybridResults.map(h => ({
+      org: h.org, opp: h.opp, orgProfile: h.orgProfile, oppProfile: h.oppProfile,
+      passes_eligibility: h.passes_eligibility, eligibility_reason: h.eligibility_reason,
+      dimensions: {
+        eligibilityFit: h.dimensions.eligibility,
+        domainFit: Math.round((h.dimensions.missionDomain / 25) * 20),
+        activityFit: Math.round((h.dimensions.activityFit / 10) * 15),
+        populationFit: Math.round((h.dimensions.populationFit / 5) * 10),
+        geographyFit: h.dimensions.geographyFit,
+        organizationTypeFit: Math.round((h.dimensions.orgTypeFit / 12) * 10),
+        capacityFit: h.dimensions.capacityFit,
+        fundingFit: Math.round((h.dimensions.fundingFit / 8) * 5),
+      },
+      baseScore: h.baseScore, semanticBoost: h.semanticBoost + h.maturityBoost,
+      penalties: h.penalties, penaltyTotal: h.penaltyTotal,
+      finalScore: h.finalScore, reasons: h.reasons, risks: h.risks, audit_trace: h.audit_trace,
+    }));
+    return compareV1V2(v1Mapped, hybridAsV2);
+  }, [v1Results, hybridResults, compareMode]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -468,7 +508,7 @@ export default function AlgorithmPage() {
           <div className="flex items-center gap-2 font-semibold text-sm text-foreground">
             <FlaskConical className="h-4 w-4 text-primary" />
             Algorithm Testing Center
-            <Badge variant="secondary" className="text-xs font-mono">V1 + V2</Badge>
+            <Badge variant="secondary" className="text-xs font-mono">V2</Badge>
           </div>
         </div>
       </nav>
@@ -477,7 +517,7 @@ export default function AlgorithmPage() {
       <div className="border-b border-border/60 bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
           <p className="text-sm text-muted-foreground">
-            Rules-based (V1) and profile-to-profile (V2) funding-match engines · 8 active opportunity sources · Full explainability output
+            Hybrid V2 scoring engine · keyword overlap + profile-to-profile matching · 8 weighted dimensions · 8 active opportunity sources
           </p>
         </div>
       </div>
@@ -742,30 +782,15 @@ export default function AlgorithmPage() {
                 <div className="flex-1">
                   <div className="text-sm font-medium mb-2">Matching: <strong>{activeOrg.name || "Custom Organization"}</strong></div>
                   <div className="flex flex-wrap items-center gap-3">
-                    {/* Version selector */}
-                    <div className="flex items-center gap-2">
-                      <Label className="text-xs text-muted-foreground">Version:</Label>
-                      <div className="flex rounded-lg border border-border overflow-hidden">
-                        <button
-                          className={`px-3 py-1 text-xs font-medium transition-colors ${version === "v1" && !compareMode ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-                          onClick={() => { setVersion("v1"); setCompareMode(false); }}>
-                          V1
-                        </button>
-                        <button
-                          className={`px-3 py-1 text-xs font-medium transition-colors ${version === "v2" && !compareMode ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-                          onClick={() => { setVersion("v2"); setCompareMode(false); }}>
-                          V2
-                        </button>
-                        <button
-                          className={`px-3 py-1 text-xs font-medium transition-colors flex items-center gap-1 ${compareMode ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
-                          onClick={() => setCompareMode(v => !v)}>
-                          <ArrowUpDown className="h-3 w-3" /> Compare
-                        </button>
-                      </div>
-                    </div>
+                    <Badge className="text-xs bg-primary/10 text-primary border-primary/30 font-mono">Hybrid V2</Badge>
                     <div className="text-xs text-muted-foreground">
-                      {compareMode ? "V1 vs V2 side-by-side" : version === "v2" ? "V2: 8-dimension profile matcher" : "V1: keyword overlap scorer"}
+                      {compareMode ? "V2 (Hybrid) vs V1 (Keyword Only) side-by-side" : "8-dimension hybrid scorer · keyword + profile matching"}
                     </div>
+                    <button
+                      className={`flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg border transition-colors ${compareMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+                      onClick={() => setCompareMode(v => !v)}>
+                      <ArrowUpDown className="h-3 w-3" /> {compareMode ? "Exit Compare" : "Compare with V1"}
+                    </button>
                   </div>
                 </div>
                 <Button
@@ -774,7 +799,7 @@ export default function AlgorithmPage() {
                   className="shrink-0 gap-2 px-8"
                 >
                   <Zap className={`h-4 w-4 ${isRunning ? "animate-pulse" : ""}`} />
-                  {isRunning ? "Running…" : compareMode ? "Run V1 + V2" : `Run Algorithm ${version.toUpperCase()}`}
+                  {isRunning ? "Running…" : compareMode ? "Run V2 + V1 Compare" : "Run Algorithm V2"}
                 </Button>
               </div>
             </CardContent>
@@ -799,28 +824,28 @@ export default function AlgorithmPage() {
           )}
 
           {/* Empty states */}
-          {!v1Results && !v2Results && !isRunning && (
+          {!hybridResults && !isRunning && (
             <div className="text-center py-16 text-muted-foreground">
               <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Select an organization and click <strong>Run Algorithm</strong> to see match results.</p>
-              <p className="text-xs mt-1 text-muted-foreground/70">V2 uses taxonomy-driven profile matching across 8 dimensions</p>
+              <p className="text-sm">Select an organization and click <strong>Run Algorithm V2</strong> to see match results.</p>
+              <p className="text-xs mt-1 text-muted-foreground/70">Hybrid V2 blends V1 keyword matching with V2 profile scoring across 8 dimensions</p>
             </div>
           )}
           {isRunning && (
             <div className="text-center py-16 text-muted-foreground">
               <div className="inline-flex items-center gap-2 animate-pulse">
                 <Zap className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium">Scoring {pool.length.toLocaleString()} opportunities…</span>
+                <span className="text-sm font-medium">Scoring {pool.length.toLocaleString()} opportunities with Hybrid V2…</span>
               </div>
             </div>
           )}
 
-          {/* Compare Mode */}
+          {/* Compare Mode — V1 keyword vs V2 Hybrid */}
           {compareMode && comparisonRows.length > 0 && !isRunning && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium">
                 <ArrowUpDown className="h-4 w-4 text-primary" />
-                V1 vs V2 Rank Comparison — Top 20
+                V1 (Keyword Only) vs V2 (Hybrid) — Rank Comparison
               </div>
               <div className="overflow-auto rounded-lg border border-border/60">
                 <table className="w-full text-xs border-collapse min-w-[700px]">
@@ -828,8 +853,8 @@ export default function AlgorithmPage() {
                     <tr className="bg-muted/60 text-left">
                       <th className="px-3 py-2 font-medium text-muted-foreground">Title</th>
                       <th className="px-3 py-2 font-medium text-muted-foreground w-24">Source</th>
-                      <th className="px-3 py-2 font-medium text-muted-foreground w-16 text-center">V1 Score</th>
-                      <th className="px-3 py-2 font-medium text-muted-foreground w-16 text-center">V2 Score</th>
+                      <th className="px-3 py-2 font-medium text-muted-foreground w-20 text-center">V1 Score</th>
+                      <th className="px-3 py-2 font-medium text-muted-foreground w-20 text-center">V2 Hybrid</th>
                       <th className="px-3 py-2 font-medium text-muted-foreground w-20 text-center">Rank Δ</th>
                       <th className="px-3 py-2 font-medium text-muted-foreground w-20 text-center">Status</th>
                     </tr>
@@ -874,7 +899,7 @@ export default function AlgorithmPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
                 <div>
                   <div className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono">V1</Badge> Top 5 by Keyword Overlap
+                    <Badge variant="outline" className="font-mono">V1</Badge> Top 5 — Keyword Overlap Only
                   </div>
                   <div className="space-y-3">
                     {(v1Results ?? []).slice(0, 5).map((r, i) => <MatchCard key={r.opportunity.id} result={r} index={i} />)}
@@ -882,56 +907,35 @@ export default function AlgorithmPage() {
                 </div>
                 <div>
                   <div className="text-sm font-semibold mb-3 flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono">V2</Badge> Top 5 by Profile Match
+                    <Badge variant="outline" className="font-mono bg-primary/5 border-primary/30 text-primary">V2 Hybrid</Badge> Top 5 — 8-Dimension Hybrid Scorer
                   </div>
                   <div className="space-y-3">
-                    {(v2Results ?? []).slice(0, 5).map((r, i) => <V2MatchCard key={r.opp.id} trace={r} index={i} />)}
+                    {(hybridResults ?? []).slice(0, 5).map((r, i) => <HybridMatchCard key={r.opp.id} trace={r} index={i} />)}
                   </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Single-version results */}
-          {!compareMode && !isRunning && (
-            <>
-              {version === "v1" && v1Results !== null && (
-                v1Results.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <XCircle className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                    <p className="text-sm">No eligible V1 matches found.</p>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                      <ChevronRight className="h-3 w-3" />
-                      Top {v1Results.length} V1 matches — keyword overlap scorer
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {v1Results.map((r, i) => <MatchCard key={r.opportunity.id} result={r} index={i} />)}
-                    </div>
-                  </div>
-                )
-              )}
-              {version === "v2" && v2Results !== null && (
-                v2Results.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <XCircle className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                    <p className="text-sm">No eligible V2 matches found.</p>
-                  </div>
-                ) : (
-                  <div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                      <ChevronRight className="h-3 w-3" />
-                      Top {v2Results.length} V2 matches — 8-dimension profile matcher · base + boost − penalties
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                      {v2Results.map((r, i) => <V2MatchCard key={r.opp.id} trace={r} index={i} />)}
-                    </div>
-                  </div>
-                )
-              )}
-            </>
+          {/* Primary results — Hybrid V2 */}
+          {!compareMode && !isRunning && hybridResults !== null && (
+            hybridResults.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <XCircle className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">No eligible matches found for this organization.</p>
+                <p className="text-xs mt-1 opacity-70">Try adding more keywords, program areas, or broadening the organization profile.</p>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+                  <ChevronRight className="h-3 w-3" />
+                  Top {hybridResults.length} matches — V2 Hybrid (keyword overlap + profile matching + penalty engine)
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {hybridResults.map((r, i) => <HybridMatchCard key={r.opp.id} trace={r} index={i} />)}
+                </div>
+              </div>
+            )
           )}
         </section>
       </div>
