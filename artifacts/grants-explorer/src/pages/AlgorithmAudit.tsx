@@ -29,6 +29,9 @@ import { ALGORITHM_VARIANTS, DEFAULT_WEIGHTS } from "@/lib/audit/types";
 import type {
   WeightConfig, FeedbackLabel, EvalLabel, EvalEntry, AuditFeedback, ScoreTrace,
 } from "@/lib/audit/types";
+import { getTopMatchesHybrid } from "@/lib/v2/matcherHybrid";
+import type { HybridScoreTrace } from "@/lib/v2/types";
+import { HYBRID_DIMENSION_MAXES } from "@/lib/v2/types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -283,26 +286,36 @@ export default function AlgorithmAuditPage() {
     : customOrg;
 
   // ── Scoring ───────────────────────────────────────────────────────────────
+  const [scorerMode, setScorerMode] = useState<"v1" | "hybrid">("v1");
   const [weights, setWeights] = useState<WeightConfig>({ ...DEFAULT_WEIGHTS });
   const [useSynonyms, setUseSynonyms] = useState(false);
   const [hasRun, setHasRun] = useState(false);
   const [running, setRunning] = useState(false);
   const [allTraces, setAllTraces] = useState<ScoreTrace[]>([]);
   const [rankedResults, setRankedResults] = useState<ScoreTrace[]>([]);
+  const [hybridAuditResults, setHybridAuditResults] = useState<HybridScoreTrace[]>([]);
 
   const runAudit = useCallback(() => {
     setRunning(true);
     setTimeout(() => {
-      const all = pool.map((opp) => buildScoreTrace(activeOrg, opp, weights, useSynonyms));
-      const ranked = all
-        .filter((t) => t.passes_eligibility && t.scores.total > 0)
-        .sort((a, b) => b.scores.total - a.scores.total);
-      setAllTraces(all);
-      setRankedResults(ranked);
+      if (scorerMode === "hybrid") {
+        const results = getTopMatchesHybrid(activeOrg, pool, 50);
+        setHybridAuditResults(results);
+        setAllTraces([]);
+        setRankedResults([]);
+      } else {
+        const all = pool.map((opp) => buildScoreTrace(activeOrg, opp, weights, useSynonyms));
+        const ranked = all
+          .filter((t) => t.passes_eligibility && t.scores.total > 0)
+          .sort((a, b) => b.scores.total - a.scores.total);
+        setAllTraces(all);
+        setRankedResults(ranked);
+        setHybridAuditResults([]);
+      }
       setHasRun(true);
       setRunning(false);
     }, 100);
-  }, [pool, activeOrg, weights, useSynonyms]);
+  }, [pool, activeOrg, weights, useSynonyms, scorerMode]);
 
   // ── Feedback & Eval ───────────────────────────────────────────────────────
   const [feedback, setFeedback] = useState<Record<string, AuditFeedback>>(() => {
@@ -472,7 +485,7 @@ export default function AlgorithmAuditPage() {
           <div className="flex items-center gap-4">
             <Link href="/" className="text-xs font-medium text-muted-foreground hover:text-foreground">← Explorer</Link>
             <span className="text-border text-xs">|</span>
-            <Link href="/algorithm" className="text-xs font-medium text-muted-foreground hover:text-foreground">Algorithm V1</Link>
+            <Link href="/algorithm" className="text-xs font-medium text-muted-foreground hover:text-foreground">Algorithm V2</Link>
             <span className="text-border text-xs">|</span>
             <Link href="/indexing" className="text-xs font-medium text-muted-foreground hover:text-foreground flex items-center gap-1">
               <Database className="h-3.5 w-3.5" /> Indexing
@@ -481,7 +494,7 @@ export default function AlgorithmAuditPage() {
           <div className="flex items-center gap-2 font-semibold text-sm">
             <BookOpen className="h-4 w-4 text-primary" />
             Algorithm Audit
-            <Badge variant="secondary" className="text-xs font-mono">V1 Current</Badge>
+            <Badge variant="secondary" className="text-xs font-mono">{scorerMode === "hybrid" ? "Hybrid V2" : "V1 Keyword"}</Badge>
           </div>
         </div>
       </nav>
@@ -558,12 +571,23 @@ export default function AlgorithmAuditPage() {
                 </div>
               )}
               <div>
-                <Label className="text-xs mb-1.5 block">Synonyms</Label>
-                <Button size="sm" variant={useSynonyms ? "default" : "outline"} className="h-8 text-xs"
-                  onClick={() => setUseSynonyms((v) => !v)}>
-                  {useSynonyms ? "Synonyms ON" : "Synonyms OFF"}
-                </Button>
+                <Label className="text-xs mb-1.5 block">Scorer</Label>
+                <div className="flex gap-1">
+                  <Button size="sm" variant={scorerMode === "v1" ? "default" : "outline"} className="h-8 text-xs"
+                    onClick={() => setScorerMode("v1")}>V1 Keyword</Button>
+                  <Button size="sm" variant={scorerMode === "hybrid" ? "default" : "outline"} className={`h-8 text-xs ${scorerMode === "hybrid" ? "" : "border-primary/40 text-primary/70"}`}
+                    onClick={() => setScorerMode("hybrid")}>V2 Hybrid</Button>
+                </div>
               </div>
+              {scorerMode === "v1" && (
+                <div>
+                  <Label className="text-xs mb-1.5 block">Synonyms</Label>
+                  <Button size="sm" variant={useSynonyms ? "default" : "outline"} className="h-8 text-xs"
+                    onClick={() => setUseSynonyms((v) => !v)}>
+                    {useSynonyms ? "Synonyms ON" : "Synonyms OFF"}
+                  </Button>
+                </div>
+              )}
               <button onClick={() => setShowOrgJson((v) => !v)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 self-end pb-1">
                 <Code className="h-3 w-3" /> {showOrgJson ? "Hide" : "Show"} org JSON
               </button>
@@ -713,21 +737,97 @@ export default function AlgorithmAuditPage() {
 
             {/* ── 2. Top Matches ────────────────────────────────────────────────── */}
             <TabsContent value="matches">
-              <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
-                <ChevronRight className="h-3 w-3" />
-                Top {Math.min(20, rankedResults.length)} matches for <strong>{activeOrg.name}</strong> · Use feedback buttons to label each result
-              </div>
-              {rankedResults.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <XCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No eligible matches found for this organization.</p>
+              {scorerMode === "hybrid" ? (
+                <div>
+                  <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+                    <ChevronRight className="h-3 w-3" />
+                    Top {hybridAuditResults.length} matches for <strong>{activeOrg.name}</strong> — Hybrid V2 (8-dimension scorer)
+                  </div>
+                  {hybridAuditResults.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <XCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No eligible matches found for this organization.</p>
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {hybridAuditResults.slice(0, 30).map((t, i) => (
+                      <Card key={t.opp.id} className={`border ${t.finalScore >= 70 ? "bg-emerald-50 border-emerald-200" : t.finalScore >= 50 ? "bg-amber-50 border-amber-200" : "bg-muted/20 border-border/50"}`}>
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap mb-1">
+                                <span className="text-xs font-mono bg-muted px-1.5 py-0.5 rounded">#{i + 1}</span>
+                                <Badge variant="outline" className="text-xs">{t.opp.source}</Badge>
+                                <Badge variant="secondary" className="text-xs">{t.oppProfile.opportunityType.replace(/_/g, " ")}</Badge>
+                                <Badge className="text-xs bg-primary/10 text-primary border-primary/20">{t.orgProfile.orgClass}</Badge>
+                              </div>
+                              <div className="font-medium text-sm line-clamp-2">{t.opp.title}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{t.opp.agency}</div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <div className={`text-2xl font-bold ${t.finalScore >= 70 ? "text-emerald-600" : t.finalScore >= 50 ? "text-amber-600" : "text-red-500"}`}>{t.finalScore}</div>
+                              <div className="text-xs text-muted-foreground">/100</div>
+                            </div>
+                          </div>
+                          <div className="mt-2 grid grid-cols-4 gap-1 text-xs">
+                            {(Object.entries(HYBRID_DIMENSION_MAXES) as [keyof typeof HYBRID_DIMENSION_MAXES, number][]).map(([key, max]) => {
+                              const val = t.dimensions[key] ?? 0;
+                              const label = key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase()).slice(0, 9);
+                              return (
+                                <div key={key}>
+                                  <div className="text-muted-foreground mb-0.5 text-center text-[10px] truncate">{label}</div>
+                                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: `${max > 0 ? Math.round((val / max) * 100) : 0}%` }} />
+                                  </div>
+                                  <div className="text-center font-mono mt-0.5">{val}/{max}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-2 flex items-center gap-2 text-xs font-mono text-muted-foreground flex-wrap">
+                            <span>Base {t.baseScore}</span>
+                            {t.semanticBoost > 0 && <span className="text-emerald-600">+{t.semanticBoost}</span>}
+                            {t.maturityBoost > 0 && <span className="text-blue-600">+{t.maturityBoost}</span>}
+                            {t.penaltyTotal > 0 && <span className="text-red-500">−{t.penaltyTotal}</span>}
+                            <span className="font-bold text-foreground">= {t.finalScore}</span>
+                          </div>
+                          {t.reasons.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1">
+                              {t.reasons.slice(0, 3).map((r, ri) => (
+                                <span key={ri} className="text-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 px-1.5 py-0.5 rounded">✓ {r}</span>
+                              ))}
+                            </div>
+                          )}
+                          {t.opp.url && (
+                            <a href={t.opp.url} target="_blank" rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-primary mt-2 hover:underline">
+                              View opportunity ↗
+                            </a>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-4 flex items-center gap-2 text-xs text-muted-foreground">
+                    <ChevronRight className="h-3 w-3" />
+                    Top {Math.min(20, rankedResults.length)} matches for <strong>{activeOrg.name}</strong> · Use feedback buttons to label each result
+                  </div>
+                  {rankedResults.length === 0 && (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <XCircle className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No eligible matches found for this organization.</p>
+                    </div>
+                  )}
+                  <div className="space-y-3">
+                    {rankedResults.slice(0, 20).map((trace, i) => (
+                      <TraceCard key={trace.opp.id} trace={trace} index={i} feedback={feedback} onLabel={labelFeedback} />
+                    ))}
+                  </div>
                 </div>
               )}
-              <div className="space-y-3">
-                {rankedResults.slice(0, 20).map((trace, i) => (
-                  <TraceCard key={trace.opp.id} trace={trace} index={i} feedback={feedback} onLabel={labelFeedback} />
-                ))}
-              </div>
             </TabsContent>
 
             {/* ── 3. Failure Analysis ───────────────────────────────────────────── */}
@@ -867,29 +967,30 @@ export default function AlgorithmAuditPage() {
             <TabsContent value="comparison">
               <Tabs defaultValue="v1v2">
                 <TabsList className="mb-4">
-                  <TabsTrigger value="v1v2">V1 vs V2 Comparison</TabsTrigger>
+                  <TabsTrigger value="v1v2">V1 vs Hybrid V2</TabsTrigger>
                   <TabsTrigger value="variants">V1 Variant Lab</TabsTrigger>
                 </TabsList>
 
-                {/* ── V1 vs V2 ── */}
+                {/* ── V1 vs Hybrid V2 ── */}
                 <TabsContent value="v1v2">
                   <div className="flex items-start justify-between gap-4 mb-4 flex-wrap">
                     <div className="space-y-1">
-                      <div className="text-sm font-medium">Algorithm V1 vs V2 Comparison</div>
+                      <div className="text-sm font-medium">V1 (Keyword Only) vs V2 (Hybrid) Comparison</div>
                       <div className="text-xs text-muted-foreground">
                         Run both engines against the live pool and compare rank changes, score deltas, and which opportunities rose or fell.
+                        V2 uses the Hybrid engine — keyword overlap + 8-dimension profile matching.
                       </div>
                     </div>
                     <Button size="sm" onClick={runV1V2Compare} disabled={v1v2Running || pool.length === 0} className="gap-1.5 shrink-0">
                       <BarChart3 className="h-3.5 w-3.5" />
-                      {v1v2Running ? "Comparing…" : "Run V1 vs V2"}
+                      {v1v2Running ? "Comparing…" : "Run V1 vs Hybrid V2"}
                     </Button>
                   </div>
 
                   {!v1v2CompResult && !v1v2Running && (
                     <div className="text-center py-12 text-muted-foreground border border-dashed border-border rounded-lg">
                       <BarChart3 className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">Click <strong>Run V1 vs V2</strong> to compare scoring engines</p>
+                      <p className="text-sm">Click <strong>Run V1 vs Hybrid V2</strong> to compare scoring engines</p>
                       <p className="text-xs mt-1">Requires an organization selected and opportunities loaded</p>
                     </div>
                   )}
@@ -898,7 +999,7 @@ export default function AlgorithmAuditPage() {
                     <div className="text-center py-12 text-muted-foreground">
                       <div className="inline-flex items-center gap-2 animate-pulse">
                         <Zap className="h-5 w-5 text-primary" />
-                        <span className="text-sm font-medium">Scoring {pool.length.toLocaleString()} opportunities with V1 and V2…</span>
+                        <span className="text-sm font-medium">Scoring {pool.length.toLocaleString()} opportunities with V1 and Hybrid V2…</span>
                       </div>
                     </div>
                   )}
@@ -930,7 +1031,7 @@ export default function AlgorithmAuditPage() {
                               <th className="px-3 py-2 font-medium">Opportunity</th>
                               <th className="px-3 py-2 font-medium w-24">Source</th>
                               <th className="px-3 py-2 font-medium w-20 text-center">V1 Score</th>
-                              <th className="px-3 py-2 font-medium w-20 text-center">V2 Score</th>
+                              <th className="px-3 py-2 font-medium w-20 text-center">Hybrid V2</th>
                               <th className="px-3 py-2 font-medium w-20 text-center">Score Δ</th>
                               <th className="px-3 py-2 font-medium w-20 text-center">Rank Δ</th>
                               <th className="px-3 py-2 font-medium w-20 text-center">Status</th>
@@ -984,28 +1085,20 @@ export default function AlgorithmAuditPage() {
                                   </td>
                                 </tr>
                                 {/* Expandable V2 trace row */}
-                                {expandedV2Row === row.opp_id && row.v2Trace && (
+                                {expandedV2Row === row.opp_id && row.hybridTrace && (
                                   <tr className="bg-muted/30 border-b border-border/30">
                                     <td colSpan={7} className="px-4 py-3">
                                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                                         <div>
-                                          <div className="font-semibold mb-2">V2 Dimension Scores</div>
+                                          <div className="font-semibold mb-2">Hybrid V2 Dimension Scores</div>
                                           <div className="space-y-1">
-                                            {[
-                                              { key: "eligibilityFit", label: "Eligibility", max: 20 },
-                                              { key: "domainFit", label: "Domain", max: 20 },
-                                              { key: "activityFit", label: "Activity", max: 15 },
-                                              { key: "populationFit", label: "Population", max: 10 },
-                                              { key: "geographyFit", label: "Geography", max: 10 },
-                                              { key: "organizationTypeFit", label: "Org Type", max: 10 },
-                                              { key: "capacityFit", label: "Capacity", max: 10 },
-                                              { key: "fundingFit", label: "Funding", max: 5 },
-                                            ].map(({ key, label, max }) => {
-                                              const val = (row.v2Trace!.dimensions as any)[key] as number;
+                                            {(Object.entries(HYBRID_DIMENSION_MAXES) as [keyof typeof HYBRID_DIMENSION_MAXES, number][]).map(([key, max]) => {
+                                              const val = row.hybridTrace!.dimensions[key] ?? 0;
                                               const pct = Math.round((val / max) * 100);
+                                              const label = key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase());
                                               return (
                                                 <div key={key} className="flex items-center gap-2">
-                                                  <span className="w-24 text-muted-foreground shrink-0">{label}</span>
+                                                  <span className="w-28 text-muted-foreground shrink-0">{label}</span>
                                                   <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                                                     <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
                                                   </div>
@@ -1015,33 +1108,34 @@ export default function AlgorithmAuditPage() {
                                             })}
                                           </div>
                                           <div className="mt-2 flex items-center gap-2 font-mono text-xs">
-                                            <span className="text-muted-foreground">Base {row.v2Trace.baseScore}</span>
-                                            {row.v2Trace.semanticBoost > 0 && <span className="text-emerald-600">+{row.v2Trace.semanticBoost}</span>}
-                                            {row.v2Trace.penaltyTotal > 0 && <span className="text-red-500">−{row.v2Trace.penaltyTotal}</span>}
-                                            <span className="font-bold">= {row.v2Trace.finalScore}</span>
+                                            <span className="text-muted-foreground">Base {row.hybridTrace.baseScore}</span>
+                                            {row.hybridTrace.semanticBoost > 0 && <span className="text-emerald-600">+{row.hybridTrace.semanticBoost}</span>}
+                                            {row.hybridTrace.maturityBoost > 0 && <span className="text-blue-600">+{row.hybridTrace.maturityBoost}</span>}
+                                            {row.hybridTrace.penaltyTotal > 0 && <span className="text-red-500">−{row.hybridTrace.penaltyTotal}</span>}
+                                            <span className="font-bold">= {row.hybridTrace.finalScore}</span>
                                           </div>
                                         </div>
                                         <div>
                                           <div className="font-semibold mb-2">Profile Classification</div>
                                           <div className="space-y-1 text-muted-foreground">
-                                            <div><span className="font-medium text-foreground">Org class:</span> {row.v2Trace.orgProfile.orgClass}</div>
-                                            <div><span className="font-medium text-foreground">Capacity band:</span> {row.v2Trace.orgProfile.capacityBand}</div>
-                                            <div><span className="font-medium text-foreground">Opp type:</span> {row.v2Trace.oppProfile.opportunityType.replace(/_/g, " ")}</div>
-                                            <div><span className="font-medium text-foreground">Complexity:</span> {row.v2Trace.oppProfile.complexityBand}</div>
-                                            <div><span className="font-medium text-foreground">Geo scope:</span> {row.v2Trace.oppProfile.geographyScope}</div>
+                                            <div><span className="font-medium text-foreground">Org class:</span> {row.hybridTrace.orgProfile.orgClass}</div>
+                                            <div><span className="font-medium text-foreground">Capacity band:</span> {row.hybridTrace.orgProfile.capacityBand}</div>
+                                            <div><span className="font-medium text-foreground">Opp type:</span> {row.hybridTrace.oppProfile.opportunityType.replace(/_/g, " ")}</div>
+                                            <div><span className="font-medium text-foreground">Complexity:</span> {row.hybridTrace.oppProfile.complexityBand}</div>
+                                            <div><span className="font-medium text-foreground">Geo scope:</span> {row.hybridTrace.oppProfile.geographyScope}</div>
                                           </div>
-                                          {row.v2Trace.penalties.length > 0 && (
+                                          {row.hybridTrace.penalties.length > 0 && (
                                             <div className="mt-2">
                                               <div className="font-semibold mb-1 text-red-600">Penalties</div>
-                                              {row.v2Trace.penalties.map((p, pi) => (
+                                              {row.hybridTrace.penalties.map((p, pi) => (
                                                 <div key={pi} className="text-red-600 text-[11px]">−{p.value} {p.type.replace(/_/g, " ")}: {p.reason}</div>
                                               ))}
                                             </div>
                                           )}
-                                          {row.v2Trace.reasons.length > 0 && (
+                                          {row.hybridTrace.reasons.length > 0 && (
                                             <div className="mt-2">
                                               <div className="font-semibold mb-1 text-emerald-700">Why it ranked</div>
-                                              {row.v2Trace.reasons.map((r, ri) => (
+                                              {row.hybridTrace.reasons.map((r, ri) => (
                                                 <div key={ri} className="text-emerald-700 text-[11px]">✓ {r}</div>
                                               ))}
                                             </div>

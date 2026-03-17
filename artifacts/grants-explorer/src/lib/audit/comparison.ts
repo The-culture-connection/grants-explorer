@@ -2,13 +2,13 @@ import type { OrgProfile, NormalizedOpportunity } from "@/lib/algorithm/types";
 import type { AlgorithmVariant } from "./types";
 import { ALGORITHM_VARIANTS } from "./types";
 import { runVariantScoring } from "./scoreTrace";
-import { getTopMatchesV2 } from "@/lib/v2/matcherV2";
-import type { V2ScoreTrace } from "@/lib/v2/types";
+import { getTopMatchesHybrid } from "@/lib/v2/matcherHybrid";
+import type { HybridScoreTrace } from "@/lib/v2/types";
 
 export interface VariantResult {
   variant: AlgorithmVariant;
   results: { opp_id: string; title: string; source: string; score: number; rank: number }[];
-  v2Traces?: V2ScoreTrace[];  // Only populated for V2 variants
+  hybridTraces?: HybridScoreTrace[];
 }
 
 export interface ComparisonRow {
@@ -34,14 +34,14 @@ export interface V1V2CompRow {
   rankDelta: number | null;
   scoreDelta: number | null;
   flag: "rose" | "fell" | "stable" | "new" | "dropped";
-  v2Trace?: V2ScoreTrace;
+  hybridTrace?: HybridScoreTrace;
 }
 
 export function runV1vsV2Comparison(
   org: OrgProfile,
   pool: NormalizedOpportunity[],
   limit = 20,
-): { v1Rows: VariantResult; v2Rows: VariantResult; table: V1V2CompRow[] } {
+): { v1Rows: VariantResult; hybridRows: VariantResult; table: V1V2CompRow[] } {
   // Run V1 with default weights
   const v1Variant = ALGORITHM_VARIANTS.find(v => v.key === "v1_current")!;
   const v1Scored = runVariantScoring(org, pool, v1Variant.weights, false, limit);
@@ -53,9 +53,9 @@ export function runV1vsV2Comparison(
     rank: s.rank,
   }));
 
-  // Run V2
-  const v2Traces = getTopMatchesV2(org, pool, limit);
-  const v2Results = v2Traces.map((t, i) => ({
+  // Run Hybrid V2
+  const hybridTraces = getTopMatchesHybrid(org, pool, limit);
+  const hybridResults = hybridTraces.map((t, i) => ({
     opp_id: t.opp.id,
     title: t.opp.title,
     source: t.opp.source,
@@ -64,13 +64,13 @@ export function runV1vsV2Comparison(
   }));
 
   const v1Map = new Map(v1Results.map(r => [r.opp_id, r]));
-  const v2Map = new Map(v2Results.map((r, i) => [r.opp_id, { ...r, trace: v2Traces[i] }]));
-  const allIds = new Set([...v1Map.keys(), ...v2Map.keys()]);
+  const hybridMap = new Map(hybridResults.map((r, i) => [r.opp_id, { ...r, trace: hybridTraces[i] }]));
+  const allIds = new Set([...v1Map.keys(), ...hybridMap.keys()]);
 
   const table: V1V2CompRow[] = [];
   for (const id of allIds) {
     const v1 = v1Map.get(id) ?? null;
-    const v2 = v2Map.get(id) ?? null;
+    const v2 = hybridMap.get(id) ?? null;
     const opp = v1 ?? v2;
     if (!opp) continue;
 
@@ -95,7 +95,7 @@ export function runV1vsV2Comparison(
       rankDelta,
       scoreDelta,
       flag,
-      v2Trace: v2Map.get(id)?.trace,
+      hybridTrace: hybridMap.get(id)?.trace,
     });
   }
 
@@ -107,7 +107,7 @@ export function runV1vsV2Comparison(
 
   return {
     v1Rows: { variant: v1Variant, results: v1Results },
-    v2Rows: { variant: ALGORITHM_VARIANTS.find(v => v.key === "v2_current")!, results: v2Results, v2Traces },
+    hybridRows: { variant: ALGORITHM_VARIANTS.find(v => v.key === "v2_current")!, results: hybridResults, hybridTraces },
     table,
   };
 }
@@ -124,18 +124,18 @@ export function runComparison(
 
   for (const variant of variants) {
     if (variant.isV2) {
-      // V2 variant — use profile-based scoring
-      const v2Traces = getTopMatchesV2(org, pool, 20);
+      // V2 Hybrid variant — use hybrid scoring engine
+      const hybridTraces = getTopMatchesHybrid(org, pool, 20);
       variantResults.push({
         variant,
-        results: v2Traces.map((t, i) => ({
+        results: hybridTraces.map((t, i) => ({
           opp_id: t.opp.id,
           title: t.opp.title,
           source: t.opp.source,
           score: t.finalScore,
           rank: i + 1,
         })),
-        v2Traces,
+        hybridTraces,
       });
     } else {
       // V1 variant — use keyword scoring
