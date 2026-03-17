@@ -20,6 +20,7 @@ runButton = "Project"
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
+integrations = ["github:1.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
@@ -30,3 +31,6 @@ timeoutMs = 20000
 [userenv.shared]
 SIMPLER_GRANTS_API_KEY = "v08sW5JXAlwXZoWji30tMYkOc"
 SAM_GOV_API_KEY = "SAM-67575709-a017-499a-a6ee-59b1f21a48d3"
+
+[nix]
+channel = "stable-25_05"
