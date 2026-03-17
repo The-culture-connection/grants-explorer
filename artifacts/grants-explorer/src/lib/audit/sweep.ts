@@ -1,16 +1,18 @@
 /**
  * sweep.ts — Full-database sweep analytics
  *
- * Runs the Hybrid V2 scorer over every active opportunity in the pool and
- * aggregates statistics about how the algorithm behaves at scale.  Only the
- * top-N traces are retained in memory; everything else is counted and then
- * discarded so the heap stays manageable.
+ * Runs the Hybrid V2 or V3 RankFix scorer over every active opportunity in
+ * the pool and aggregates statistics about how the algorithm behaves at scale.
+ * Only the top-N traces are retained in memory; everything else is counted
+ * and then discarded so the heap stays manageable.
  */
 
 import type { OrgProfile, NormalizedOpportunity } from "@/lib/algorithm/types";
 import { filterToActiveOpportunities } from "@/lib/algorithm/matcher";
 import { scoreMatchHybrid } from "@/lib/v2/matcherHybrid";
 import type { HybridScoreTrace } from "@/lib/v2/types";
+import { scoreMatchV3 } from "@/lib/v3/matcherV3";
+import type { V3ScoreTrace } from "@/lib/v3/types";
 import type { ScoreTrace } from "./types";
 
 // ─── Shared types ─────────────────────────────────────────────────────────────
@@ -267,4 +269,118 @@ export function computeV1SweepStats(
   }
 
   return stats;
+}
+
+// ─── V3 RankFix Sweep ─────────────────────────────────────────────────────────
+
+export interface V3SweepResult {
+  stats: SweepStats;
+  topTraces: V3ScoreTrace[];
+}
+
+export function runV3Sweep(
+  org: OrgProfile,
+  pool: NormalizedOpportunity[],
+  topN = 50,
+): V3SweepResult {
+  const { active, excluded } = filterToActiveOpportunities(pool);
+
+  const stats: SweepStats = {
+    totalPool: pool.length,
+    activeOpps: active.length,
+    inactiveFiltered: excluded.length,
+    ineligibleCount: 0,
+    eligibleZeroCount: 0,
+    scoredCount: 0,
+    above30: 0,
+    above50: 0,
+    above70: 0,
+    above85: 0,
+    histogram: new Array(10).fill(0),
+    bySource: {},
+    oppTypeCounts: {},
+    complexityCounts: {},
+    capacityMatchCounts: {},
+    dimensionSums: {
+      conceptFit: 0, conceptCentrality: 0, activityFit: 0, populationFit: 0,
+      targetApplicantFit: 0, eligibility: 0, geographyFit: 0, capacityFit: 0, fundingFit: 0,
+    },
+    dimensionAvgs: {},
+    riskCounts: {},
+    semanticBoostTotal: 0,
+    maturityBoostTotal: 0,
+    penaltyTotal: 0,
+  };
+
+  const topTraces: V3ScoreTrace[] = [];
+
+  for (const opp of active) {
+    const src = opp.source;
+    if (!stats.bySource[src]) {
+      stats.bySource[src] = { total: 0, eligible: 0, scored: 0, avgScore: 0, topScore: 0 };
+    }
+    stats.bySource[src].total++;
+
+    const trace = scoreMatchV3(org, opp);
+
+    if (!trace.passes_eligibility) {
+      stats.ineligibleCount++;
+      continue;
+    }
+
+    stats.bySource[src].eligible++;
+    const score = trace.finalScore;
+
+    if (score === 0) {
+      stats.eligibleZeroCount++;
+      continue;
+    }
+
+    stats.scoredCount++;
+    stats.bySource[src].scored++;
+    stats.bySource[src].topScore = Math.max(stats.bySource[src].topScore, score);
+    const n = stats.bySource[src].scored;
+    stats.bySource[src].avgScore = stats.bySource[src].avgScore + (score - stats.bySource[src].avgScore) / n;
+
+    if (score > 30)  stats.above30++;
+    if (score > 50)  stats.above50++;
+    if (score > 70)  stats.above70++;
+    if (score > 85)  stats.above85++;
+
+    const bucket = Math.min(9, Math.floor((score - 1) / 10));
+    stats.histogram[bucket]++;
+
+    const oppType = trace.oppProfile.opportunityType;
+    stats.oppTypeCounts[oppType] = (stats.oppTypeCounts[oppType] ?? 0) + 1;
+
+    const cplx = trace.oppProfile.complexityBand;
+    stats.complexityCounts[cplx] = (stats.complexityCounts[cplx] ?? 0) + 1;
+
+    const capMatch = `${trace.orgProfile.capacityBand} org → ${cplx} opp`;
+    stats.capacityMatchCounts[capMatch] = (stats.capacityMatchCounts[capMatch] ?? 0) + 1;
+
+    for (const [k, v] of Object.entries(trace.dimensions)) {
+      stats.dimensionSums[k] = (stats.dimensionSums[k] ?? 0) + v;
+    }
+
+    stats.semanticBoostTotal += trace.semanticBoost;
+    stats.penaltyTotal       += trace.penaltyTotal;
+
+    for (const r of trace.risks) {
+      const key = r.replace(/\s*[—(].*$/, "").trim();
+      stats.riskCounts[key] = (stats.riskCounts[key] ?? 0) + 1;
+    }
+
+    topTraces.push(trace);
+    topTraces.sort((a, b) => b.finalScore - a.finalScore);
+    if (topTraces.length > topN) topTraces.pop();
+  }
+
+  if (stats.scoredCount > 0) {
+    for (const [k, sum] of Object.entries(stats.dimensionSums)) {
+      stats.dimensionAvgs[k] = Math.round((sum / stats.scoredCount) * 10) / 10;
+    }
+  }
+
+  return { stats, topTraces };
 }

@@ -1,0 +1,422 @@
+Build a focused upgrade to the existing funding-match algorithm to improve ranking quality without rebuilding the app.
+
+IMPORTANT:
+- Extend the current system; do not replace it from scratch.
+- Preserve V1 and the existing V2 implementation for comparison.
+- Use the existing real indexed data store only.
+- Do not add mock data, sample data, demo records, or fallback fixtures.
+- Do not change the indexing pipeline unless needed to expose missing source counts or fix a real query limit.
+- Keep all existing audit/debug pages and extend them.
+
+MAIN GOAL:
+Fix the ranking logic so the matcher rewards highly specific, truly relevant opportunities and stops over-ranking generic, loosely related opportunities.
+
+CONTEXT / OBSERVED PROBLEMS:
+The current audit suggests:
+1. The app is scoring the full database, then only displaying a top subset, so the main problem is ranking quality, not traversal.
+2. Eligibility is too permissive; nearly everything is passing.
+3. Generic overlap terms like "health", "community", and "support" are being rewarded too much.
+4. Broad opportunities are outranking specific opportunities.
+5. Several dimensions are too easy to max out, especially geography, capacity, and funding.
+6. The algorithm does not distinguish enough between:
+   - exact/high-value phrase matches
+   - broad domain adjacency
+   - intended applicant type
+   - target population specificity
+7. A likely corpus issue may exist if some intended sources are missing from the scored-source breakdown.
+
+BUILD A TARGETED RANKING FIX WITH THESE FEATURES:
+
+==================================================
+1. ADD EXACT-PHRASE PRIORITY SCORING
+==================================================
+
+Implement a phrase-priority layer that gives significantly more weight to exact or near-exact phrase matches than to broad token overlap.
+
+Examples of high-value multi-word phrases:
+- maternal health
+- birth equity
+- Black maternal health
+- pregnant people
+- reproductive health
+- public health workforce
+- clean energy
+- sustainable technology
+- workforce development
+- affordable housing
+- violence prevention
+- small business support
+
+Requirements:
+- phrase matches should outrank generic unigram overlap
+- exact phrase matches should receive a strong bonus
+- semantically close phrase variants can receive a smaller bonus
+- a result with one or two strong exact concept matches should beat a result with many weak generic word overlaps
+
+Add reusable helpers like:
+- extractHighValuePhrases(text)
+- computePhrasePriorityScore(orgProfile, oppProfile)
+- detectExactConceptMatches(orgConcepts, oppConcepts)
+
+==================================================
+2. ADD GENERICITY PENALTY
+==================================================
+
+Implement a penalty for results that score mostly because of broad, low-information words.
+
+Examples of overly generic terms that should be strongly downweighted unless part of a meaningful phrase:
+- health
+- community
+- support
+- outcomes
+- improve
+- innovation
+- services
+- equity
+- development
+- research
+
+Requirements:
+- generic words alone should not drive top rankings
+- if the score is built mostly from generic overlap, apply a penalty
+- if generic words appear inside a strong recognized concept phrase, do not penalize as heavily
+
+Add helpers like:
+- isGenericTerm(token)
+- computeGenericityPenalty(scoreTrace)
+- computeSignalSpecificityRatio(scoreTrace)
+
+==================================================
+3. MAKE ELIGIBILITY A TRUE GATE AGAIN
+==================================================
+
+The current eligibility behavior appears too permissive.
+
+Implement stricter eligibility handling:
+- parse applicant-type constraints more carefully
+- treat clear incompatibilities as exclusion, not just a lower subscore
+- surface explicit eligibility failure reasons
+
+Examples of applicant type distinctions:
+- nonprofit
+- small business
+- university / higher education
+- research institution
+- HBCU / MSI-specific
+- healthcare provider
+- government agency
+- tribal organization
+- contractor / vendor
+- international NGO
+
+If the opportunity explicitly targets a group the organization clearly is not, exclude it before ranking.
+
+Add helpers like:
+- parseApplicantTypeConstraints(opportunity)
+- inferOrganizationApplicantType(org)
+- passesStrictEligibility(orgProfile, oppProfile)
+
+Update the audit page to show:
+- eligibility hard-fail count
+- top eligibility failure reasons
+- examples of excluded records
+
+==================================================
+4. ADD TARGET-APPLICANT FIT
+==================================================
+
+Create a new scoring dimension for intended recipient fit.
+
+This is separate from eligibility.
+An org may technically be eligible but still not be the intended applicant.
+
+Examples:
+- HBCU-only or higher-ed-centered opportunity should not rank highly for a community nonprofit
+- procurement opportunity should not rank highly for an advocacy nonprofit
+- research-center opportunity should not rank highly for a service-oriented small nonprofit
+
+Infer intended applicant from:
+- title
+- description
+- eligibility text
+- source metadata
+- funding type
+- known opportunity-type patterns
+
+Add a new score:
+- targetApplicantFitScore
+
+And a penalty:
+- targetApplicantMismatchPenalty
+
+==================================================
+5. REBALANCE DIMENSIONS SO EASY POINTS DO NOT DOMINATE
+==================================================
+
+The current scoring appears too generous on:
+- geography
+- capacity
+- funding
+- org type
+
+Adjust the weighting and scoring behavior so these dimensions support ranking but do not overwhelm core relevance.
+
+Requirements:
+- geography should not give full points too easily
+- capacity should not default to near-max unless there is real evidence
+- funding should be modest and not rescue weak matches
+- org type should be meaningful but not enough to push a weak topical match into the top tier
+
+Recommended approach:
+- reduce easy-max dimensions
+- increase the influence of specificity, intended applicant fit, and exact concept fit
+
+Keep weights configurable.
+
+==================================================
+6. ADD CONCEPT CENTRALITY SCORING
+==================================================
+
+Implement a way to detect whether the opportunity is centrally about the organization’s core concepts, not merely adjacent.
+
+Example:
+If the organization is about "maternal health", then:
+- title-level and repeated concept presence should matter more than one passing mention in the description
+- target population alignment should matter more
+- activity alignment should matter more
+
+Create a score that rewards:
+- concept in title
+- concept in summary/opening text
+- repeated concept presence
+- concept paired with the right population or activity model
+
+Add helpers:
+- computeConceptCentrality(orgProfile, oppProfile)
+- computeTitleMatchBonus(orgProfile, oppProfile)
+- computePopulationSpecificityBonus(orgProfile, oppProfile)
+
+==================================================
+7. ADD TARGET-POPULATION SPECIFICITY
+==================================================
+
+The current population score is too broad.
+
+Improve it so that:
+- “Black women” is more specific than “minorities”
+- “pregnant people” is more specific than “women”
+- “families” is more specific than “community members”
+- “public agencies” is different from “general population”
+
+Requirements:
+- more specific aligned populations should outrank broader umbrella populations
+- broad umbrella terms can still count, but less strongly
+- if there is a mismatch between intended beneficiary groups, add a penalty
+
+Add helpers:
+- normalizePopulationTags(text)
+- computePopulationSpecificity(orgProfile, oppProfile)
+- computePopulationMismatchPenalty(orgProfile, oppProfile)
+
+==================================================
+8. ADD SOURCE COVERAGE DIAGNOSTICS
+==================================================
+
+The audit suggests some expected active sources may not be appearing in the scored-source breakdown.
+
+Add diagnostics to verify:
+- how many indexed active opportunities exist per source
+- how many are being loaded into the ranking pool
+- how many are excluded before scoring
+- how many are actually scored
+- how many appear in the top 100 / top 500
+
+Required sources to track:
+- Simpler Grants
+- Grants.gov Search
+- SAM.gov Opportunities
+- SBIR
+- 360Giving
+- California Grants Portal
+- World Bank Procurement
+- TED (EU)
+
+If any source has zero scored records, surface the reason clearly:
+- no indexed records
+- filtered as closed
+- source classification mismatch
+- normalization problem
+- hidden query limit
+- missing required fields
+
+Add a panel:
+- Source Coverage Diagnostics
+
+==================================================
+9. VERIFY THERE IS NO HIDDEN LIMIT BEFORE RANKING
+==================================================
+
+Even if the app says it scored the full corpus, inspect the actual query path to confirm no hidden limit is truncating candidates before scoring.
+
+Search the codebase for:
+- limit
+- pageSize
+- take
+- slice
+- topN before scoring
+- database query caps
+- ORM defaults
+- UI pagination that might be confused with candidate pool size
+
+Specifically verify:
+- the scoring function receives the full active opportunity pool
+- top 20 is applied only after ranking is complete
+- there is no “pre-filter top 20/top 50” stage
+
+Add a diagnostic output on the Algorithm and Audit pages:
+- total indexed active opportunities
+- total candidate opportunities loaded into scorer
+- total opportunities scored
+- total opportunities surviving hard filters
+- total opportunities displayed
+
+==================================================
+10. CREATE A NEW RANKING VERSION RATHER THAN OVERWRITING
+==================================================
+
+Do not overwrite the current algorithm.
+
+Add a new ranking version, for example:
+- V2_current
+- V2_rankfix
+
+The app should support side-by-side comparison of:
+- current V2
+- new ranking-fixed V2
+
+==================================================
+11. NEW SCORE STRUCTURE FOR THE RANKFIX VERSION
+==================================================
+
+Create a new score model that prioritizes specificity and intended fit.
+
+Suggested dimensions:
+- strict eligibility gate
+- exact/high-value concept fit
+- concept centrality
+- activity/model fit
+- target population specificity
+- target applicant fit
+- geography fit
+- capacity fit
+- funding fit
+
+And subtract:
+- genericity penalty
+- target applicant mismatch penalty
+- population mismatch penalty
+- weak-specificity penalty
+- complexity mismatch penalty
+
+Example formula:
+finalScore =
+  conceptFit +
+  conceptCentrality +
+  activityFit +
+  populationFit +
+  targetApplicantFit +
+  geographyFit +
+  capacityFit +
+  fundingFit +
+  semanticBoost
+  - genericityPenalty
+  - targetApplicantMismatchPenalty
+  - populationMismatchPenalty
+  - weakSpecificityPenalty
+  - complexityMismatchPenalty
+
+Clamp to 0–100.
+
+==================================================
+12. IMPROVE AUDIT VISIBILITY
+==================================================
+
+Extend the existing audit tooling so that for every ranked result we can see:
+- exact phrase matches found
+- high-value concepts matched
+- generic terms matched
+- specificity ratio
+- target applicant inference
+- target applicant fit score
+- population specificity score
+- genericity penalty
+- exclusion reason if filtered
+- source name and source coverage context
+
+Add comparison tables showing:
+- which results fell after genericity penalties
+- which results rose because of exact concept matches
+- which results were excluded by strict eligibility
+- which results improved because of better target-applicant detection
+
+==================================================
+13. NO MOCK DATA
+==================================================
+
+Do not add:
+- mock opportunities
+- sample orgs
+- seed arrays
+- demo fixtures
+- fallback fake records
+
+If data is missing, show an empty state and a diagnostic message.
+
+==================================================
+14. FILES / IMPLEMENTATION APPROACH
+==================================================
+
+Use the current project structure and extend existing modules where appropriate.
+
+Likely areas to extend:
+- scoring logic
+- audit utilities
+- algorithm comparison UI
+- source coverage diagnostics
+- eligibility parsing
+- organization/opportunity profile inference
+
+Add modular helpers like:
+- computePhrasePriorityScore(...)
+- computeGenericityPenalty(...)
+- computeConceptCentrality(...)
+- computePopulationSpecificity(...)
+- inferTargetApplicant(...)
+- computeTargetApplicantFit(...)
+- passesStrictEligibility(...)
+- getSourceCoverageDiagnostics(...)
+- verifyCandidatePoolSize(...)
+
+==================================================
+15. DELIVERABLES
+==================================================
+
+Implement:
+1. a new rank-fix scoring version on top of current V2
+2. strict eligibility gating
+3. phrase-priority scoring
+4. genericity penalty
+5. target-applicant fit
+6. target-population specificity
+7. source coverage diagnostics
+8. candidate pool size diagnostics
+9. current V2 vs rank-fix comparison in the Algorithm page
+10. current V2 vs rank-fix comparison in the Algorithm Audit page
+
+At the end, provide a short implementation summary that explains:
+- which files were updated
+- which new helpers were added
+- how strict eligibility now works
+- how phrase-priority differs from generic keyword overlap
+- how the app verifies the full opportunity pool is scored before top results are displayed
+- where to inspect the new diagnostics and comparison views

@@ -57,9 +57,9 @@ React + Vite web app. Multi-page tool for grant discovery, algorithm testing, an
 
 **Routes:**
 - `/` — Home: 11-source live grant explorer with tabs per source, keyword search, result cards
-- `/algorithm` — Algorithm Testing Center: V1/V2 version switcher, compare mode (side-by-side rank delta table + top-5 cards from each engine), V2 8-dimension scoring breakdown, org/opportunity profiling display
+- `/algorithm` — Algorithm Testing Center: V2 Hybrid / V3 RankFix scorer toggle + compare mode (V2 vs V1 or V3 vs V2), 8-dimension breakdown, org/opportunity profiling display
 - `/indexing` — Indexing Tool: full-result ingestion from all 11 sources into PostgreSQL, per-source pagination control, record inspector, algorithm integration view
-- `/audit` — Algorithm Audit: internal debug tool with Comparison Lab (V1 vs V2 tab + V1 Variant Lab tab), scoring traces, failure analysis, weight editor, keyword audit, eligibility audit, gold-standard eval set builder, recommendations engine
+- `/audit` — Algorithm Audit: V1 Keyword / V2 Hybrid / V3 RankFix scorer toggle; Verbose Log tab with full methodology trace; Database Sweep analytics (elimination funnel, histogram, source breakdown, dimension averages, risk patterns); comparison lab, failure analysis, weight editor, keyword audit, eligibility audit, gold-standard eval set builder
 
 **Source classification:**
 - Active opportunity sources (8): simpler_grants, grants_gov, sam_gov, sbir, threesixtygiving, california_grants, world_bank, ted_eu
@@ -80,6 +80,18 @@ React + Vite web app. Multi-page tool for grant discovery, algorithm testing, an
 - `oppProfile.ts` — `buildOpportunityProfile()`, `classifyOpportunityType()` — classifies opp into 8 opportunity types + complexityBand + geographyScope
 - `scoring.ts` — 8 dimension scorers (eligibilityFit, domainFit, activityFit, populationFit, geographyFit, organizationTypeFit, capacityFit, fundingFit) + semantic boost + penalty engine
 - `matcherV2.ts` — `scoreMatchV2()`, `getTopMatchesV2()`, `compareV1V2()` — returns V2ScoreTrace with finalScore, dimensions, semanticBoost, penaltyTotal, orgProfile, oppProfile, reasons
+- `matcherHybrid.ts` — `scoreMatchHybrid()`, `getTopMatchesHybrid()` — 8-dimension Hybrid Final V2 scorer (primary production scorer)
+
+**V3 RankFix library** (`src/lib/v3/`) — active development, specificity-first algorithm:
+- `types.ts` — V3ScoreTrace, V3Dimensions (9 dimensions), V3SubSignals, V3Penalty; V3_DIMENSION_MAXES (conceptFit/28, conceptCentrality/12, activityFit/10, populationFit/8, targetApplicantFit/12, eligibility/10, geographyFit/7, capacityFit/7, fundingFit/6)
+- `phrases.ts` — HIGH_VALUE_PHRASES list (~100 phrases), `computePhrasePriorityScore()`, `computeConceptCentrality()`, `computeGenericityPenalty()`, `computeWeakSpecificityPenalty()`, `extractHighValuePhrases()`, GENERIC_TERMS set
+- `eligibility.ts` — `passesStrictEligibility()` (binary gate with hard exclusions: 501c3, sb-only, gov-only, nonprofit-only), `inferIntendedApplicant()`
+- `population.ts` — 4-tier specificity tiers, `computePopulationSpecificity()`, `computePopulationMismatchPenalty()`, `normalizePopulationTags()`
+- `targetApplicant.ts` — `computeTargetApplicantFit()` (intended-recipient classification with mismatch penalties)
+- `matcherV3.ts` — `scoreMatchV3()`, `getTopMatchesV3()` — integrates all V3 modules + reuses V2 geo/capacity/funding/semantic-boost functions
+
+**Audit library** (`src/lib/audit/`):
+- `sweep.ts` — `runHybridSweep()` (V2 full-pool sweep), `runV3Sweep()` (V3 full-pool sweep), `computeV1SweepStats()`; returns `SweepStats` with elimination funnel, histogram, source breakdown, dimension averages, risk patterns
 
 **Algorithm library** (`src/lib/algorithm/`):
 - `types.ts` — OrgProfile, NormalizedOpportunity, MatchResult, ScoreBreakdown

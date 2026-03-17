@@ -25,6 +25,9 @@ import type { V2ScoreTrace, V2Penalty } from "@/lib/v2/types";
 import { getTopMatchesHybrid } from "@/lib/v2/matcherHybrid";
 import type { HybridScoreTrace, HybridDimensions } from "@/lib/v2/types";
 import { HYBRID_DIMENSION_MAXES } from "@/lib/v2/types";
+import { getTopMatchesV3 } from "@/lib/v3/matcherV3";
+import type { V3ScoreTrace } from "@/lib/v3/types";
+import { V3_DIMENSION_MAXES } from "@/lib/v3/types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -439,26 +442,40 @@ export default function AlgorithmPage() {
   // ── Compare mode toggle ───────────────────────────────────────────────────
   const [compareMode, setCompareMode] = useState(false);
 
+  // ── Scorer mode ───────────────────────────────────────────────────────────
+  const [scorerMode, setScorerMode] = useState<"hybrid" | "v3">("hybrid");
+
   // ── Results ───────────────────────────────────────────────────────────────
   const [v1Results, setV1Results] = useState<MatchResult[] | null>(null);
   const [hybridResults, setHybridResults] = useState<HybridScoreTrace[] | null>(null);
+  const [v3Results, setV3Results] = useState<V3ScoreTrace[] | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [runStats, setRunStats] = useState<{ total: number; eligible: number; scored: number } | null>(null);
 
   const runAlgorithm = () => {
     setIsRunning(true);
     setTimeout(() => {
-      // Primary: Hybrid V2 scorer
-      const hybrid = getTopMatchesHybrid(activeOrg, pool, compareMode ? 20 : 10);
-      setHybridResults(hybrid);
-      setRunStats({ total: pool.length, eligible: hybrid.length, scored: hybrid.length });
-
-      // V1 only needed for compare mode
-      if (compareMode) {
-        const v1 = getTopMatches(activeOrg, pool, 20);
-        setV1Results(v1);
-      } else {
+      if (scorerMode === "v3") {
+        const v3 = getTopMatchesV3(activeOrg, pool, compareMode ? 20 : 10);
+        setV3Results(v3);
+        setHybridResults(null);
+        setRunStats({ total: pool.length, eligible: v3.length, scored: v3.length });
+        if (compareMode) {
+          const hybrid = getTopMatchesHybrid(activeOrg, pool, 20);
+          setHybridResults(hybrid);
+        }
         setV1Results(null);
+      } else {
+        const hybrid = getTopMatchesHybrid(activeOrg, pool, compareMode ? 20 : 10);
+        setHybridResults(hybrid);
+        setV3Results(null);
+        setRunStats({ total: pool.length, eligible: hybrid.length, scored: hybrid.length });
+        if (compareMode) {
+          const v1 = getTopMatches(activeOrg, pool, 20);
+          setV1Results(v1);
+        } else {
+          setV1Results(null);
+        }
       }
       setIsRunning(false);
     }, 800);
@@ -782,24 +799,39 @@ export default function AlgorithmPage() {
                 <div className="flex-1">
                   <div className="text-sm font-medium mb-2">Matching: <strong>{activeOrg.name || "Custom Organization"}</strong></div>
                   <div className="flex flex-wrap items-center gap-3">
-                    <Badge className="text-xs bg-primary/10 text-primary border-primary/30 font-mono">Hybrid V2</Badge>
+                    <div className="flex gap-1">
+                      <button
+                        className={`px-3 py-1 text-xs font-medium rounded-lg border transition-colors ${scorerMode === "hybrid" ? "bg-primary text-white border-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
+                        onClick={() => setScorerMode("hybrid")}>
+                        V2 Hybrid
+                      </button>
+                      <button
+                        className={`px-3 py-1 text-xs font-medium rounded-lg border transition-colors ${scorerMode === "v3" ? "bg-violet-600 text-white border-violet-600" : "border-violet-300 text-violet-600 hover:bg-violet-50"}`}
+                        onClick={() => setScorerMode("v3")}>
+                        V3 RankFix
+                      </button>
+                    </div>
                     <div className="text-xs text-muted-foreground">
-                      {compareMode ? "V2 (Hybrid) vs V1 (Keyword Only) side-by-side" : "8-dimension hybrid scorer · keyword + profile matching"}
+                      {scorerMode === "v3"
+                        ? compareMode ? "V3 RankFix vs V2 Hybrid side-by-side" : "specificity-first · phrase-priority · intent-aware"
+                        : compareMode ? "V2 (Hybrid) vs V1 (Keyword Only) side-by-side" : "8-dimension hybrid scorer · keyword + profile matching"}
                     </div>
                     <button
                       className={`flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg border transition-colors ${compareMode ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-muted-foreground hover:bg-muted"}`}
                       onClick={() => setCompareMode(v => !v)}>
-                      <ArrowUpDown className="h-3 w-3" /> {compareMode ? "Exit Compare" : "Compare with V1"}
+                      <ArrowUpDown className="h-3 w-3" /> {compareMode ? "Exit Compare" : scorerMode === "v3" ? "Compare with V2" : "Compare with V1"}
                     </button>
                   </div>
                 </div>
                 <Button
                   size="lg" onClick={runAlgorithm}
                   disabled={isRunning || poolLoading || pool.length === 0}
-                  className="shrink-0 gap-2 px-8"
+                  className={`shrink-0 gap-2 px-8 ${scorerMode === "v3" ? "bg-violet-600 hover:bg-violet-700" : ""}`}
                 >
                   <Zap className={`h-4 w-4 ${isRunning ? "animate-pulse" : ""}`} />
-                  {isRunning ? "Running…" : compareMode ? "Run V2 + V1 Compare" : "Run Algorithm V2"}
+                  {isRunning ? "Running…" : compareMode
+                    ? (scorerMode === "v3" ? "Run V3 + V2 Compare" : "Run V2 + V1 Compare")
+                    : (scorerMode === "v3" ? "Run V3 RankFix" : "Run Algorithm V2")}
                 </Button>
               </div>
             </CardContent>
@@ -824,11 +856,11 @@ export default function AlgorithmPage() {
           )}
 
           {/* Empty states */}
-          {!hybridResults && !isRunning && (
+          {!hybridResults && !v3Results && !isRunning && (
             <div className="text-center py-16 text-muted-foreground">
               <FlaskConical className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Select an organization and click <strong>Run Algorithm V2</strong> to see match results.</p>
-              <p className="text-xs mt-1 text-muted-foreground/70">Hybrid V2 blends V1 keyword matching with V2 profile scoring across 8 dimensions</p>
+              <p className="text-sm">Select an organization and click <strong>Run {scorerMode === "v3" ? "V3 RankFix" : "Algorithm V2"}</strong> to see match results.</p>
+              <p className="text-xs mt-1 text-muted-foreground/70">{scorerMode === "v3" ? "V3 RankFix uses phrase-priority matching and strict eligibility gates" : "Hybrid V2 blends V1 keyword matching with V2 profile scoring across 8 dimensions"}</p>
             </div>
           )}
           {isRunning && (
@@ -918,7 +950,7 @@ export default function AlgorithmPage() {
           )}
 
           {/* Primary results — Hybrid V2 */}
-          {!compareMode && !isRunning && hybridResults !== null && (
+          {!compareMode && !isRunning && scorerMode === "hybrid" && hybridResults !== null && (
             hybridResults.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <XCircle className="h-10 w-10 mx-auto mb-3 opacity-40" />
@@ -933,6 +965,91 @@ export default function AlgorithmPage() {
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   {hybridResults.map((r, i) => <HybridMatchCard key={r.opp.id} trace={r} index={i} />)}
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Primary results — V3 RankFix */}
+          {!compareMode && !isRunning && scorerMode === "v3" && v3Results !== null && (
+            v3Results.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <XCircle className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">No eligible matches found.</p>
+                <p className="text-xs mt-1 opacity-70">V3 applies stricter eligibility — try broadening the org profile.</p>
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+                  <ChevronRight className="h-3 w-3" />
+                  Top {v3Results.length} matches — V3 RankFix (phrase-priority · specificity-first · intent-aware)
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {v3Results.map((t, i) => {
+                    const sub = t.subSignals;
+                    return (
+                      <Card key={t.opp.id} className={`border ${t.finalScore >= 70 ? "border-emerald-200" : t.finalScore >= 50 ? "border-amber-200" : "border-border/60"}`}>
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-[10px] font-bold text-violet-600 bg-violet-50 px-1.5 rounded">#{i + 1}</span>
+                                <span className="text-[10px] text-muted-foreground">{t.opp.source}</span>
+                              </div>
+                              <div className="font-medium text-sm leading-snug line-clamp-2">{t.opp.title}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{t.opp.agency}</div>
+                            </div>
+                            <div className={`text-2xl font-black shrink-0 ${scoreColor(t.finalScore)}`}>{t.finalScore}</div>
+                          </div>
+                          {/* V3 dimension mini-bars */}
+                          <div className="space-y-1 mb-2">
+                            {(Object.entries(t.dimensions) as [string, number][]).slice(0, 5).map(([dim, score]) => {
+                              const max = V3_DIMENSION_MAXES[dim as keyof typeof V3_DIMENSION_MAXES] ?? 10;
+                              const pct = max > 0 ? (score / max) * 100 : 0;
+                              return (
+                                <div key={dim} className="flex items-center gap-1.5">
+                                  <div className="w-24 text-[10px] text-muted-foreground">{dim.replace(/([A-Z])/g, " $1").toLowerCase().trim()}</div>
+                                  <div className="flex-1 bg-muted rounded-full h-1">
+                                    <div className={`h-1 rounded-full ${pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-amber-400" : "bg-red-400"}`} style={{ width: `${pct}%` }} />
+                                  </div>
+                                  <div className="text-[10px] font-mono text-muted-foreground">{score}/{max}</div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          {/* Specificity signals */}
+                          <div className="flex gap-2 flex-wrap mt-1">
+                            {sub.exactPhraseMatches.length > 0 && (
+                              <span className="text-[10px] bg-violet-50 text-violet-600 border border-violet-200 rounded px-1.5 py-0.5">
+                                {sub.exactPhraseMatches.length} phrase{sub.exactPhraseMatches.length > 1 ? "s" : ""} matched
+                              </span>
+                            )}
+                            {sub.specificityRatio > 0 && (
+                              <span className="text-[10px] bg-muted rounded px-1.5 py-0.5 text-muted-foreground">
+                                specificity {(sub.specificityRatio * 100).toFixed(0)}%
+                              </span>
+                            )}
+                            {t.penalties.length > 0 && (
+                              <span className="text-[10px] bg-red-50 text-red-600 border border-red-200 rounded px-1.5 py-0.5">
+                                −{t.penaltyTotal} penalties
+                              </span>
+                            )}
+                          </div>
+                          {/* Reasons */}
+                          {t.reasons.length > 0 && (
+                            <div className="mt-2 text-xs text-emerald-700">
+                              <CheckCircle2 className="h-3 w-3 inline mr-1" />{t.reasons[0]}
+                            </div>
+                          )}
+                          {t.opp.url && (
+                            <a href={t.opp.url} target="_blank" rel="noopener noreferrer" className="mt-2 flex items-center gap-1 text-xs text-primary hover:underline">
+                              <ExternalLink className="h-3 w-3" />View opportunity
+                            </a>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             )
