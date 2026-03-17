@@ -1,0 +1,9 @@
+[build]
+builder = "nixpacks"
+build_command = "pnpm install && BASE_PATH=/ pnpm --filter @workspace/grants-explorer run build && pnpm --filter @workspace/api-server run build"
+
+[deploy]
+start_command = "node artifacts/api-server/dist/index.cjs"
+health_check_path = "/api/healthz"
+restart_policy_type = "on_failure"
+restart_policy_max_retries = 3
