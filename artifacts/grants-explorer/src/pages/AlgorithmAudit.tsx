@@ -18,6 +18,7 @@ import {
 
 import type { OrgProfile, NormalizedOpportunity } from "@/lib/algorithm/types";
 import { useAuth } from "@/context/AuthContext";
+import { loadOpportunityPool, coerceOrgProfile } from "@/lib/poolLoader";
 import { buildScoreTrace, runVariantScoring } from "@/lib/audit/scoreTrace";
 import { computeAuditMetrics } from "@/lib/audit/metrics";
 import { extractKeywordAudit } from "@/lib/audit/keywords";
@@ -40,11 +41,6 @@ import { V3_DIMENSION_MAXES } from "@/lib/v3/types";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
-
-const ACTIVE_SOURCES = new Set([
-  "simpler_grants", "grants_gov", "sam_gov", "sbir",
-  "threesixtygiving", "california_grants", "world_bank", "ted_eu",
-]);
 
 const LS_FEEDBACK_KEY = "audit_feedback_v1";
 const LS_EVAL_KEY = "audit_eval_v1";
@@ -69,68 +65,6 @@ function priorityColor(p: string) {
   return p === "high" ? "bg-red-100 text-red-700 border-red-200"
     : p === "medium" ? "bg-amber-100 text-amber-700 border-amber-200"
     : "bg-blue-100 text-blue-700 border-blue-200";
-}
-
-function dbRecordToOpportunity(rec: any): NormalizedOpportunity {
-  let geoRaw: any[] = [];
-  if (Array.isArray(rec.geography)) geoRaw = rec.geography;
-  else if (typeof rec.geography === "string" && rec.geography) {
-    try { geoRaw = JSON.parse(rec.geography); } catch { geoRaw = [rec.geography]; }
-  }
-  const geo: string[] = geoRaw.filter((g: any) => g != null).map((g: any) => String(g));
-  return {
-    id: rec.id,
-    source: rec.source,
-    source_raw: rec.source,
-    title: rec.title ?? "Untitled",
-    description: rec.description ?? "",
-    agency: rec.agency ?? "",
-    funding_type: (rec.funding_type ?? "grant") as any,
-    status: (rec.status ?? "active") as any,
-    open_date: rec.open_date ?? undefined,
-    close_date: rec.close_date ?? undefined,
-    min_award: rec.min_award ?? undefined,
-    max_award: rec.max_award ?? undefined,
-    eligibility: Array.isArray(rec.eligibility) ? rec.eligibility : [],
-    categories: Array.isArray(rec.categories) ? rec.categories : [],
-    keywords: Array.isArray(rec.keywords) ? rec.keywords : [],
-    geography: geo,
-    url: rec.url ?? "",
-  };
-}
-
-const EMPTY_ORG: OrgProfile = {
-  id: "unknown",
-  name: "My Organization",
-  org_type: "nonprofit",
-  mission: "",
-  program_areas: [],
-  population_served: [],
-  geography: [],
-  annual_budget: 0,
-  years_in_operation: 0,
-  has_501c3: false,
-  is_small_business: false,
-  keywords: [],
-};
-
-function coerceProfile(raw: any, uid: string): OrgProfile {
-  if (!raw) return { ...EMPTY_ORG, id: uid };
-  const toArr = (v: any): string[] => Array.isArray(v) ? v.map(String) : (v ? [String(v)] : []);
-  return {
-    id: uid,
-    name: raw.name ?? raw.org_name ?? "My Organization",
-    org_type: raw.org_type ?? "nonprofit",
-    mission: raw.mission ?? "",
-    program_areas: toArr(raw.program_areas),
-    population_served: toArr(raw.population_served),
-    geography: toArr(raw.geography),
-    annual_budget: Number(raw.annual_budget ?? 0) || 0,
-    years_in_operation: Number(raw.years_in_operation ?? 0) || 0,
-    has_501c3: Boolean(raw.has_501c3),
-    is_small_business: Boolean(raw.is_small_business),
-    keywords: toArr(raw.keywords),
-  };
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -284,14 +218,12 @@ export default function AlgorithmAuditPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [sr, rr] = await Promise.all([
-          fetch(`${API}/indexing/stats`),
-          fetch(`${API}/indexing/records/for-algorithm`),
+        const [sr, pool] = await Promise.all([
+          fetch(`${API}/indexing/stats`).then((r) => r.json()),
+          loadOpportunityPool(API),          // ← shared canonical loader
         ]);
-        const stats = await sr.json();
-        const data = await rr.json();
-        setPoolStats(stats);
-        setPool((data.records ?? []).map(dbRecordToOpportunity).filter((o: NormalizedOpportunity) => ACTIVE_SOURCES.has(o.source)));
+        setPoolStats(sr);
+        setPool(pool);
       } catch {}
       setPoolLoading(false);
     }
@@ -300,7 +232,7 @@ export default function AlgorithmAuditPage() {
 
   // ── Org from authenticated user profile ───────────────────────────────────
   const { user } = useAuth();
-  const activeOrg: OrgProfile = coerceProfile(user?.org_profile, user?.id ?? "unknown");
+  const activeOrg: OrgProfile = coerceOrgProfile(user?.org_profile, user?.id ?? "unknown");
 
   // ── Scoring ───────────────────────────────────────────────────────────────
   const [scorerMode, setScorerMode] = useState<"v1" | "hybrid" | "v3">("v1");

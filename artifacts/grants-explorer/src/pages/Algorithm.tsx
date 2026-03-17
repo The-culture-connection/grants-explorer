@@ -18,6 +18,7 @@ import {
 
 import { SOURCE_CONFIGS } from "@/lib/algorithm/sources";
 import { MOCK_ORGANIZATIONS } from "@/lib/algorithm/mockData";
+import { loadOpportunityPool } from "@/lib/poolLoader";
 import { getTopMatches, scoreMatch } from "@/lib/algorithm/matcher";
 import type { OrgProfile, NormalizedOpportunity, MatchResult } from "@/lib/algorithm/types";
 import { getTopMatchesV2, compareV1V2 } from "@/lib/v2/matcherV2";
@@ -355,33 +356,6 @@ function HybridMatchCard({ trace, index }: { trace: HybridScoreTrace; index: num
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
 
-function dbRecordToOpportunity(rec: any): NormalizedOpportunity {
-  let geoRaw: any[] = [];
-  if (Array.isArray(rec.geography)) geoRaw = rec.geography;
-  else if (typeof rec.geography === "string" && rec.geography) {
-    try { geoRaw = JSON.parse(rec.geography); } catch { geoRaw = [rec.geography]; }
-  }
-  const geo: string[] = geoRaw.filter((g: any) => g != null).map((g: any) => String(g));
-  return {
-    id: rec.id,
-    source: rec.source,
-    source_raw: rec.source,
-    title: rec.title ?? "Untitled",
-    description: rec.description ?? "",
-    agency: rec.agency ?? "",
-    funding_type: (rec.funding_type ?? "grant") as any,
-    status: (rec.status ?? "active") as any,
-    open_date: rec.open_date ?? undefined,
-    close_date: rec.close_date ?? undefined,
-    min_award: rec.min_award ?? undefined,
-    max_award: rec.max_award ?? undefined,
-    eligibility: Array.isArray(rec.eligibility) ? rec.eligibility : [],
-    categories: Array.isArray(rec.categories) ? rec.categories : [],
-    keywords: Array.isArray(rec.keywords) ? rec.keywords : [],
-    geography: geo,
-    url: rec.url ?? "",
-  };
-}
 
 export default function AlgorithmPage() {
   // ── Org state ─────────────────────────────────────────────────────────────
@@ -408,13 +382,12 @@ export default function AlgorithmPage() {
     setPoolLoading(true);
     setPoolError(null);
     try {
-      const [statsRes, recordsRes] = await Promise.all([
-        fetch(`${API}/indexing/stats`),
-        fetch(`${API}/indexing/records/for-algorithm`),
+      const [stats, pool] = await Promise.all([
+        fetch(`${API}/indexing/stats`).then((r) => r.json()),
+        loadOpportunityPool(API),   // ← shared canonical loader
       ]);
-      setPoolStats(await statsRes.json());
-      const data = await recordsRes.json();
-      setPool((data.records ?? []).map(dbRecordToOpportunity));
+      setPoolStats(stats);
+      setPool(pool);
     } catch {
       setPoolError("Failed to load opportunity pool from database.");
     }

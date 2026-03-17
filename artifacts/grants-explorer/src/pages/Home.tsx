@@ -17,14 +17,10 @@ import type { OrgProfileData } from "@/context/AuthContext";
 import { getTopMatchesV3 } from "@/lib/v3/matcherV3";
 import type { V3ScoreTrace } from "@/lib/v3/types";
 import { OrgProfileForm } from "@/components/OrgProfileForm";
+import { loadOpportunityPool, coerceOrgProfile } from "@/lib/poolLoader";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
-
-const ACTIVE_SOURCES = new Set([
-  "simpler_grants", "grants_gov", "sam_gov", "sbir",
-  "threesixtygiving", "california_grants", "world_bank", "ted_eu",
-]);
 const PAGE_SIZE = 20;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -120,22 +116,6 @@ function useOppStatus(userId: string | undefined) {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-function dbRecordToOpportunity(rec: any): NormalizedOpportunity {
-  return {
-    id: rec.id ?? rec.external_id ?? String(Math.random()),
-    source: rec.source ?? "unknown", source_raw: rec.source_raw ?? rec.source ?? "",
-    title: rec.title ?? "", description: rec.description ?? "",
-    agency: rec.agency ?? rec.organization ?? "", funding_type: rec.funding_type ?? "grant",
-    status: rec.status ?? "active", open_date: rec.open_date ?? rec.posted_date,
-    close_date: rec.close_date ?? rec.deadline, min_award: rec.min_award ?? rec.award_floor,
-    max_award: rec.max_award ?? rec.award_ceiling ?? rec.funding_amount,
-    eligibility: Array.isArray(rec.eligibility) ? rec.eligibility : [],
-    categories: Array.isArray(rec.categories) ? rec.categories : [],
-    keywords: Array.isArray(rec.keywords) ? rec.keywords : [],
-    geography: Array.isArray(rec.geography) ? rec.geography : [],
-    url: rec.url ?? "",
-  };
-}
 
 function scoreLabel(s: number) {
   if (s >= 80) return { label: "Excellent", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500", ring: "ring-emerald-400/50", light: "bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800" };
@@ -555,26 +535,10 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
     if (!user?.org_profile) { setV3Error("Please complete your organization profile first."); return; }
     setV3Running(true); setV3Error(""); setV3Results([]); setV3Page(0); setResultFilter("all");
     try {
-      const r = await fetch(`${API}/indexing/records/for-algorithm`);
-      const data = await r.json();
-      const pool: NormalizedOpportunity[] = (data.records ?? []).map(dbRecordToOpportunity).filter((o: NormalizedOpportunity) => ACTIVE_SOURCES.has(o.source));
-      // Defensively coerce Firestore data to the expected algorithm types
-      const rawProfile = user.org_profile as any;
-      const coercedProfile: OrgProfile = {
-        id:                 rawProfile.id ?? "",
-        name:               rawProfile.name ?? "",
-        org_type:           rawProfile.org_type ?? "other",
-        mission:            rawProfile.mission ?? "",
-        program_areas:      Array.isArray(rawProfile.program_areas) ? rawProfile.program_areas : [],
-        population_served:  Array.isArray(rawProfile.population_served) ? rawProfile.population_served : [],
-        geography:          Array.isArray(rawProfile.geography) ? rawProfile.geography : [],
-        annual_budget:      Number(rawProfile.annual_budget) || 0,
-        years_in_operation: Number(rawProfile.years_in_operation) || 0,
-        has_501c3:          Boolean(rawProfile.has_501c3),
-        is_small_business:  Boolean(rawProfile.is_small_business),
-        keywords:           Array.isArray(rawProfile.keywords) ? rawProfile.keywords : [],
-      };
-      const allResults = getTopMatchesV3(coercedProfile, pool, 200);
+      // Use shared poolLoader — identical data pipeline as AlgorithmAudit
+      const pool = await loadOpportunityPool(API);
+      const profile = coerceOrgProfile(user.org_profile, user.id);
+      const allResults = getTopMatchesV3(profile, pool, 200);
       setTotalFound(allResults.length); setV3Results(allResults); setV3Ran(true);
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch { setV3Error("Failed to load opportunity pool. Please try again."); }
