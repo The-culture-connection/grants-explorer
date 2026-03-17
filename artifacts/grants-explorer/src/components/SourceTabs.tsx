@@ -1,20 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import {
-  useGetGrantsGov,
-  useGetSbir,
-  useGetThreeSixtyGiving,
-  useGetCaGrants,
-  useGetUsaSpending,
-  useGetNih,
-  useGetNsf,
-  useGetWorldBank,
-  useGetSimplerGrants,
-  useGetSamGov,
-  useGetTedEu,
+  useGetGrantsGov, useGetSbir, useGetThreeSixtyGiving, useGetCaGrants,
+  useGetUsaSpending, useGetNih, useGetNsf, useGetWorldBank,
+  useGetSimplerGrants, useGetSamGov, useGetTedEu,
 } from "@workspace/api-client-react";
 import { GrantList } from "./GrantList";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search } from "lucide-react";
+import { Search, Layers } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useDebounce } from "use-debounce";
 import type { GrantItem } from "@workspace/api-client-react/src/generated/api.schemas";
@@ -23,268 +14,205 @@ const PAGE_SIZE = 12;
 
 const SOURCES = [
   { id: "simplergrants", label: "Simpler Grants" },
-  { id: "samgov", label: "SAM.gov" },
-  { id: "tedeu", label: "TED EU" },
-  { id: "grantsgov", label: "Grants.gov" },
-  { id: "sbir", label: "SBIR/STTR" },
-  { id: "nsf", label: "NSF Awards" },
-  { id: "nih", label: "NIH RePORTER" },
-  { id: "usaspending", label: "USASpending" },
-  { id: "cagrants", label: "California Grants" },
+  { id: "samgov",        label: "SAM.gov" },
+  { id: "tedeu",         label: "TED EU" },
+  { id: "grantsgov",    label: "Grants.gov" },
+  { id: "sbir",          label: "SBIR / STTR" },
+  { id: "nsf",           label: "NSF Awards" },
+  { id: "nih",           label: "NIH RePORTER" },
+  { id: "usaspending",   label: "USASpending" },
+  { id: "cagrants",      label: "CA Grants" },
   { id: "threesixtygiving", label: "360Giving" },
-  { id: "worldbank", label: "World Bank" },
+  { id: "worldbank",     label: "World Bank" },
 ];
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Generic accumulating hook — wraps any single-page react-query result
-   and exposes a stable list + loadMore callback.
-   Rules-of-hooks: callers must always invoke this unconditionally.
-───────────────────────────────────────────────────────────────────────── */
-function useAccumulator(
-  data: { items?: GrantItem[]; total?: number } | undefined,
-  isSuccess: boolean,
+/* ── Per-source pager (hook passed as parameter — always called in same order) ── */
+function useSourcePager(
+  useHookFn: (p: { keyword: string; rows: number; offset: number }) => any,
   keyword: string,
-  offset: number,
 ) {
-  const [allItems, setAllItems] = useState<GrantItem[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [items, setItems] = useState<GrantItem[]>([]);
   const [total, setTotal] = useState<number | undefined>();
   const prevKeyword = useRef(keyword);
 
   useEffect(() => {
     if (keyword !== prevKeyword.current) {
       prevKeyword.current = keyword;
-      setAllItems([]);
+      setOffset(0);
+      setItems([]);
       setTotal(undefined);
     }
   }, [keyword]);
 
+  const q = useHookFn({ keyword, rows: PAGE_SIZE, offset });
+
   useEffect(() => {
-    if (isSuccess && data) {
-      if (data.total !== undefined) setTotal(data.total);
-      const incoming = data.items ?? [];
-      setAllItems((prev) => (offset === 0 ? [...incoming] : [...prev, ...incoming]));
+    if (q.isSuccess && q.data) {
+      if (q.data.total !== undefined) setTotal(q.data.total);
+      const incoming: GrantItem[] = q.data.items ?? [];
+      setItems((prev) => (offset === 0 ? incoming : [...prev, ...incoming]));
     }
-  }, [isSuccess, data]);
+  }, [q.isSuccess, q.data]);
 
-  return { allItems, total };
+  const loadMore = () => setOffset((p) => p + PAGE_SIZE);
+  const hasMore = total !== undefined ? items.length < total : false;
+
+  return { items, total, isLoading: q.isLoading, isFetching: q.isFetching, error: q.error as Error | null, loadMore, hasMore };
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Per-source tab components — each owns its own offset state.
-   They are always rendered (just hidden) so state isn't lost on tab switch.
-───────────────────────────────────────────────────────────────────────── */
-
-function SimplerGrantsTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetSimplerGrants({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="Simpler Grants"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function SamGovTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetSamGov({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="SAM.gov"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function TedEuTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetTedEu({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="TED EU"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function GrantsGovTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetGrantsGov({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="Grants.gov"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function SbirTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetSbir({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="SBIR/STTR"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function NsfTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetNsf({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="NSF Awards"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function NihTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetNih({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="NIH RePORTER"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function UsaSpendingTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetUsaSpending({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="USASpending"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function CaGrantsTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetCaGrants({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="California Grants"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function ThreeSixtyGivingTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetThreeSixtyGiving({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="360Giving"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-function WorldBankTab({ keyword }: { keyword: string }) {
-  const [offset, setOffset] = useState(0);
-  useEffect(() => { setOffset(0); }, [keyword]);
-  const q = useGetWorldBank({ keyword, rows: PAGE_SIZE, offset });
-  const { allItems, total } = useAccumulator(q.data, q.isSuccess, keyword, offset);
-  return (
-    <GrantList items={allItems} total={total} isLoading={q.isLoading} isLoadingMore={q.isFetching && offset > 0}
-      error={q.error as Error | null} sourceName="World Bank"
-      onLoadMore={() => setOffset((p) => p + PAGE_SIZE)}
-      hasMore={total !== undefined ? allItems.length < total : false} />
-  );
-}
-
-const TAB_COMPONENTS: Record<string, React.ComponentType<{ keyword: string }>> = {
-  simplergrants: SimplerGrantsTab,
-  samgov: SamGovTab,
-  tedeu: TedEuTab,
-  grantsgov: GrantsGovTab,
-  sbir: SbirTab,
-  nsf: NsfTab,
-  nih: NihTab,
-  usaspending: UsaSpendingTab,
-  cagrants: CaGrantsTab,
-  threesixtygiving: ThreeSixtyGivingTab,
-  worldbank: WorldBankTab,
-};
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Main export
-───────────────────────────────────────────────────────────────────────── */
+/* ── Main export ── */
 export function SourceTabs() {
-  const [searchTerm, setSearchTerm] = React.useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [debouncedKeyword] = useDebounce(searchTerm, 600);
+  const [activeSource, setActiveSource] = useState<string>("all");
+
+  // Lift all source hooks to parent (stable hook call order — never in loops)
+  const simpler     = useSourcePager(useGetSimplerGrants,   debouncedKeyword);
+  const sam         = useSourcePager(useGetSamGov,           debouncedKeyword);
+  const ted         = useSourcePager(useGetTedEu,            debouncedKeyword);
+  const grantsGov   = useSourcePager(useGetGrantsGov,        debouncedKeyword);
+  const sbir        = useSourcePager(useGetSbir,             debouncedKeyword);
+  const nsf         = useSourcePager(useGetNsf,              debouncedKeyword);
+  const nih         = useSourcePager(useGetNih,              debouncedKeyword);
+  const usa         = useSourcePager(useGetUsaSpending,      debouncedKeyword);
+  const ca          = useSourcePager(useGetCaGrants,         debouncedKeyword);
+  const threeSixty  = useSourcePager(useGetThreeSixtyGiving, debouncedKeyword);
+  const worldBank   = useSourcePager(useGetWorldBank,        debouncedKeyword);
+
+  const sourceDataMap: Record<string, typeof simpler> = {
+    simplergrants:    simpler,
+    samgov:           sam,
+    tedeu:            ted,
+    grantsgov:        grantsGov,
+    sbir:             sbir,
+    nsf:              nsf,
+    nih:              nih,
+    usaspending:      usa,
+    cagrants:         ca,
+    threesixtygiving: threeSixty,
+    worldbank:        worldBank,
+  };
+
+  // Merged items for "All" view
+  const allItems: GrantItem[] = [
+    ...simpler.items, ...sam.items, ...ted.items, ...grantsGov.items,
+    ...sbir.items, ...nsf.items, ...nih.items, ...usa.items,
+    ...ca.items, ...threeSixty.items, ...worldBank.items,
+  ];
+  const allTotal = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
+    .reduce((acc, s) => acc + (s.total ?? 0), 0);
+  const allLoading = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
+    .some((s) => s.isLoading && s.items.length === 0);
+  const allError = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
+    .find((s) => s.error)?.error ?? null;
+  const allHasMore = [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
+    .some((s) => s.hasMore);
+
+  function loadMoreAll() {
+    [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank]
+      .forEach((s) => { if (s.hasMore) s.loadMore(); });
+  }
+
+  // Displayed data
+  const isAll = activeSource === "all";
+  const activeData = isAll ? null : sourceDataMap[activeSource];
+  const displayItems = isAll ? allItems : (activeData?.items ?? []);
+  const displayTotal = isAll ? allTotal : activeData?.total;
+  const displayLoading = isAll ? allLoading : (activeData?.isLoading ?? false) && displayItems.length === 0;
+  const displayError = isAll ? allError : (activeData?.error ?? null);
+  const displayHasMore = isAll ? allHasMore : (activeData?.hasMore ?? false);
+  const displayLoadMore = isAll ? loadMoreAll : (activeData?.loadMore ?? (() => {}));
+  const displayIsFetching = isAll
+    ? [simpler, sam, ted, grantsGov, sbir, nsf, nih, usa, ca, threeSixty, worldBank].some((s) => s.isFetching)
+    : (activeData?.isFetching ?? false);
+  const displaySourceName = isAll
+    ? "All Sources"
+    : SOURCES.find((s) => s.id === activeSource)?.label ?? activeSource;
+
+  // Per-source item counts for filter pills
+  const countFor = (id: string) => sourceDataMap[id]?.items.length ?? 0;
 
   return (
-    <div className="w-full space-y-8">
-      <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between z-10 relative backdrop-blur-xl bg-card/80">
+    <div className="w-full space-y-6">
+      {/* Search bar */}
+      <div className="bg-card border border-border/50 rounded-2xl p-4 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between backdrop-blur-xl bg-card/80">
         <div className="relative w-full md:max-w-md group">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           </div>
           <Input
             type="search"
-            placeholder="Search across all government grants..."
+            placeholder="Perform keyword search..."
             className="pl-10 h-12 w-full bg-background border-2 border-border focus-visible:border-primary focus-visible:ring-primary/20 rounded-xl text-base transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="text-sm text-muted-foreground flex items-center gap-2 font-medium bg-muted/50 px-4 py-2 rounded-lg border border-border/50">
+        <div className="text-sm text-muted-foreground flex items-center gap-2 font-medium bg-muted/50 px-4 py-2 rounded-lg border border-border/50 shrink-0">
           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           Live Data Sync
         </div>
       </div>
 
-      <Tabs defaultValue={SOURCES[0].id} className="w-full">
-        <div className="overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0 hide-scrollbar">
-          <TabsList className="inline-flex h-14 items-center justify-start rounded-xl bg-muted/50 p-1 w-auto min-w-full sm:min-w-0 border border-border/50">
-            {SOURCES.map((source) => (
-              <TabsTrigger
-                key={source.id}
-                value={source.id}
-                className="h-12 px-6 rounded-lg font-medium text-sm data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all duration-200"
-              >
-                {source.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+      {/* Source filter pills */}
+      <div className="overflow-x-auto pb-2 -mx-1 px-1">
+        <div className="flex items-center gap-2 w-max">
+          {/* All pill */}
+          <button
+            onClick={() => setActiveSource("all")}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium border transition-all shrink-0
+              ${activeSource === "all"
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-background text-muted-foreground border-border/60 hover:border-primary/40 hover:text-primary"}`}
+          >
+            <Layers className="h-3 w-3" />
+            All Sources
+            {allItems.length > 0 && (
+              <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeSource === "all" ? "bg-white/20" : "bg-muted"}`}>
+                {allItems.length}
+              </span>
+            )}
+          </button>
 
-        <div className="mt-6 min-h-[500px]">
-          {SOURCES.map((source) => {
-            const TabComp = TAB_COMPONENTS[source.id];
+          {/* Per-source pills */}
+          {SOURCES.map((src) => {
+            const count = countFor(src.id);
+            const isActive = activeSource === src.id;
             return (
-              <TabsContent key={source.id} value={source.id} className="m-0 outline-none">
-                <TabComp keyword={debouncedKeyword} />
-              </TabsContent>
+              <button
+                key={src.id}
+                onClick={() => setActiveSource(src.id)}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-medium border transition-all shrink-0
+                  ${isActive
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "bg-background text-muted-foreground border-border/60 hover:border-primary/40 hover:text-primary"}`}
+              >
+                {src.label}
+                {count > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? "bg-white/20" : "bg-muted"}`}>
+                    {count}
+                  </span>
+                )}
+              </button>
             );
           })}
         </div>
-      </Tabs>
+      </div>
+
+      {/* Results */}
+      <div className="min-h-[500px]">
+        <GrantList
+          items={displayItems}
+          total={displayTotal}
+          isLoading={displayLoading}
+          isLoadingMore={displayIsFetching && displayItems.length > 0}
+          error={displayError}
+          sourceName={displaySourceName}
+          onLoadMore={displayLoadMore}
+          hasMore={displayHasMore}
+        />
+      </div>
     </div>
   );
 }

@@ -1,9 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
+import { Link } from "wouter";
 import { SourceTabs } from "@/components/SourceTabs";
 import {
-  LayoutDashboard, ShieldCheck, Sparkles, RefreshCw, User, LogOut,
+  LayoutDashboard, Sparkles, RefreshCw, User, LogOut,
   ChevronRight, ExternalLink, Trophy, AlertCircle, X, Bookmark,
-  BookmarkCheck, CheckSquare, Square, Inbox, Clock, Filter
+  BookmarkCheck, CheckSquare, Square, Inbox, Clock, Filter, Eye,
+  Home as HomeIcon, ThumbsUp, ThumbsDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,12 +22,14 @@ const API = `${BASE}/api`;
 const ACTIVE_SOURCES = new Set(["simpler_grants", "grants_gov", "world_bank", "ted_eu"]);
 const PAGE_SIZE = 20;
 
-// ─── Opportunity Status (localStorage) ──────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type OppStatus = "saved" | "applied";
+type OppOutcome = "win" | "loss";
 
 interface OppEntry {
   status: OppStatus;
+  outcome?: OppOutcome;
   title: string;
   agency: string;
   score: number;
@@ -36,47 +40,91 @@ interface OppEntry {
   closeDate?: string;
 }
 
+interface ViewedEntry {
+  title: string;
+  agency?: string;
+  url?: string;
+  source: string;
+  score?: number;
+  viewedAt: number;
+}
+
+// ─── Opportunity Status Hook ──────────────────────────────────────────────────
+
 function useOppStatus(userId: number | undefined) {
-  const storageKey = userId ? `ge_opp_status_${userId}` : null;
+  const statusKey = userId ? `ge_opp_status_${userId}` : null;
+  const viewedKey = userId ? `ge_opp_viewed_${userId}` : null;
 
   const [statuses, setStatuses] = useState<Record<string, OppEntry>>(() => {
-    if (!storageKey) return {};
-    try { return JSON.parse(localStorage.getItem(storageKey) || "{}"); }
+    if (!statusKey) return {};
+    try { return JSON.parse(localStorage.getItem(statusKey) || "{}"); }
     catch { return {}; }
   });
 
-  const persist = useCallback((next: Record<string, OppEntry>) => {
-    if (storageKey) localStorage.setItem(storageKey, JSON.stringify(next));
-    setStatuses(next);
-  }, [storageKey]);
+  const [viewedItems, setViewedItems] = useState<Record<string, ViewedEntry>>(() => {
+    if (!viewedKey) return {};
+    try { return JSON.parse(localStorage.getItem(viewedKey) || "{}"); }
+    catch { return {}; }
+  });
 
-  const setStatus = useCallback((id: string, status: OppStatus, entry: Omit<OppEntry, "status">) => {
+  const persistStatuses = useCallback((next: Record<string, OppEntry>) => {
+    if (statusKey) localStorage.setItem(statusKey, JSON.stringify(next));
+    setStatuses(next);
+  }, [statusKey]);
+
+  const persistViewed = useCallback((next: Record<string, ViewedEntry>) => {
+    if (viewedKey) localStorage.setItem(viewedKey, JSON.stringify(next));
+    setViewedItems(next);
+  }, [viewedKey]);
+
+  const setStatus = useCallback((id: string, status: OppStatus, entry: Omit<OppEntry, "status" | "outcome">) => {
     setStatuses((prev) => {
       if (prev[id]?.status === status) {
         const next = { ...prev };
         delete next[id];
-        if (storageKey) localStorage.setItem(storageKey, JSON.stringify(next));
+        if (statusKey) localStorage.setItem(statusKey, JSON.stringify(next));
         return next;
       }
-      const next = { ...prev, [id]: { ...entry, status } };
-      if (storageKey) localStorage.setItem(storageKey, JSON.stringify(next));
+      const next = { ...prev, [id]: { ...prev[id], ...entry, status } };
+      if (statusKey) localStorage.setItem(statusKey, JSON.stringify(next));
       return next;
     });
-  }, [storageKey]);
+  }, [statusKey]);
+
+  const setOutcome = useCallback((id: string, outcome: OppOutcome | undefined) => {
+    setStatuses((prev) => {
+      if (!prev[id]) return prev;
+      const current = prev[id];
+      const next = {
+        ...prev,
+        [id]: { ...current, outcome: current.outcome === outcome ? undefined : outcome },
+      };
+      if (statusKey) localStorage.setItem(statusKey, JSON.stringify(next));
+      return next;
+    });
+  }, [statusKey]);
 
   const removeStatus = useCallback((id: string) => {
     setStatuses((prev) => {
       const next = { ...prev };
       delete next[id];
-      if (storageKey) localStorage.setItem(storageKey, JSON.stringify(next));
+      if (statusKey) localStorage.setItem(statusKey, JSON.stringify(next));
       return next;
     });
-  }, [storageKey]);
+  }, [statusKey]);
 
-  return { statuses, setStatus, removeStatus };
+  const addViewed = useCallback((id: string, entry: ViewedEntry) => {
+    setViewedItems((prev) => {
+      const next = { ...prev, [id]: { ...entry, viewedAt: Date.now() } };
+      if (viewedKey) localStorage.setItem(viewedKey, JSON.stringify(next));
+      return next;
+    });
+  }, [viewedKey]);
+
+  return { statuses, viewedItems, setStatus, setOutcome, removeStatus, addViewed };
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function dbRecordToOpportunity(rec: any): NormalizedOpportunity {
   return {
@@ -119,7 +167,7 @@ function isExpired(closeDate?: string): boolean {
   return new Date(closeDate) < new Date();
 }
 
-// ─── Grant Card ───────────────────────────────────────────────────────────────
+// ─── Grant Card (V3 results) ──────────────────────────────────────────────────
 
 interface GrantCardProps {
   trace: V3ScoreTrace;
@@ -127,17 +175,17 @@ interface GrantCardProps {
   entry?: OppEntry;
   onSave: () => void;
   onApply: () => void;
+  onView: () => void;
 }
 
-function GrantCard({ trace, rank, entry, onSave, onApply }: GrantCardProps) {
+function GrantCard({ trace, rank, entry, onSave, onApply, onView }: GrantCardProps) {
   const opp = trace.opp;
   const score = Math.round(trace.finalScore);
-  const expired = isExpired(opp.close_date);
   const isSaved = entry?.status === "saved";
   const isApplied = entry?.status === "applied";
 
   return (
-    <div className={`border rounded-xl p-5 space-y-3 transition-all hover:shadow-md ${scoreBg(score)} ${expired ? "opacity-70" : ""}`}>
+    <div className={`border rounded-xl p-5 space-y-3 transition-all hover:shadow-md ${scoreBg(score)}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3 min-w-0">
           <div className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold
@@ -165,28 +213,20 @@ function GrantCard({ trace, rank, entry, onSave, onApply }: GrantCardProps) {
         <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{opp.source.replace(/_/g, " ")}</Badge>
         <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{opp.funding_type.replace(/_/g, " ")}</Badge>
         {opp.max_award && (
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-            Up to ${opp.max_award.toLocaleString()}
-          </Badge>
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0">Up to ${opp.max_award.toLocaleString()}</Badge>
         )}
         {opp.close_date && (
-          <Badge
-            variant="outline"
-            className={`text-[10px] px-1.5 py-0 ${expired ? "border-red-300 text-red-500 dark:border-red-800 dark:text-red-400" : ""}`}
-          >
-            {expired ? "⚠ Expired" : "Closes"} {new Date(opp.close_date).toLocaleDateString()}
+          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+            Closes {new Date(opp.close_date).toLocaleDateString()}
           </Badge>
         )}
       </div>
 
-      {/* Action row */}
-      <div className="flex items-center gap-2 pt-1 border-t border-border/30">
+      <div className="flex items-center gap-2 pt-1 border-t border-border/30 flex-wrap">
         <button
           onClick={onSave}
           className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-all
-            ${isSaved
-              ? "border-primary/40 bg-primary/10 text-primary"
-              : "border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary"}`}
+            ${isSaved ? "border-primary/40 bg-primary/10 text-primary" : "border-border/50 text-muted-foreground hover:border-primary/30 hover:text-primary"}`}
         >
           {isSaved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
           {isSaved ? "Saved" : "Save"}
@@ -208,9 +248,10 @@ function GrantCard({ trace, rank, entry, onSave, onApply }: GrantCardProps) {
             href={opp.url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={onView}
             className="ml-auto flex items-center gap-1 text-xs text-primary hover:underline font-medium"
           >
-            View grant <ExternalLink className="h-3 w-3" />
+            View <ExternalLink className="h-3 w-3" />
           </a>
         )}
       </div>
@@ -218,23 +259,27 @@ function GrantCard({ trace, rank, entry, onSave, onApply }: GrantCardProps) {
   );
 }
 
-// ─── Saved Entry Card (for the panel) ────────────────────────────────────────
+// ─── Saved Entry Card (panel) ─────────────────────────────────────────────────
 
 function SavedEntryCard({
-  id, entry, onRemove, onToggleApplied,
+  id, entry, onRemove, onToggleApplied, onSetOutcome, onView,
 }: {
   id: string;
   entry: OppEntry;
   onRemove: () => void;
   onToggleApplied: () => void;
+  onSetOutcome: (o: OppOutcome) => void;
+  onView: () => void;
 }) {
   const expired = isExpired(entry.closeDate);
   const isApplied = entry.status === "applied";
+  const outcome = entry.outcome;
+
   return (
     <div className={`border rounded-xl p-4 space-y-2.5 bg-background ${expired ? "opacity-70" : ""}`}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5 mb-1">
             <Badge
               variant="outline"
               className={`text-[10px] px-1.5 py-0 ${isApplied ? "border-emerald-400/60 text-emerald-600 dark:text-emerald-400" : "border-primary/40 text-primary"}`}
@@ -242,6 +287,12 @@ function SavedEntryCard({
               {isApplied ? "✓ Applied" : "Saved"}
             </Badge>
             {expired && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-red-300 text-red-500">Expired</Badge>}
+            {outcome === "win" && (
+              <Badge className="text-[10px] px-1.5 py-0 bg-emerald-500 text-white border-0">🏆 Won</Badge>
+            )}
+            {outcome === "loss" && (
+              <Badge className="text-[10px] px-1.5 py-0 bg-red-500 text-white border-0">✗ Not Awarded</Badge>
+            )}
           </div>
           <h4 className="text-sm font-semibold text-foreground leading-snug">{entry.title}</h4>
           {entry.agency && <p className="text-xs text-muted-foreground">{entry.agency}</p>}
@@ -251,73 +302,151 @@ function SavedEntryCard({
           <div className="text-[10px] text-muted-foreground">/ 100</div>
         </div>
       </div>
+
       <div className="flex flex-wrap items-center gap-1.5">
         <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{entry.source.replace(/_/g, " ")}</Badge>
-        {entry.maxAward && (
-          <Badge variant="outline" className="text-[10px] px-1.5 py-0">Up to ${entry.maxAward.toLocaleString()}</Badge>
-        )}
+        {entry.maxAward && <Badge variant="outline" className="text-[10px] px-1.5 py-0">Up to ${entry.maxAward.toLocaleString()}</Badge>}
         {entry.closeDate && (
           <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${expired ? "border-red-300 text-red-500" : ""}`}>
             {expired ? "⚠ Expired" : "Closes"} {new Date(entry.closeDate).toLocaleDateString()}
           </Badge>
         )}
       </div>
-      <div className="flex items-center gap-2 pt-1 border-t border-border/30 flex-wrap">
-        {entry.url && (
-          <a href={entry.url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1 text-xs text-primary hover:underline font-medium">
-            View grant <ExternalLink className="h-3 w-3" />
-          </a>
+
+      {/* Actions */}
+      <div className="space-y-2 pt-1 border-t border-border/30">
+        <div className="flex items-center gap-2 flex-wrap">
+          {entry.url && (
+            <a href={entry.url} target="_blank" rel="noopener noreferrer" onClick={onView}
+              className="flex items-center gap-1 text-xs text-primary hover:underline font-medium">
+              View <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+          <button
+            onClick={onToggleApplied}
+            className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition-all
+              ${isApplied
+                ? "border-emerald-400/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400"
+                : "border-border/50 text-muted-foreground hover:border-emerald-400/40 hover:text-emerald-600"}`}
+          >
+            {isApplied ? <CheckSquare className="h-3 w-3" /> : <Square className="h-3 w-3" />}
+            {isApplied ? "Applied" : "Mark Applied"}
+          </button>
+          <button onClick={onRemove} className="ml-auto text-xs text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1">
+            <X className="h-3 w-3" /> Remove
+          </button>
+        </div>
+
+        {/* Win / Loss (only for applied) */}
+        {isApplied && (
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground font-medium">Outcome:</span>
+            <button
+              onClick={() => onSetOutcome("win")}
+              className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg border transition-all
+                ${outcome === "win"
+                  ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400"
+                  : "border-border/50 text-muted-foreground hover:border-emerald-400/50 hover:text-emerald-600"}`}
+            >
+              <ThumbsUp className="h-3 w-3" /> Win
+            </button>
+            <button
+              onClick={() => onSetOutcome("loss")}
+              className={`flex items-center gap-1 text-[11px] font-medium px-2.5 py-1 rounded-lg border transition-all
+                ${outcome === "loss"
+                  ? "border-red-400 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400"
+                  : "border-border/50 text-muted-foreground hover:border-red-400/50 hover:text-red-600"}`}
+            >
+              <ThumbsDown className="h-3 w-3" /> Loss
+            </button>
+          </div>
         )}
-        <button
-          onClick={onToggleApplied}
-          className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition-all
-            ${isApplied
-              ? "border-emerald-400/60 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400"
-              : "border-border/50 text-muted-foreground hover:border-emerald-400/40 hover:text-emerald-600"}`}
-        >
-          {isApplied ? <CheckSquare className="h-3 w-3" /> : <Square className="h-3 w-3" />}
-          {isApplied ? "Applied" : "Mark Applied"}
-        </button>
-        <button onClick={onRemove} className="ml-auto text-xs text-muted-foreground hover:text-red-500 transition-colors flex items-center gap-1">
-          <X className="h-3 w-3" /> Remove
-        </button>
       </div>
     </div>
   );
 }
 
-// ─── Saved Panel ─────────────────────────────────────────────────────────────
+// ─── Viewed Entry Card ────────────────────────────────────────────────────────
 
-type SavedFilter = "saved" | "applied" | "inactive";
+function ViewedEntryCard({ id, entry, savedStatus }: { id: string; entry: ViewedEntry; savedStatus?: OppStatus }) {
+  return (
+    <div className="border rounded-xl p-4 space-y-2 bg-background">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-1.5 mb-1">
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-border/50 text-muted-foreground">
+              <Eye className="h-2.5 w-2.5 mr-1 inline" />Viewed
+            </Badge>
+            {savedStatus === "saved" && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-primary/40 text-primary">Saved</Badge>
+            )}
+            {savedStatus === "applied" && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-emerald-400/60 text-emerald-600">✓ Applied</Badge>
+            )}
+          </div>
+          <h4 className="text-sm font-semibold text-foreground leading-snug">{entry.title}</h4>
+          {entry.agency && <p className="text-xs text-muted-foreground">{entry.agency}</p>}
+        </div>
+        {entry.score !== undefined && (
+          <div className="shrink-0 text-right">
+            <div className={`text-xl font-black ${scoreColor(entry.score)}`}>{Math.round(entry.score)}</div>
+            <div className="text-[10px] text-muted-foreground">/ 100</div>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">{entry.source.replace(/_/g, " ")}</Badge>
+        <span className="text-[10px] text-muted-foreground ml-auto">
+          {new Date(entry.viewedAt).toLocaleDateString()}
+        </span>
+        {entry.url && (
+          <a href={entry.url} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1 text-xs text-primary hover:underline font-medium">
+            View <ExternalLink className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
 
-function SavedPanel({ statuses, onRemove, onToggleApplied, onClose }: {
+// ─── Saved Panel ──────────────────────────────────────────────────────────────
+
+type SavedFilter = "saved" | "applied" | "inactive" | "viewed";
+
+function SavedPanel({
+  statuses, viewedItems, onRemove, onToggleApplied, onSetOutcome, onView, onClose,
+}: {
   statuses: Record<string, OppEntry>;
+  viewedItems: Record<string, ViewedEntry>;
   onRemove: (id: string) => void;
   onToggleApplied: (id: string, entry: OppEntry) => void;
+  onSetOutcome: (id: string, outcome: OppOutcome) => void;
+  onView: (id: string, entry: ViewedEntry) => void;
   onClose: () => void;
 }) {
   const [filter, setFilter] = useState<SavedFilter>("saved");
 
-  const all = Object.entries(statuses);
+  const statusEntries = Object.entries(statuses);
+  const viewedEntries = Object.entries(viewedItems).sort(([, a], [, b]) => b.viewedAt - a.viewedAt);
 
-  const filtered = all.filter(([, e]) => {
-    if (filter === "saved") return e.status === "saved" && !isExpired(e.closeDate);
-    if (filter === "applied") return e.status === "applied" && !isExpired(e.closeDate);
-    if (filter === "inactive") return isExpired(e.closeDate);
-    return true;
+  const savedCount    = statusEntries.filter(([, e]) => e.status === "saved" && !isExpired(e.closeDate)).length;
+  const appliedCount  = statusEntries.filter(([, e]) => e.status === "applied" && !isExpired(e.closeDate)).length;
+  const inactiveCount = statusEntries.filter(([, e]) => isExpired(e.closeDate)).length;
+  const viewedCount   = viewedEntries.length;
+
+  const filteredStatuses = statusEntries.filter(([, e]) => {
+    if (filter === "saved")     return e.status === "saved" && !isExpired(e.closeDate);
+    if (filter === "applied")   return e.status === "applied" && !isExpired(e.closeDate);
+    if (filter === "inactive")  return isExpired(e.closeDate);
+    return false;
   });
 
-  const counts = {
-    saved: all.filter(([, e]) => e.status === "saved" && !isExpired(e.closeDate)).length,
-    applied: all.filter(([, e]) => e.status === "applied" && !isExpired(e.closeDate)).length,
-    inactive: all.filter(([, e]) => isExpired(e.closeDate)).length,
-  };
-
-  const tabs: { key: SavedFilter; label: string; icon: React.ReactNode }[] = [
-    { key: "saved", label: "Saved", icon: <Bookmark className="h-3.5 w-3.5" /> },
-    { key: "applied", label: "Applied", icon: <CheckSquare className="h-3.5 w-3.5" /> },
-    { key: "inactive", label: "Inactive", icon: <Clock className="h-3.5 w-3.5" /> },
+  const tabs: { key: SavedFilter; label: string; icon: React.ReactNode; count: number }[] = [
+    { key: "saved",    label: "Saved",    icon: <Bookmark className="h-3.5 w-3.5" />,    count: savedCount },
+    { key: "applied",  label: "Applied",  icon: <CheckSquare className="h-3.5 w-3.5" />, count: appliedCount },
+    { key: "inactive", label: "Inactive", icon: <Clock className="h-3.5 w-3.5" />,       count: inactiveCount },
+    { key: "viewed",   label: "Viewed",   icon: <Eye className="h-3.5 w-3.5" />,         count: viewedCount },
   ];
 
   return (
@@ -329,7 +458,7 @@ function SavedPanel({ statuses, onRemove, onToggleApplied, onClose }: {
           <div className="flex items-center gap-2">
             <Inbox className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">My Opportunities</h2>
-            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{all.length}</Badge>
+            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{statusEntries.length}</Badge>
           </div>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
             <X className="h-4 w-4" />
@@ -342,36 +471,56 @@ function SavedPanel({ statuses, onRemove, onToggleApplied, onClose }: {
             <button
               key={t.key}
               onClick={() => setFilter(t.key)}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-medium transition-all border-b-2 ${filter === t.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+              className={`flex-1 flex items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-all border-b-2
+                ${filter === t.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
             >
               {t.icon}
-              {t.label}
-              {counts[t.key] > 0 && (
+              <span className="hidden sm:inline">{t.label}</span>
+              {t.count > 0 && (
                 <span className={`text-[10px] px-1 rounded-full ${filter === t.key ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  {counts[t.key]}
+                  {t.count}
                 </span>
               )}
             </button>
           ))}
         </div>
 
-        {/* List */}
+        {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-16 gap-3">
-              {filter === "saved" && <Bookmark className="h-10 w-10 opacity-20" />}
-              {filter === "applied" && <CheckSquare className="h-10 w-10 opacity-20" />}
-              {filter === "inactive" && <Clock className="h-10 w-10 opacity-20" />}
-              <p className="text-sm">
-                {filter === "saved" && "No saved opportunities yet. Run V3 Matches and save ones you're interested in."}
-                {filter === "applied" && "No applied opportunities yet. Mark grants as applied after submitting."}
-                {filter === "inactive" && "No expired opportunities in your list."}
-              </p>
-            </div>
+          {filter === "viewed" ? (
+            viewedEntries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-16 gap-3">
+                <Eye className="h-10 w-10 opacity-20" />
+                <p className="text-sm">No viewed opportunities yet. Click "View" on any matched grant to track it here.</p>
+              </div>
+            ) : (
+              viewedEntries.map(([id, entry]) => (
+                <ViewedEntryCard key={id} id={id} entry={entry} savedStatus={statuses[id]?.status} />
+              ))
+            )
           ) : (
-            filtered.map(([id, entry]) => (
-              <SavedEntryCard key={id} id={id} entry={entry} onRemove={() => onRemove(id)} onToggleApplied={() => onToggleApplied(id, entry)} />
-            ))
+            filteredStatuses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground py-16 gap-3">
+                {filter === "saved"    && <Bookmark className="h-10 w-10 opacity-20" />}
+                {filter === "applied"  && <CheckSquare className="h-10 w-10 opacity-20" />}
+                {filter === "inactive" && <Clock className="h-10 w-10 opacity-20" />}
+                <p className="text-sm">
+                  {filter === "saved"    && "No saved opportunities yet. Run V3 Matches and save ones you're interested in."}
+                  {filter === "applied"  && "No applied opportunities yet. Mark grants as applied after submitting."}
+                  {filter === "inactive" && "No expired opportunities in your list."}
+                </p>
+              </div>
+            ) : (
+              filteredStatuses.map(([id, entry]) => (
+                <SavedEntryCard
+                  key={id} id={id} entry={entry}
+                  onRemove={() => onRemove(id)}
+                  onToggleApplied={() => onToggleApplied(id, entry)}
+                  onSetOutcome={(o) => onSetOutcome(id, o)}
+                  onView={() => onView(id, { title: entry.title, agency: entry.agency, url: entry.url, source: entry.source, score: entry.score, viewedAt: Date.now() })}
+                />
+              ))
+            )
           )}
         </div>
       </div>
@@ -379,7 +528,7 @@ function SavedPanel({ statuses, onRemove, onToggleApplied, onClose }: {
   );
 }
 
-// ─── Profile Modal ────────────────────────────────────────────────────────────
+// ─── Profile Modal ─────────────────────────────────────────────────────────────
 
 function ProfileModal({ onClose }: { onClose: () => void }) {
   const { user, updateProfile, logout } = useAuth();
@@ -387,12 +536,8 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
 
   async function handleSave(profile: OrgProfileData) {
     setSaving(true);
-    try {
-      await updateProfile(profile);
-      onClose();
-    } finally {
-      setSaving(false);
-    }
+    try { await updateProfile(profile); onClose(); }
+    finally { setSaving(false); }
   }
 
   return (
@@ -404,12 +549,9 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
             <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
+            <Button variant="ghost" size="sm"
               className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 gap-1"
-              onClick={() => { logout(); onClose(); }}
-            >
+              onClick={() => { logout(); onClose(); }}>
               <LogOut className="h-3.5 w-3.5" /> Sign Out
             </Button>
             <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -418,31 +560,25 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
           </div>
         </div>
         <div className="flex-1 overflow-auto p-5">
-          <OrgProfileForm
-            initial={user?.org_profile}
-            onSave={handleSave}
-            onCancel={onClose}
-            saving={saving}
-            saveLabel="Save Changes"
-          />
+          <OrgProfileForm initial={user?.org_profile} onSave={handleSave} onCancel={onClose} saving={saving} saveLabel="Save Changes" />
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Result Filter ────────────────────────────────────────────────────────────
+// ─── Result Filter ─────────────────────────────────────────────────────────────
 
 type ResultFilter = "all" | "saved" | "applied" | "inactive";
 
-// ─── Home ─────────────────────────────────────────────────────────────────────
+// ─── Home Page ─────────────────────────────────────────────────────────────────
 
 export default function Home() {
   const { user } = useAuth();
   const [showProfile, setShowProfile] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
 
-  const { statuses, setStatus, removeStatus } = useOppStatus(user?.id);
+  const { statuses, viewedItems, setStatus, setOutcome, removeStatus, addViewed } = useOppStatus(user?.id);
 
   const [v3Running, setV3Running] = useState(false);
   const [v3Results, setV3Results] = useState<V3ScoreTrace[]>([]);
@@ -453,7 +589,7 @@ export default function Home() {
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  const totalSaved = Object.values(statuses).length;
+  const totalSaved = Object.keys(statuses).length;
 
   async function runV3() {
     if (!user?.org_profile) {
@@ -487,36 +623,34 @@ export default function Home() {
   function handleSave(trace: V3ScoreTrace) {
     const opp = trace.opp;
     setStatus(opp.id, "saved", {
-      title: opp.title,
-      agency: opp.agency,
-      score: trace.finalScore,
-      url: opp.url,
-      source: opp.source,
-      fundingType: opp.funding_type,
-      maxAward: opp.max_award,
-      closeDate: opp.close_date,
+      title: opp.title, agency: opp.agency, score: trace.finalScore,
+      url: opp.url, source: opp.source, fundingType: opp.funding_type,
+      maxAward: opp.max_award, closeDate: opp.close_date,
     });
   }
 
   function handleApply(trace: V3ScoreTrace) {
     const opp = trace.opp;
     setStatus(opp.id, "applied", {
-      title: opp.title,
-      agency: opp.agency,
-      score: trace.finalScore,
-      url: opp.url,
-      source: opp.source,
-      fundingType: opp.funding_type,
-      maxAward: opp.max_award,
-      closeDate: opp.close_date,
+      title: opp.title, agency: opp.agency, score: trace.finalScore,
+      url: opp.url, source: opp.source, fundingType: opp.funding_type,
+      maxAward: opp.max_award, closeDate: opp.close_date,
+    });
+  }
+
+  function handleView(trace: V3ScoreTrace) {
+    const opp = trace.opp;
+    addViewed(opp.id, {
+      title: opp.title, agency: opp.agency, url: opp.url,
+      source: opp.source, score: trace.finalScore, viewedAt: Date.now(),
     });
   }
 
   const filteredResults = v3Results.filter((t) => {
     const entry = statuses[t.opp.id];
     const expired = isExpired(t.opp.close_date);
-    if (resultFilter === "saved") return entry?.status === "saved" && !expired;
-    if (resultFilter === "applied") return entry?.status === "applied" && !expired;
+    if (resultFilter === "saved")    return entry?.status === "saved" && !expired;
+    if (resultFilter === "applied")  return entry?.status === "applied" && !expired;
     if (resultFilter === "inactive") return expired;
     return !expired;
   });
@@ -525,16 +659,16 @@ export default function Home() {
   const hasMore = pagedResults.length < filteredResults.length;
 
   const filterCounts = {
-    all: v3Results.length,
-    saved: v3Results.filter((t) => statuses[t.opp.id]?.status === "saved" && !isExpired(t.opp.close_date)).length,
-    applied: v3Results.filter((t) => statuses[t.opp.id]?.status === "applied" && !isExpired(t.opp.close_date)).length,
+    all:      v3Results.filter((t) => !isExpired(t.opp.close_date)).length,
+    saved:    v3Results.filter((t) => statuses[t.opp.id]?.status === "saved" && !isExpired(t.opp.close_date)).length,
+    applied:  v3Results.filter((t) => statuses[t.opp.id]?.status === "applied" && !isExpired(t.opp.close_date)).length,
     inactive: v3Results.filter((t) => isExpired(t.opp.close_date)).length,
   };
 
   const resultFilters: { key: ResultFilter; label: string; icon: React.ReactNode }[] = [
-    { key: "all", label: "All", icon: <Filter className="h-3 w-3" /> },
-    { key: "saved", label: "Saved", icon: <Bookmark className="h-3 w-3" /> },
-    { key: "applied", label: "Applied", icon: <CheckSquare className="h-3 w-3" /> },
+    { key: "all",      label: "All",      icon: <Filter className="h-3 w-3" /> },
+    { key: "saved",    label: "Saved",    icon: <Bookmark className="h-3 w-3" /> },
+    { key: "applied",  label: "Applied",  icon: <CheckSquare className="h-3 w-3" /> },
     { key: "inactive", label: "Inactive", icon: <Clock className="h-3 w-3" /> },
   ];
 
@@ -544,11 +678,14 @@ export default function Home() {
       {showSaved && (
         <SavedPanel
           statuses={statuses}
+          viewedItems={viewedItems}
           onRemove={removeStatus}
           onToggleApplied={(id, entry) => {
-            const newStatus: OppStatus = entry.status === "applied" ? "saved" : "applied";
-            setStatus(id, newStatus, entry);
+            const next: OppStatus = entry.status === "applied" ? "saved" : "applied";
+            setStatus(id, next, entry);
           }}
+          onSetOutcome={setOutcome}
+          onView={(id, entry) => addViewed(id, entry)}
           onClose={() => setShowSaved(false)}
         />
       )}
@@ -561,12 +698,14 @@ export default function Home() {
             Grants Explorer
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 gap-1.5 text-xs px-3 relative"
-              onClick={() => setShowSaved(true)}
-            >
+            <Link href="/landing">
+              <Button size="sm" variant="ghost" className="h-7 gap-1.5 text-xs px-3 text-muted-foreground hover:text-foreground">
+                <HomeIcon className="h-3 w-3" /> Home
+              </Button>
+            </Link>
+
+            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs px-3 relative"
+              onClick={() => setShowSaved(true)}>
               <Inbox className="h-3 w-3" />
               Saved Opportunities
               {totalSaved > 0 && (
@@ -576,22 +715,13 @@ export default function Home() {
               )}
             </Button>
 
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 gap-1.5 text-xs px-3"
-              onClick={() => setShowProfile(true)}
-            >
-              <User className="h-3 w-3" />
-              Edit Profile
+            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs px-3"
+              onClick={() => setShowProfile(true)}>
+              <User className="h-3 w-3" /> Edit Profile
             </Button>
 
-            <Button
-              size="sm"
-              className="h-7 gap-1.5 text-xs px-3 bg-primary hover:bg-primary/90"
-              onClick={runV3}
-              disabled={v3Running}
-            >
+            <Button size="sm" className="h-7 gap-1.5 text-xs px-3 bg-primary hover:bg-primary/90"
+              onClick={runV3} disabled={v3Running}>
               {v3Running
                 ? <><RefreshCw className="h-3 w-3 animate-spin" /> Running…</>
                 : <><Sparkles className="h-3 w-3" /> Run V3 Matches</>}
@@ -600,52 +730,15 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden border-b border-border/40">
-        <div className="absolute inset-0 z-0">
-          <img
-            src={`${import.meta.env.BASE_URL}images/hero-bg.png`}
-            alt="Abstract structural background"
-            className="w-full h-full object-cover opacity-[0.15] dark:opacity-10 mix-blend-luminosity"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/80 to-background" />
-        </div>
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-24">
-          <div className="flex flex-col items-center text-center max-w-3xl mx-auto space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium mb-4">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Official Government Data Explorer</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-extrabold text-foreground tracking-tight drop-shadow-sm">
-              Discover Federal & State{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">
-                Funding Opportunities
-              </span>
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl">
-              A unified interface to search, filter, and track public grants across 11 major governmental and institutional databases in real-time.
-            </p>
-            {user?.org_profile && !v3Ran && (
-              <Button onClick={runV3} disabled={v3Running} size="lg" className="gap-2 mt-2">
-                {v3Running ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {v3Running ? "Analyzing grants…" : `Find Grants for ${(user.org_profile as any).name || "My Org"}`}
-              </Button>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* V3 Results Panel */}
       {(v3Ran || v3Error) && (
         <div ref={resultsRef} className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           {v3Error ? (
             <div className="flex items-center gap-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl px-4 py-3 text-sm text-red-600 dark:text-red-400">
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              {v3Error}
+              <AlertCircle className="h-4 w-4 shrink-0" /> {v3Error}
             </div>
           ) : (
             <div className="space-y-5">
-              {/* Results header */}
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -655,29 +748,23 @@ export default function Home() {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {totalFound} grants matched for{" "}
-                    <span className="font-medium text-foreground">
-                      {(user?.org_profile as any)?.name || "your organization"}
-                    </span>
-                    {resultFilter !== "all" && ` · showing ${filteredResults.length} ${resultFilter}`}
+                    <span className="font-medium text-foreground">{(user?.org_profile as any)?.name || "your organization"}</span>
+                    {resultFilter !== "all" && ` · ${filteredResults.length} ${resultFilter}`}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={runV3} disabled={v3Running}>
-                  <RefreshCw className={`h-3 w-3 ${v3Running ? "animate-spin" : ""}`} />
-                  Refresh
+                  <RefreshCw className={`h-3 w-3 ${v3Running ? "animate-spin" : ""}`} /> Refresh
                 </Button>
               </div>
 
               {/* Filter tabs */}
               <div className="flex items-center gap-1 border border-border/60 rounded-xl p-1 bg-muted/30 w-fit">
                 {resultFilters.map((f) => (
-                  <button
-                    key={f.key}
+                  <button key={f.key}
                     onClick={() => { setResultFilter(f.key); setV3Page(0); }}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                      ${resultFilter === f.key ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
-                  >
-                    {f.icon}
-                    {f.label}
+                      ${resultFilter === f.key ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                    {f.icon} {f.label}
                     <span className={`text-[10px] px-1 rounded-full ${resultFilter === f.key ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
                       {filterCounts[f.key]}
                     </span>
@@ -685,20 +772,16 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Cards — single column */}
               {pagedResults.length === 0 ? (
-                <div className="text-center py-16 text-muted-foreground text-sm space-y-2">
-                  {resultFilter === "all"
-                    ? "No matching grants found. Try expanding your organization profile keywords or geography."
-                    : resultFilter === "saved"
-                    ? "No saved grants in this view. Click the Bookmark button on any result to save it."
-                    : resultFilter === "applied"
-                    ? "No applied grants yet. Mark a grant as applied after you submit."
-                    : "No expired grants in your results."}
+                <div className="text-center py-16 text-muted-foreground text-sm">
+                  {resultFilter === "all"     && "No matching grants found. Try expanding your organization profile keywords or geography."}
+                  {resultFilter === "saved"   && "No saved grants yet. Click the Bookmark button on any result to save it."}
+                  {resultFilter === "applied" && "No applied grants yet. Mark a grant as applied after you submit."}
+                  {resultFilter === "inactive"&& "No expired grants in your results."}
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {pagedResults.map((trace, i) => (
+                  {pagedResults.map((trace) => (
                     <GrantCard
                       key={trace.opp.id}
                       trace={trace}
@@ -706,6 +789,7 @@ export default function Home() {
                       entry={statuses[trace.opp.id]}
                       onSave={() => handleSave(trace)}
                       onApply={() => handleApply(trace)}
+                      onView={() => handleView(trace)}
                     />
                   ))}
                 </div>
@@ -724,8 +808,37 @@ export default function Home() {
         </div>
       )}
 
-      {/* Main Content */}
-      <main className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 pb-20">
+      {/* Welcome prompt (no V3 yet) */}
+      {!v3Ran && !v3Error && (
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary/10 mb-5">
+            <Sparkles className="h-7 w-7 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-3">
+            {user?.org_profile
+              ? `Welcome back, ${(user.org_profile as any).name || "there"}!`
+              : "Welcome to Grants Explorer"}
+          </h2>
+          <p className="text-muted-foreground max-w-lg mx-auto mb-6 text-sm leading-relaxed">
+            {user?.org_profile
+              ? "Your profile is set up. Click Run V3 Matches to find the best grants for your organization."
+              : "Set up your organization profile to get personalized grant recommendations ranked by compatibility."}
+          </p>
+          {user?.org_profile ? (
+            <Button onClick={runV3} disabled={v3Running} size="lg" className="gap-2">
+              {v3Running ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {v3Running ? "Analyzing grants…" : "Run V3 Matches"}
+            </Button>
+          ) : (
+            <Button onClick={() => setShowProfile(true)} size="lg" variant="outline" className="gap-2">
+              <User className="h-4 w-4" /> Set Up My Profile
+            </Button>
+          )}
+        </div>
+      )}
+
+      {/* Keyword Search / Source Explorer */}
+      <main className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 pt-4">
         <SourceTabs />
       </main>
 

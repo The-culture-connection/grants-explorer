@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/Home";
+import Landing from "@/pages/Landing";
 import AlgorithmPage from "@/pages/Algorithm";
 import IndexingToolPage from "@/pages/IndexingTool";
 import AlgorithmAuditPage from "@/pages/AlgorithmAudit";
@@ -39,6 +40,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={ProtectedHome} />
+      <Route path="/landing" component={Landing} />
       <Route path="/profilecreation" component={ProfileCreation} />
       <Route path="/algorithm" component={AlgorithmPage} />
       <Route path="/indexing" component={IndexingToolPage} />
