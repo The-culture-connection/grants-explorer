@@ -11,6 +11,7 @@ import IndexingToolPage from "@/pages/IndexingTool";
 import AlgorithmAuditPage from "@/pages/AlgorithmAudit";
 import ProfileCreation from "@/pages/ProfileCreation";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
+import DevGate from "@/components/DevGate";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,9 +45,15 @@ function Router() {
         <Route path="/" component={ProtectedHome} />
         <Route path="/landing" component={Landing} />
         <Route path="/profilecreation" component={ProfileCreation} />
-        <Route path="/algorithm" component={AlgorithmPage} />
-        <Route path="/indexing" component={IndexingToolPage} />
-        <Route path="/audit" component={AlgorithmAuditPage} />
+        <Route path="/algorithm">
+          <DevGate><AlgorithmPage /></DevGate>
+        </Route>
+        <Route path="/indexing">
+          <DevGate><IndexingToolPage /></DevGate>
+        </Route>
+        <Route path="/audit">
+          <DevGate><AlgorithmAuditPage /></DevGate>
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </>

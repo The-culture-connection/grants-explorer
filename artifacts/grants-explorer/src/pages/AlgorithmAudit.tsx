@@ -16,8 +16,9 @@ import {
   Download, ChevronLeft,
 } from "lucide-react";
 
-import { MOCK_ORGANIZATIONS } from "@/lib/algorithm/mockData";
 import type { OrgProfile, NormalizedOpportunity } from "@/lib/algorithm/types";
+import { useAuth } from "@/context/AuthContext";
+import { loadOpportunityPool, coerceOrgProfile } from "@/lib/poolLoader";
 import { buildScoreTrace, runVariantScoring } from "@/lib/audit/scoreTrace";
 import { computeAuditMetrics } from "@/lib/audit/metrics";
 import { extractKeywordAudit } from "@/lib/audit/keywords";
@@ -40,11 +41,6 @@ import { V3_DIMENSION_MAXES } from "@/lib/v3/types";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 const API = `${BASE}/api`;
-
-const ACTIVE_SOURCES = new Set([
-  "simpler_grants", "grants_gov", "sam_gov", "sbir",
-  "threesixtygiving", "california_grants", "world_bank", "ted_eu",
-]);
 
 const LS_FEEDBACK_KEY = "audit_feedback_v1";
 const LS_EVAL_KEY = "audit_eval_v1";
@@ -70,49 +66,6 @@ function priorityColor(p: string) {
     : p === "medium" ? "bg-amber-100 text-amber-700 border-amber-200"
     : "bg-blue-100 text-blue-700 border-blue-200";
 }
-
-function dbRecordToOpportunity(rec: any): NormalizedOpportunity {
-  let geoRaw: any[] = [];
-  if (Array.isArray(rec.geography)) geoRaw = rec.geography;
-  else if (typeof rec.geography === "string" && rec.geography) {
-    try { geoRaw = JSON.parse(rec.geography); } catch { geoRaw = [rec.geography]; }
-  }
-  const geo: string[] = geoRaw.filter((g: any) => g != null).map((g: any) => String(g));
-  return {
-    id: rec.id,
-    source: rec.source,
-    source_raw: rec.source,
-    title: rec.title ?? "Untitled",
-    description: rec.description ?? "",
-    agency: rec.agency ?? "",
-    funding_type: (rec.funding_type ?? "grant") as any,
-    status: (rec.status ?? "active") as any,
-    open_date: rec.open_date ?? undefined,
-    close_date: rec.close_date ?? undefined,
-    min_award: rec.min_award ?? undefined,
-    max_award: rec.max_award ?? undefined,
-    eligibility: Array.isArray(rec.eligibility) ? rec.eligibility : [],
-    categories: Array.isArray(rec.categories) ? rec.categories : [],
-    keywords: Array.isArray(rec.keywords) ? rec.keywords : [],
-    geography: geo,
-    url: rec.url ?? "",
-  };
-}
-
-const EMPTY_ORG: OrgProfile = {
-  id: "custom",
-  name: "",
-  org_type: "nonprofit",
-  mission: "",
-  program_areas: [],
-  population_served: [],
-  geography: [],
-  annual_budget: 0,
-  years_in_operation: 0,
-  has_501c3: false,
-  is_small_business: false,
-  keywords: [],
-};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -265,28 +218,21 @@ export default function AlgorithmAuditPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [sr, rr] = await Promise.all([
-          fetch(`${API}/indexing/stats`),
-          fetch(`${API}/indexing/records/for-algorithm`),
+        const [sr, pool] = await Promise.all([
+          fetch(`${API}/indexing/stats`).then((r) => r.json()),
+          loadOpportunityPool(API),          // ← shared canonical loader
         ]);
-        const stats = await sr.json();
-        const data = await rr.json();
-        setPoolStats(stats);
-        setPool((data.records ?? []).map(dbRecordToOpportunity).filter((o: NormalizedOpportunity) => ACTIVE_SOURCES.has(o.source)));
+        setPoolStats(sr);
+        setPool(pool);
       } catch {}
       setPoolLoading(false);
     }
     load();
   }, []);
 
-  // ── Org selection ─────────────────────────────────────────────────────────
-  const [selectedOrgId, setSelectedOrgId] = useState(MOCK_ORGANIZATIONS[0].id);
-  const [customOrg, setCustomOrg] = useState<OrgProfile>(EMPTY_ORG);
-  const [orgMode, setOrgMode] = useState<"sample" | "custom">("sample");
-
-  const activeOrg: OrgProfile = orgMode === "sample"
-    ? (MOCK_ORGANIZATIONS.find((o) => o.id === selectedOrgId) ?? MOCK_ORGANIZATIONS[0])
-    : customOrg;
+  // ── Org from authenticated user profile ───────────────────────────────────
+  const { user } = useAuth();
+  const activeOrg: OrgProfile = coerceOrgProfile(user?.org_profile, user?.id ?? "unknown");
 
   // ── Scoring ───────────────────────────────────────────────────────────────
   const [scorerMode, setScorerMode] = useState<"v1" | "hybrid" | "v3">("v1");
@@ -559,10 +505,11 @@ export default function AlgorithmAuditPage() {
               </span>
             ) : (
               <span className="text-xs text-muted-foreground">
-                {pool.length.toLocaleString()} active opportunities · {MOCK_ORGANIZATIONS.length} sample orgs
+                {pool.length.toLocaleString()} active opportunities
+                {user?.org_profile ? ` · ${activeOrg.name}` : " · no profile loaded"}
               </span>
             )}
-            <Button onClick={runAudit} disabled={running || poolLoading || pool.length === 0} className="gap-2">
+            <Button onClick={runAudit} disabled={running || poolLoading || pool.length === 0 || !user?.org_profile} className="gap-2">
               <Zap className={`h-4 w-4 ${running ? "animate-pulse" : ""}`} />
               {running ? "Running…" : hasRun ? "Re-run Audit" : "Run Audit"}
             </Button>
@@ -572,48 +519,63 @@ export default function AlgorithmAuditPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        {/* Org + Settings Bar */}
+        {/* Org Profile + Settings Bar */}
         <Card className="mb-6 border-primary/20 bg-primary/5">
           <CardContent className="p-4">
-            <div className="flex flex-wrap gap-4 items-end">
-              <div>
-                <Label className="text-xs mb-1.5 block">Organization Mode</Label>
-                <div className="flex gap-2">
-                  <Button size="sm" variant={orgMode === "sample" ? "default" : "outline"} className="h-8 text-xs" onClick={() => setOrgMode("sample")}>Sample</Button>
-                  <Button size="sm" variant={orgMode === "custom" ? "default" : "outline"} className="h-8 text-xs" onClick={() => setOrgMode("custom")}>Custom</Button>
+            {/* Profile summary */}
+            {!user ? (
+              <div className="flex items-center gap-3 mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>Sign in to audit against your organization profile.</span>
+                <Link href="/profile" className="ml-auto text-xs underline font-medium">Sign in →</Link>
+              </div>
+            ) : !user.org_profile ? (
+              <div className="flex items-center gap-3 mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>Your organization profile is incomplete. Complete it to run a personalized audit.</span>
+                <Link href="/" className="ml-auto text-xs underline font-medium">Complete profile →</Link>
+              </div>
+            ) : (
+              <div className="mb-4 flex flex-wrap items-start gap-4">
+                <div className="flex-1 min-w-48">
+                  <div className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wide">Auditing Profile</div>
+                  <div className="font-semibold text-sm">{activeOrg.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 capitalize">
+                    {activeOrg.org_type.replace(/_/g, " ")}
+                    {activeOrg.has_501c3 && " · 501(c)(3)"}
+                    {activeOrg.is_small_business && " · Small Business"}
+                  </div>
+                  {activeOrg.mission && (
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">"{activeOrg.mission}"</div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-3 text-xs">
+                  <div className="bg-background border border-border/60 rounded px-2.5 py-1.5">
+                    <div className="text-muted-foreground mb-0.5">Budget</div>
+                    <div className="font-mono font-semibold">{activeOrg.annual_budget ? fmt(activeOrg.annual_budget) : "—"}</div>
+                  </div>
+                  <div className="bg-background border border-border/60 rounded px-2.5 py-1.5">
+                    <div className="text-muted-foreground mb-0.5">Years</div>
+                    <div className="font-mono font-semibold">{activeOrg.years_in_operation || "—"}</div>
+                  </div>
+                  {activeOrg.geography.length > 0 && (
+                    <div className="bg-background border border-border/60 rounded px-2.5 py-1.5">
+                      <div className="text-muted-foreground mb-0.5">Geography</div>
+                      <div className="font-mono font-semibold">{activeOrg.geography.slice(0, 2).join(", ")}{activeOrg.geography.length > 2 ? ` +${activeOrg.geography.length - 2}` : ""}</div>
+                    </div>
+                  )}
+                  {activeOrg.program_areas.length > 0 && (
+                    <div className="bg-background border border-border/60 rounded px-2.5 py-1.5">
+                      <div className="text-muted-foreground mb-0.5">Focus Areas</div>
+                      <div className="font-mono font-semibold">{activeOrg.program_areas.slice(0, 2).join(", ")}{activeOrg.program_areas.length > 2 ? ` +${activeOrg.program_areas.length - 2}` : ""}</div>
+                    </div>
+                  )}
                 </div>
               </div>
-              {orgMode === "sample" && (
-                <div className="flex-1 min-w-48 max-w-xs">
-                  <Label className="text-xs mb-1.5 block">Select Organization</Label>
-                  <Select value={selectedOrgId} onValueChange={setSelectedOrgId}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {MOCK_ORGANIZATIONS.map((o) => (
-                        <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {orgMode === "custom" && (
-                <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {[
-                    { key: "name", label: "Name" },
-                    { key: "mission", label: "Mission" },
-                    { key: "annual_budget", label: "Budget ($)", num: true },
-                    { key: "years_in_operation", label: "Years", num: true },
-                  ].map(({ key, label, num }) => (
-                    <div key={key}>
-                      <Label className="text-xs mb-1 block">{label}</Label>
-                      <Input className="h-8 text-xs" type={num ? "number" : "text"}
-                        value={String((customOrg as any)[key])}
-                        onChange={(e) => setCustomOrg((p) => ({ ...p, [key]: num ? Number(e.target.value) : e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+            )}
+
+            {/* Scorer + controls */}
+            <div className="flex flex-wrap gap-4 items-end">
               <div>
                 <Label className="text-xs mb-1.5 block">Scorer</Label>
                 <div className="flex gap-1">
@@ -635,7 +597,7 @@ export default function AlgorithmAuditPage() {
                 </div>
               )}
               <button onClick={() => setShowOrgJson((v) => !v)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 self-end pb-1">
-                <Code className="h-3 w-3" /> {showOrgJson ? "Hide" : "Show"} org JSON
+                <Code className="h-3 w-3" /> {showOrgJson ? "Hide" : "Show"} profile JSON
               </button>
             </div>
             {showOrgJson && (
@@ -643,19 +605,22 @@ export default function AlgorithmAuditPage() {
                 {JSON.stringify(activeOrg, null, 2)}
               </pre>
             )}
-            <div className="mt-2 text-xs text-muted-foreground">
-              Active org: <strong>{activeOrg.name}</strong> · {activeOrg.org_type} · Budget {fmt(activeOrg.annual_budget)} · {activeOrg.years_in_operation} yrs
-              {activeOrg.has_501c3 && " · 501(c)(3)"}
-              {activeOrg.is_small_business && " · Small Business"}
-            </div>
           </CardContent>
         </Card>
 
         {!hasRun && !running && (
           <div className="text-center py-16 text-muted-foreground">
             <FlaskConical className="h-16 w-16 mx-auto mb-4 opacity-20" />
-            <p className="text-base mb-1">Select an organization and click <strong>Run Audit</strong> to begin.</p>
-            <p className="text-sm">All {pool.length.toLocaleString()} indexed opportunities will be scored and analyzed.</p>
+            {!user ? (
+              <p className="text-base mb-1">Sign in to audit grants against your profile.</p>
+            ) : !user.org_profile ? (
+              <p className="text-base mb-1">Complete your organization profile first, then return here to run an audit.</p>
+            ) : (
+              <>
+                <p className="text-base mb-1">Click <strong>Run Audit</strong> to score all opportunities against <strong>{activeOrg.name}</strong>.</p>
+                <p className="text-sm">{pool.length.toLocaleString()} indexed opportunities will be scored and analyzed.</p>
+              </>
+            )}
           </div>
         )}
 
