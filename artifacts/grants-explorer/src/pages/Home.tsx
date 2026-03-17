@@ -51,7 +51,7 @@ interface ViewedEntry {
 }
 
 // ─── Opp Status Hook ──────────────────────────────────────────────────────────
-function useOppStatus(userId: number | undefined) {
+function useOppStatus(userId: string | undefined) {
   const statusKey = userId ? `ge_opp_status_${userId}` : null;
   const viewedKey = userId ? `ge_opp_viewed_${userId}` : null;
 
@@ -142,7 +142,7 @@ function initials(email: string) {
 
 // ─── Admin: Add Admin Modal ────────────────────────────────────────────────────
 function AddAdminModal({ onClose }: { onClose: () => void }) {
-  const { token } = useAuth();
+  const { addAdmin } = useAuth();
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [msg, setMsg] = useState("");
@@ -151,15 +151,14 @@ function AddAdminModal({ onClose }: { onClose: () => void }) {
     e.preventDefault();
     setStatus("loading");
     try {
-      const r = await fetch(`${API}/auth/admin/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ email }),
-      });
-      const data = await r.json();
-      if (!r.ok) { setMsg(data.error || "Failed"); setStatus("error"); }
-      else { setMsg(data.message || `${email} is now an admin`); setStatus("ok"); setEmail(""); }
-    } catch { setMsg("Network error"); setStatus("error"); }
+      await addAdmin(email.toLowerCase().trim());
+      setMsg(`${email} has been granted admin access`);
+      setStatus("ok");
+      setEmail("");
+    } catch (err: any) {
+      setMsg(err.message || "Failed");
+      setStatus("error");
+    }
   }
 
   return (
@@ -491,7 +490,16 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
       <div className="bg-background border border-border rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
           <div>
-            <h2 className="text-sm font-semibold">Organization Profile</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm font-semibold">Organization Profile</h2>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                user?.role === "admin"
+                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                  : "bg-muted text-muted-foreground"
+              }`}>
+                {user?.role === "admin" ? "Admin" : "User"}
+              </span>
+            </div>
             <p className="text-xs text-muted-foreground">{user?.email}</p>
           </div>
           <div className="flex items-center gap-2">
@@ -834,8 +842,17 @@ export default function Home() {
             </button>
 
             <button onClick={() => setShowProfile(true)}
-              className="flex items-center justify-center w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-xs hover:bg-primary/20 transition-all">
-              {user?.email ? initials(user.email) : <User className="h-3.5 w-3.5" />}
+              className="flex items-center gap-2 h-8 px-2.5 rounded-xl bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all">
+              <span className="text-primary font-bold text-xs leading-none">
+                {user?.email ? initials(user.email) : <User className="h-3.5 w-3.5" />}
+              </span>
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none ${
+                user?.role === "admin"
+                  ? "bg-amber-500/20 text-amber-700 dark:text-amber-400"
+                  : "bg-muted text-muted-foreground"
+              }`}>
+                {user?.role === "admin" ? "Admin" : "User"}
+              </span>
             </button>
           </div>
         </div>

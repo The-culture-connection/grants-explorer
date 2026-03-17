@@ -75,6 +75,7 @@
     "zod": "catalog:"
   },
   "dependencies": {
+    "firebase": "^12.10.0",
     "use-debounce": "^10.1.0"
   }
 }
