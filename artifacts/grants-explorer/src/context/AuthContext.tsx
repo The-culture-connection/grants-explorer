@@ -3,12 +3,6 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  linkWithPopup,
-  linkWithCredential,
-  GoogleAuthProvider,
   signOut,
   type User as FirebaseUser,
 } from "firebase/auth";
@@ -17,7 +11,7 @@ import {
   collection, query, where, getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-import { auth, db, googleProvider } from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,7 +38,6 @@ export interface AuthUser {
   org_profile: OrgProfileData | null;
   is_admin: boolean;
   role: UserRole;
-  hasGoogle: boolean;              // true when Google is linked
 }
 
 interface AuthContextValue {
@@ -52,8 +45,6 @@ interface AuthContextValue {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string) => Promise<void>;
-  loginWithGoogle: () => Promise<void>;
-  linkGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (profile: OrgProfileData) => Promise<void>;
   addAdmin: (email: string) => Promise<void>;
@@ -69,7 +60,6 @@ async function loadOrCreateUser(firebaseUser: FirebaseUser): Promise<AuthUser> {
   const snap = await getDoc(ref);
   const email = firebaseUser.email ?? "";
   const adminFlag = isAdminEmail(email);
-  const hasGoogle = firebaseUser.providerData.some((p) => p.providerId === "google.com");
 
   if (!snap.exists()) {
     const data = {
@@ -80,7 +70,7 @@ async function loadOrCreateUser(firebaseUser: FirebaseUser): Promise<AuthUser> {
       created_at: serverTimestamp(),
     };
     await setDoc(ref, data);
-    return { id: firebaseUser.uid, email, org_profile: null, is_admin: adminFlag, role: adminFlag ? "admin" : "user", hasGoogle };
+    return { id: firebaseUser.uid, email, org_profile: null, is_admin: adminFlag, role: adminFlag ? "admin" : "user" };
   }
 
   const data = snap.data();
@@ -97,7 +87,6 @@ async function loadOrCreateUser(firebaseUser: FirebaseUser): Promise<AuthUser> {
     org_profile: data.org_profile ?? null,
     is_admin: adminFlag || !!data.is_admin,
     role,
-    hasGoogle,
   };
 }
 
@@ -109,16 +98,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for a Google redirect result first (handles cases where popup was blocked)
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (result?.user) {
-          const authUser = await loadOrCreateUser(result.user);
-          setUser(authUser);
-        }
-      })
-      .catch(() => { /* redirect errors are handled downstream */ });
-
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         try {
@@ -141,66 +120,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = useCallback(async (email: string, password: string) => {
     await createUserWithEmailAndPassword(auth, email, password);
-  }, []);
-
-  // Google Sign-In: try popup, fall back to redirect; handle account linking
-  const loginWithGoogle = useCallback(async () => {
-    try {
-      await signInWithPopup(auth, googleProvider);
-    } catch (err: any) {
-      const code: string = err.code ?? "";
-
-      // If the popup was blocked, fall back to redirect-based flow
-      if (
-        code === "auth/popup-blocked" ||
-        code === "auth/popup-cancelled" ||
-        code === "auth/operation-not-supported-in-this-environment"
-      ) {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-
-      // If an account already exists with this email under a different provider,
-      // surface a clear error so the UI can guide the user
-      if (code === "auth/account-exists-with-different-credential") {
-        const email = err.customData?.email ?? "your email";
-        const pendingCred = GoogleAuthProvider.credentialFromError(err);
-        // Surface a typed error so the caller can offer account-link flow
-        const linkErr = new Error(
-          `An account for "${email}" already exists with email/password. Sign in with your password, then link Google from your profile.`
-        ) as any;
-        linkErr.code = "account-exists";
-        linkErr.pendingCred = pendingCred;
-        linkErr.pendingEmail = email;
-        throw linkErr;
-      }
-
-      throw err;
-    }
-  }, []);
-
-  // Link a Google account to an existing email/password session
-  const linkGoogle = useCallback(async () => {
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) throw new Error("Not signed in");
-    try {
-      await linkWithPopup(firebaseUser, googleProvider);
-    } catch (err: any) {
-      const code: string = err.code ?? "";
-      if (code === "auth/popup-blocked" || code === "auth/operation-not-supported-in-this-environment") {
-        // Can't easily do redirect-based linking; surface a useful message
-        throw new Error("Popup was blocked by your browser. Please allow popups for this site and try again.");
-      }
-      if (code === "auth/credential-already-in-use" || code === "auth/provider-already-linked") {
-        throw new Error("This Google account is already linked or in use by another account.");
-      }
-      throw err;
-    }
-    // Refresh user state after linking
-    if (auth.currentUser) {
-      const refreshed = await loadOrCreateUser(auth.currentUser);
-      setUser(refreshed);
-    }
   }, []);
 
   const logout = useCallback(async () => {
@@ -227,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, signup, loginWithGoogle, linkGoogle, logout, updateProfile, addAdmin }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateProfile, addAdmin }}>
       {children}
     </AuthContext.Provider>
   );
