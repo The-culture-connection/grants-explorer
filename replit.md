@@ -16,6 +16,20 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 
+## Authentication System
+
+Email/password auth with JWT stored in `localStorage`:
+- **Signup/Login**: `POST /api/auth/signup`, `POST /api/auth/login` → returns JWT + user
+- **Session**: `GET /api/auth/me` (Bearer token) → returns current user
+- **Profile update**: `PUT /api/auth/profile` (Bearer token) → saves org_profile JSON to DB
+- **DB table**: `users` (id, email, password_hash, org_profile JSONB, created_at)
+- **Password hashing**: `bcryptjs` (12 rounds)
+- **JWT**: `jsonwebtoken`, 30-day expiry, secret from `JWT_SECRET` env (falls back to dev secret)
+- **Frontend context**: `artifacts/grants-explorer/src/context/AuthContext.tsx`
+- **Onboarding route**: `/profilecreation` — Step 1 (email+password), Step 2 (org profile JSON editor), Step 3 (success)
+- **Auth guard**: Root `/` redirects unauthenticated users to `/profilecreation`
+- **Home additions**: "Run V3 Matches" button in nav runs V3 algorithm on user's org profile, shows paginated results (20 per page); "Edit Profile" button opens modal to view/edit profile JSON + sign out
+
 ## Structure
 
 ```text

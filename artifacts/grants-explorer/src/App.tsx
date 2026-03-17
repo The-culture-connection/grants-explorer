@@ -1,4 +1,5 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { useEffect } from "react";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,22 +8,38 @@ import Home from "@/pages/Home";
 import AlgorithmPage from "@/pages/Algorithm";
 import IndexingToolPage from "@/pages/IndexingTool";
 import AlgorithmAuditPage from "@/pages/AlgorithmAudit";
+import ProfileCreation from "@/pages/ProfileCreation";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 
-// Configure QueryClient with reasonable defaults for a dashboard
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      refetchOnWindowFocus: false, // Don't spam external APIs when switching tabs
-      staleTime: 5 * 60 * 1000,    // Consider data fresh for 5 minutes
-      retry: 1,                    // Only retry once to avoid aggressive polling on failure
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
     },
   },
 });
 
+function ProtectedHome() {
+  const { user, loading } = useAuth();
+  const [, navigate] = useLocation();
+
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate("/profilecreation");
+    }
+  }, [loading, user, navigate]);
+
+  if (loading || !user) return null;
+  return <Home />;
+}
+
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={ProtectedHome} />
+      <Route path="/profilecreation" component={ProfileCreation} />
       <Route path="/algorithm" component={AlgorithmPage} />
       <Route path="/indexing" component={IndexingToolPage} />
       <Route path="/audit" component={AlgorithmAuditPage} />
@@ -35,9 +52,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={300}>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
+        <AuthProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <Router />
+          </WouterRouter>
+        </AuthProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
