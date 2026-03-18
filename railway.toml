@@ -1,5 +1,10 @@
+# Build: produces frontend static files and api-server dist (required for startCommand)
+[build]
+buildCommand = "pnpm run railway:build"
+
 [deploy]
 startCommand = "node artifacts/api-server/dist/index.cjs"
 healthcheckPath = "/api/healthz"
+healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3

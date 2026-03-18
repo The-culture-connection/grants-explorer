@@ -63,7 +63,9 @@ async function buildAll() {
     define: {
       "process.env.NODE_ENV": '"production"',
     },
-    minify: true,
+    // Keep minify false so uncaught errors produce readable stack traces (single-line
+    // minified bundles cause Node to dump the entire file in logs).
+    minify: false,
     external: externals,
     logLevel: "info",
   });
