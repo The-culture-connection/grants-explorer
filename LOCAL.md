@@ -78,6 +78,12 @@ Firebase config can be provided in two ways on Railway:
 
 2. **Build time** — The same names can be set before the build so they are baked into the frontend bundle. Redeploy after changing them so the build runs again.
 
+**If you still see "Auth is not configured" in production:**
+
+- **Check that the server sees the vars:** Open `https://your-railway-app.up.railway.app/api/config/check` in the browser. You should see `firebaseKeysPresent: { apiKey: true, authDomain: true, ... }` and `allPresent: true`. If any are `false`, the Node process is not receiving those variables.
+- **Where to set variables:** In Railway, go to your **project** → **Variables**. Add them there (Shared Variables apply to all services in the project), or add them to the **service** that runs the deploy. They must be available to the **running** Node process, not only at build time.
+- **Exact names that work:** The server checks (in order) e.g. for the API key: `apiKey`, `API_KEY`, `APIKEY`, `FIREBASE_API_KEY`, `FIREBASE_APIKEY`, `VITE_FIREBASE_API_KEY`. Use one of these **exactly** (case-sensitive). Copy from your Firebase Console → Project settings → General → Your apps → Config.
+
 ## Notes
 
 - **Replit plugins** (cartographer, dev banner, runtime error overlay) are only loaded when `REPL_ID` is set, so they are not used when running locally.

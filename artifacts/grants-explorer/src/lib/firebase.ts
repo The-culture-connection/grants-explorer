@@ -44,24 +44,32 @@ export function isFirebaseConfigured(): boolean {
  */
 export async function ensureFirebaseConfig(): Promise<boolean> {
   if (isFirebaseConfigured()) return true;
-  try {
-    const base = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
-    const res = await fetch(`${base}/api/config`);
-    if (!res.ok) return false;
-    const data = await res.json();
-    const config = data?.firebase;
-    if (!config?.apiKey?.trim()) return false;
-    if (getApps().length > 0) {
-      app = getApp();
+  const urlsToTry = [
+    "/api/config",
+    `${(import.meta.env.BASE_URL ?? "/").replace(/\/$/, "")}/api/config`,
+    new URL("/api/config", window.location.origin).href,
+  ].filter((u, i, a) => a.indexOf(u) === i);
+
+  for (const url of urlsToTry) {
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const config = data?.firebase;
+      if (!config?.apiKey?.trim()) continue;
+      if (getApps().length > 0) {
+        app = getApp();
+        auth = getFirebaseAuth(app);
+        db = getFirebaseFirestore(app);
+        return true;
+      }
+      app = initializeApp(config);
       auth = getFirebaseAuth(app);
       db = getFirebaseFirestore(app);
       return true;
+    } catch {
+      // try next URL
     }
-    app = initializeApp(config);
-    auth = getFirebaseAuth(app);
-    db = getFirebaseFirestore(app);
-    return true;
-  } catch {
-    return false;
   }
+  return false;
 }
