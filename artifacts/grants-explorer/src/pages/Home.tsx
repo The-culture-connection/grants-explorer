@@ -592,10 +592,37 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
             <OrgProfileForm initial={user?.org_profile} onSave={handleSave} onCancel={onClose} saving={saving} saveLabel="Save Changes" />
           ) : (
             <div className="space-y-3">
+              {/* Warnings */}
+              {warnings.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-3 space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">
+                    <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Data issues detected
+                  </div>
+                  {warnings.map((w, i) => (
+                    <p key={i} className="text-xs text-amber-700 dark:text-amber-400 flex items-start gap-1.5">
+                      <span className="shrink-0 mt-0.5">•</span> {w}
+                    </p>
+                  ))}
+                  <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-1">Fix these in the Edit Profile tab to improve match quality.</p>
+                </div>
+              )}
+
+              {/* Sub-tab: Algorithm Input vs Raw Firestore */}
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">
-                  This is the raw data the AI matching algorithm reads from your account.
-                </p>
+                <div className="flex items-center gap-1 p-0.5 bg-muted/50 rounded-lg border border-border/50">
+                  <button
+                    onClick={() => setJsonView("algorithm")}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${jsonView === "algorithm" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Algorithm Input
+                  </button>
+                  <button
+                    onClick={() => setJsonView("raw")}
+                    className={`px-2.5 py-1 text-[11px] font-medium rounded-md transition-colors ${jsonView === "raw" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                  >
+                    Raw Firestore
+                  </button>
+                </div>
                 <button
                   onClick={copyJson}
                   className="flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-lg border border-border hover:bg-muted transition-colors"
@@ -604,8 +631,15 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
                   {copied ? "Copied!" : "Copy"}
                 </button>
               </div>
-              <pre className="bg-zinc-950 text-green-400 rounded-xl p-4 text-[11px] font-mono leading-relaxed overflow-auto max-h-[55vh] whitespace-pre-wrap break-words">
-                {profileJson}
+
+              <p className="text-[11px] text-muted-foreground">
+                {jsonView === "algorithm"
+                  ? "Exact object passed to V5 after normalization — this is the ground truth for scoring."
+                  : "Raw data stored in Firestore — may differ from what the algorithm sees."}
+              </p>
+
+              <pre className="bg-zinc-950 text-green-400 rounded-xl p-4 text-[11px] font-mono leading-relaxed overflow-auto max-h-[50vh] whitespace-pre-wrap break-words">
+                {jsonView === "algorithm" ? algorithmJson : rawJson}
               </pre>
             </div>
           )}
@@ -632,22 +666,49 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
   const [v3Ran, setV3Ran] = useState(false);
   const [totalFound, setTotalFound] = useState(0);
   const [resultFilter, setResultFilter] = useState<ResultFilter>("all");
+  const [progress, setProgress] = useState<{ phase: string; pct: number } | null>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   async function runV3() {
     if (!user?.org_profile) { setV3Error("Please complete your organization profile first."); return; }
     setV3Running(true); setV3Error(""); setV3Results([]); setV3Page(0); setResultFilter("all");
+
     try {
+      // ── Phase 1: fetch pool (simulate 0→55% while requests are in-flight) ──
+      setProgress({ phase: "Fetching live opportunities from 8 sources…", pct: 0 });
+      let fetchPct = 0;
+      const fetchTimer = setInterval(() => {
+        fetchPct = Math.min(54, fetchPct + Math.random() * 4 + 1);
+        setProgress({ phase: "Fetching live opportunities from 8 sources…", pct: Math.round(fetchPct) });
+      }, 350);
+
       const { pool } = await loadFullOpportunityPool(API);
+      clearInterval(fetchTimer);
+
       const profile = coerceOrgProfile(user.org_profile, user.id);
 
-      // Score every opportunity with V5 + interpreter, then rank & cap per-source
+      // ── Phase 2: score each opportunity with real progress (55→95%) ──
+      setProgress({ phase: `Scoring ${pool.length} opportunities against your profile…`, pct: 55 });
+      await new Promise(r => setTimeout(r, 0)); // yield so the UI paints
+
+      const scored: V5ScoreTrace[] = [];
+      const BATCH = 80; // update UI every N items
+      for (let i = 0; i < pool.length; i++) {
+        const interp = getInterpretedOpportunityForMatcher(pool[i]);
+        scored.push(scoreMatchV5(profile, pool[i], DEFAULT_V5_CONFIG, interp));
+        if ((i + 1) % BATCH === 0) {
+          const pct = 55 + Math.round(((i + 1) / pool.length) * 38);
+          setProgress({ phase: `Scoring ${pool.length} opportunities against your profile…`, pct });
+          await new Promise(r => setTimeout(r, 0)); // yield
+        }
+      }
+
+      // ── Phase 3: rank ──
+      setProgress({ phase: "Ranking and curating top results…", pct: 95 });
+      await new Promise(r => setTimeout(r, 0));
+
       const sourceCount: Record<string, number> = {};
-      const allResults = pool
-        .map((opp) => {
-          const interp = getInterpretedOpportunityForMatcher(opp);
-          return scoreMatchV5(profile, opp, DEFAULT_V5_CONFIG, interp);
-        })
+      const allResults = scored
         .sort((a, b) => b.finalScore - a.finalScore)
         .filter((t) => {
           const src = t.opp.source;
@@ -655,6 +716,9 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
           return sourceCount[src] <= 50;
         })
         .slice(0, 200);
+
+      setProgress({ phase: "Done!", pct: 100 });
+      await new Promise(r => setTimeout(r, 400)); // brief "Done" flash
 
       setTotalFound(allResults.length); setV3Results(allResults); setV3Ran(true);
       trackOpportunityAnalyzed(
@@ -665,7 +729,7 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
       );
       setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
     } catch { setV3Error("Failed to load opportunity pool. Please try again."); }
-    finally { setV3Running(false); }
+    finally { setV3Running(false); setProgress(null); }
   }
 
   const filteredResults = v3Results.filter((t) => {
@@ -721,7 +785,7 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
             <div className="flex items-center gap-3">
               <Button onClick={runV3} disabled={v3Running || !user?.org_profile} size="lg" className="gap-2 shadow-sm">
                 <Sparkles className="h-4 w-4" />
-                Run AI Matching
+                Run Curated V5 Matching
               </Button>
               {!user?.org_profile && (
                 <p className="text-xs text-muted-foreground">Profile required</p>
@@ -748,17 +812,46 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
 
   // Loading state
   if (v3Running) {
+    const pct = progress?.pct ?? 0;
+    const isDone = pct === 100;
     return (
-      <div className="rounded-3xl border border-border/60 bg-muted/20 p-12 flex flex-col items-center gap-4 text-center">
-        <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center">
-          <Sparkles className="h-7 w-7 text-primary animate-pulse" />
+      <div className="rounded-3xl border border-border/60 bg-muted/20 p-10 flex flex-col items-center gap-6 text-center">
+        {/* Icon */}
+        <div className={`w-16 h-16 rounded-3xl flex items-center justify-center transition-colors ${isDone ? "bg-emerald-100 dark:bg-emerald-950/40" : "bg-primary/10"}`}>
+          {isDone
+            ? <Check className="h-7 w-7 text-emerald-500" />
+            : <Sparkles className="h-7 w-7 text-primary animate-pulse" />}
         </div>
+
+        {/* Title */}
         <div>
-          <h3 className="font-semibold text-foreground">Analyzing opportunities…</h3>
-          <p className="text-sm text-muted-foreground mt-1">Scoring against your organization profile</p>
+          <h3 className="font-semibold text-foreground">
+            {isDone ? "Matching complete!" : "Running Curated V5 Matching…"}
+          </h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            {progress?.phase ?? "Starting up…"}
+          </p>
         </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <RefreshCw className="h-4 w-4 animate-spin" /> Running V5 Precision Matching
+
+        {/* Progress bar */}
+        <div className="w-full max-w-sm space-y-2">
+          <div className="flex items-center justify-between text-xs font-mono text-muted-foreground">
+            <span>{isDone ? "Done" : pct < 55 ? "Fetching" : pct < 95 ? "Scoring" : "Ranking"}</span>
+            <span>{pct}%</span>
+          </div>
+          <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ease-out ${isDone ? "bg-emerald-500" : "bg-primary"}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          {/* Phase dots */}
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground px-0.5">
+            <span className={pct >= 1  ? "text-primary font-medium" : ""}>Fetch</span>
+            <span className={pct >= 55 ? "text-primary font-medium" : ""}>Score</span>
+            <span className={pct >= 95 ? "text-primary font-medium" : ""}>Rank</span>
+            <span className={pct >= 100 ? "text-emerald-500 font-medium" : ""}>Done</span>
+          </div>
         </div>
       </div>
     );
@@ -806,7 +899,7 @@ function V3Panel({ statuses, onSave, onApply, onView }: {
             </>
           )}
           <Button variant="outline" size="sm" className="gap-1.5 ml-auto" onClick={runV3} disabled={v3Running}>
-            <RefreshCw className="h-3 w-3" /> Refresh
+            <RefreshCw className="h-3 w-3" /> Re-run V5
           </Button>
         </div>
       </div>

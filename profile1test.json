@@ -1,33 +1,25 @@
 {
-  "id": "wp0IHopCzZOmQgLXMxG9hAE1QBw1",
-  "email": "test@gmail.com",
-  "role": "user",
-  "org_profile": {
-    "population_served": [
-      "low income",
-      "mothers",
-      "birth givers"
-    ],
-    "is_small_business": true,
-    "geography": [
-      "united states"
-    ],
-    "id": "empower-watch",
-    "has_501c3": false,
-    "keywords": [
-      "maternal health",
-      "maternal",
-      "health advocacy"
-    ],
-    "program_areas": [
-      "health & wellness",
-      "maternal health",
-      "black women"
-    ],
-    "years_in_operation": 3,
-    "mission": "Improve maternal health outcomes for Black women through education, advocacy, and community-based support.",
-    "annual_budget": 300000,
-    "name": "Empower Watch",
-    "org_type": "small_business"
-  }
+  "id": "dT6YZfUy6dXiHBnR2K2LkINDa1r2",
+  "name": "Healthy Moms Network",
+  "org_type": "nonprofit",
+  "mission": "Improve prenatal and postnatal care access for underserved mothers.",
+  "program_areas": [
+    "health",
+    "maternal health"
+  ],
+  "population_served": [
+    "mothers",
+    "pregnant people"
+  ],
+  "geography": [
+    "united states"
+  ],
+  "annual_budget": 300000,
+  "years_in_operation": 5,
+  "has_501c3": true,
+  "is_small_business": false,
+  "keywords": [
+    "prenatal care",
+    "maternal health"
+  ]
 }
