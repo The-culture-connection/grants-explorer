@@ -60,6 +60,22 @@ PORT=5000 NODE_ENV=production node artifacts/api-server/dist/index.cjs
 
 Then open **http://localhost:5000**. Set `PORT` in `.env` or in the environment if you want another port.
 
+## Railway: Firebase env vars
+
+Firebase config is **baked in at build time** when Railway runs `pnpm run railway:build`. Add these in **Railway → your project → Variables** (shared or service) so the build sees them. Any of these naming styles work:
+
+| Use in Railway (any of these) | Meaning |
+|-------------------------------|--------|
+| `apiKey` or `FIREBASE_API_KEY` or `VITE_FIREBASE_API_KEY` | Firebase API key |
+| `authDomain` or `FIREBASE_AUTH_DOMAIN` | e.g. `your-app.firebaseapp.com` |
+| `projectId` or `FIREBASE_PROJECT_ID` | Firebase project ID |
+| `storageBucket` or `FIREBASE_STORAGE_BUCKET` | e.g. `your-app.firebasestorage.app` |
+| `messagingSenderId` or `FIREBASE_MESSAGING_SENDER_ID` | Numeric sender ID |
+| `appId` or `FIREBASE_APP_ID` | e.g. `1:123:web:abc` |
+| `measurementId` or `FIREBASE_MEASUREMENT_ID` | e.g. `G-XXXXXXXXXX` (optional) |
+
+Redeploy after adding or changing these so the frontend build runs again with the new values.
+
 ## Notes
 
 - **Replit plugins** (cartographer, dev banner, runtime error overlay) are only loaded when `REPL_ID` is set, so they are not used when running locally.

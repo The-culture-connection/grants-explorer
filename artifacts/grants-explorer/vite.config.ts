@@ -52,17 +52,33 @@ const apiPort = process.env.VITE_API_PORT ?? env.VITE_API_PORT ?? "5000";
 // Replit overrides this via its own env var to handle path-based routing.
 const basePath = process.env.BASE_PATH ?? env.BASE_PATH ?? "/";
 
+// Firebase: read from .env or Railway env. Supports apiKey, authDomain, etc. or VITE_FIREBASE_* / FIREBASE_*
+function firebaseEnv(key: string): string {
+  const camel = key;
+  const snake = key.replace(/([A-Z])/g, "_$1").toUpperCase().replace(/^_/, "");
+  const variants = [
+    env[camel],
+    process.env[camel],
+    env[`VITE_FIREBASE_${snake}`],
+    process.env[`VITE_FIREBASE_${snake}`],
+    env[`FIREBASE_${snake}`],
+    process.env[`FIREBASE_${snake}`],
+  ];
+  for (const v of variants) if (v != null && String(v).trim()) return String(v).trim();
+  return "";
+}
+
 export default defineConfig({
   base: basePath,
   define: {
     __FIREBASE_CONFIG__: JSON.stringify({
-      apiKey:            env.apiKey            ?? process.env.apiKey            ?? "",
-      authDomain:        env.authDomain        ?? process.env.authDomain        ?? "",
-      projectId:         env.projectId         ?? process.env.projectId         ?? "",
-      storageBucket:     env.storageBucket     ?? process.env.storageBucket     ?? "",
-      messagingSenderId: env.messagingSenderId ?? process.env.messagingSenderId ?? "",
-      appId:             env.appId             ?? process.env.appId             ?? "",
-      measurementId:     env.measurementId     ?? process.env.measurementId     ?? "",
+      apiKey: firebaseEnv("apiKey"),
+      authDomain: firebaseEnv("authDomain"),
+      projectId: firebaseEnv("projectId"),
+      storageBucket: firebaseEnv("storageBucket"),
+      messagingSenderId: firebaseEnv("messagingSenderId"),
+      appId: firebaseEnv("appId"),
+      measurementId: firebaseEnv("measurementId"),
     }),
   },
   plugins: [react(), tailwindcss(), ...replitPlugins],
