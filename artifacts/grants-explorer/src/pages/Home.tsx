@@ -511,13 +511,35 @@ function ProfileModal({ onClose }: { onClose: () => void }) {
     try { await updateProfile(profile); onClose(); } finally { setSaving(false); }
   }
 
-  const profileJson = JSON.stringify(
-    { id: user?.id, email: user?.email, role: user?.role, org_profile: user?.org_profile ?? null },
-    null, 2
-  );
+  // What the algorithm actually receives after coercion — the ground truth
+  const algorithmInput = user?.org_profile
+    ? coerceOrgProfile(user.org_profile, user.id)
+    : null;
+
+  // Raw Firestore data for comparison
+  const rawJson      = JSON.stringify(user?.org_profile ?? null, null, 2);
+  const algorithmJson = JSON.stringify(algorithmInput, null, 2);
+
+  // Detect fields where raw ≠ coerced (data normalisation changed something)
+  const warnings: string[] = [];
+  if (algorithmInput && user?.org_profile) {
+    const raw = user.org_profile as any;
+    if ((algorithmInput.org_type ?? "nonprofit") !== (raw.org_type ?? "nonprofit"))
+      warnings.push(`org_type: stored "${raw.org_type ?? "—"}" → algorithm sees "${algorithmInput.org_type}"`);
+    if (algorithmInput.mission !== (raw.mission ?? ""))
+      warnings.push(`mission is empty or missing`);
+    if (algorithmInput.keywords.length === 0)
+      warnings.push("keywords array is empty — these drive the top scoring tier");
+    if (algorithmInput.program_areas.length === 0)
+      warnings.push("program_areas array is empty — these drive the second scoring tier");
+    if (algorithmInput.population_served.length === 0)
+      warnings.push("population_served is empty");
+  }
+
+  const [jsonView, setJsonView] = useState<"algorithm" | "raw">("algorithm");
 
   function copyJson() {
-    navigator.clipboard.writeText(profileJson);
+    navigator.clipboard.writeText(jsonView === "algorithm" ? algorithmJson : rawJson);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
