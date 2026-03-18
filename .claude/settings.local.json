@@ -25,7 +25,8 @@
       "Bash(curl -s \"http://localhost:5000/api/grants/simplergrants?keyword=workforce&rows=5\")",
       "Bash(curl -s \"http://localhost:5000/api/grants/sbir?keyword=technology&rows=5\")",
       "Bash(pnpm --filter grants-explorer exec tsc --noEmit)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(pnpm --filter @workspace/api-server run build)"
     ]
   }
 }
