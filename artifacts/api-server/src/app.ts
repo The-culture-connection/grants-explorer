@@ -50,7 +50,8 @@ if (process.env.NODE_ENV === "production") {
 
     // SPA catch-all: return index.html for any route that isn't an API call
     // so that client-side routing (Wouter) works on direct URL loads.
-    app.get("*", (_req, res) => {
+    // Express 5 requires a named wildcard; "{*splat}" matches everything including "/"
+    app.get("/{*splat}", (_req, res) => {
       res.sendFile(path.join(staticDir, "index.html"));
     });
   } else {
