@@ -26,7 +26,16 @@
       "Bash(curl -s \"http://localhost:5000/api/grants/sbir?keyword=technology&rows=5\")",
       "Bash(pnpm --filter grants-explorer exec tsc --noEmit)",
       "Bash(npx tsc:*)",
-      "Bash(pnpm --filter @workspace/api-server run build)"
+      "Bash(pnpm --filter @workspace/api-server run build)",
+      "Bash(xargs grep:*)",
+      "Bash(python3:*)",
+      "Bash(node -e \":*)",
+      "Bash(node -e \"console.log\\(require.resolve\\(''''dotenv''''\\)\\)\")",
+      "Bash(find '/c/Users/grace/The Culture Connection Tech Solutions/Grant-Explorer' -path */dotenv/lib/main.js)",
+      "Bash(/dev/null /c/Users/grace/The Culture Connection Tech Solutions/Grant-Explorer/node_modules/.pnpm/bcryptjs*/*/bcrypt*.js)",
+      "Bash(find '/c/Users/grace/The Culture Connection Tech Solutions/Grant-Explorer' -path */drizzle-orm/node-postgres* -name *.js)",
+      "Bash(find '/c/Users/grace/The Culture Connection Tech Solutions/Grant-Explorer/node_modules/.pnpm' -path */pg@* -name *.js)",
+      "Bash(find '/c/Users/grace/The Culture Connection Tech Solutions/Grant-Explorer/node_modules/.pnpm' -name *.js)"
     ]
   }
 }
