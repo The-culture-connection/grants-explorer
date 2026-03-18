@@ -5,23 +5,20 @@
  */
 import dotenv from "dotenv";
 import path from "path";
-import { fileURLToPath } from "url";
 import fs from "fs";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const cwd = process.cwd();
 
 // If ENV_FILE is set, load only that (so you can point to repo root .env from anywhere)
 const explicitEnv = process.env.ENV_FILE;
 
-const repoRootFromFile = path.resolve(__dirname, "..", "..", "..");
 const candidates: Array<{ path: string; label: string }> = explicitEnv
   ? [{ path: path.resolve(cwd, explicitEnv), label: "ENV_FILE" }]
   : [
       { path: path.join(cwd, ".env"), label: "cwd" },
       { path: path.join(cwd, "..", ".env"), label: "cwd/.." },
       { path: path.join(cwd, "..", "..", ".env"), label: "cwd/../.." },
-      { path: path.join(repoRootFromFile, ".env"), label: "repo root (from loadEnv.ts)" },
+      { path: path.join(cwd, "..", "..", "..", ".env"), label: "cwd/../../.." },
     ];
 
 let loadedAny = false;
