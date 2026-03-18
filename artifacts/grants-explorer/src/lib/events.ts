@@ -93,9 +93,15 @@ export const trackOpportunityOutcome = (
   opportunityId: string,
   outcome: "win" | "loss",
   title?: string,
+  revenueValue?: number,
+  closeDate?: string,
+  notes?: string,
 ) =>
   sendEvent("opportunity.outcome", userId, {
     opportunity_id: opportunityId,
     outcome: outcome === "win" ? "won" : "lost",
     title: title ?? null,
+    revenue_value: revenueValue ?? null,
+    close_date: closeDate ?? null,
+    notes: notes ?? null,
   });

@@ -12,6 +12,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { trackUserCreated } from "@/lib/events";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,8 @@ async function loadOrCreateUser(firebaseUser: FirebaseUser): Promise<AuthUser> {
       created_at: serverTimestamp(),
     };
     await setDoc(ref, data);
+    // Fire webhook — new user registered for the first time
+    trackUserCreated(firebaseUser.uid, email);
     return { id: firebaseUser.uid, email, org_profile: null, is_admin: adminFlag, role: adminFlag ? "admin" : "user" };
   }
 

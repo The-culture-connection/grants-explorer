@@ -990,7 +990,15 @@ export default function Home() {
 
   function handleSetOutcome(id: string, outcome: "win" | "loss") {
     setOutcome(id, outcome);
-    if (user?.id) trackOpportunityOutcome(user.id, id, outcome, statuses[id]?.title);
+    if (user?.id) {
+      const entry = statuses[id];
+      trackOpportunityOutcome(
+        user.id, id, outcome,
+        entry?.title,
+        entry?.maxAward,   // revenue_value — grant award amount
+        entry?.closeDate,  // close_date
+      );
+    }
   }
 
   // Map OppEntry statuses to GrantStatus for explorer cards
