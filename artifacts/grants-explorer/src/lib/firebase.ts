@@ -1,6 +1,6 @@
-import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
-import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { getAuth as getFirebaseAuth, type Auth } from "firebase/auth";
+import { getFirestore as getFirebaseFirestore, type Firestore } from "firebase/firestore";
 
 declare const __FIREBASE_CONFIG__: {
   apiKey: string;
@@ -12,14 +12,56 @@ declare const __FIREBASE_CONFIG__: {
   measurementId: string;
 };
 
-const firebaseConfig = __FIREBASE_CONFIG__;
-const hasConfig = !!firebaseConfig?.apiKey?.trim();
+const buildTimeConfig = typeof __FIREBASE_CONFIG__ !== "undefined" ? __FIREBASE_CONFIG__ : null;
+const hasBuildTimeConfig = !!buildTimeConfig?.apiKey?.trim();
 
 let app: FirebaseApp | null = null;
-if (hasConfig && getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
+let authInstance: Auth = {} as unknown as Auth;
+let dbInstance: Firestore = {} as unknown as Firestore;
+
+if (hasBuildTimeConfig && getApps().length === 0) {
+  app = initializeApp(buildTimeConfig!);
+  authInstance = getFirebaseAuth(app);
+  dbInstance = getFirebaseFirestore(app);
+} else if (getApps().length > 0) {
+  app = getApp();
+  authInstance = getFirebaseAuth(app);
+  dbInstance = getFirebaseFirestore(app);
 }
 
-const _app = app ?? getApps()[0] ?? null;
-export const auth: Auth = _app ? getAuth(_app) : ({} as unknown as Auth);
-export const db: Firestore = _app ? getFirestore(_app) : ({} as unknown as Firestore);
+/** Mutable so we can set after async init from /api/config (e.g. on Railway where env is runtime-only). */
+export let auth: Auth = authInstance;
+export let db: Firestore = dbInstance;
+
+/** True if Firebase was initialized (at build time or after ensureFirebaseConfig). */
+export function isFirebaseConfigured(): boolean {
+  return typeof auth?.onAuthStateChanged === "function";
+}
+
+/**
+ * If build-time config is missing (e.g. production with Railway Shared Variables only at runtime),
+ * fetch config from GET /api/config and initialize Firebase. Resolves to true if config is available.
+ */
+export async function ensureFirebaseConfig(): Promise<boolean> {
+  if (isFirebaseConfigured()) return true;
+  try {
+    const base = import.meta.env.BASE_URL?.replace(/\/$/, "") || "";
+    const res = await fetch(`${base}/api/config`);
+    if (!res.ok) return false;
+    const data = await res.json();
+    const config = data?.firebase;
+    if (!config?.apiKey?.trim()) return false;
+    if (getApps().length > 0) {
+      app = getApp();
+      auth = getFirebaseAuth(app);
+      db = getFirebaseFirestore(app);
+      return true;
+    }
+    app = initializeApp(config);
+    auth = getFirebaseAuth(app);
+    db = getFirebaseFirestore(app);
+    return true;
+  } catch {
+    return false;
+  }
+}

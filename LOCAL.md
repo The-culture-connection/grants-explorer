@@ -62,7 +62,9 @@ Then open **http://localhost:5000**. Set `PORT` in `.env` or in the environment 
 
 ## Railway: Firebase env vars
 
-Firebase config is **baked in at build time** when Railway runs `pnpm run railway:build`. Add these in **Railway → your project → Variables** (shared or service) so the build sees them. Any of these naming styles work:
+Firebase config can be provided in two ways on Railway:
+
+1. **Runtime (recommended)** — Add the variables in **Railway → Variables** (Shared or service). The API server reads them at runtime and exposes them at **GET /api/config**. The frontend fetches that on load and initializes Firebase, so you do **not** need to rebuild when you add or change these. Use any of these names:
 
 | Use in Railway (any of these) | Meaning |
 |-------------------------------|--------|
@@ -74,7 +76,7 @@ Firebase config is **baked in at build time** when Railway runs `pnpm run railwa
 | `appId` or `FIREBASE_APP_ID` | e.g. `1:123:web:abc` |
 | `measurementId` or `FIREBASE_MEASUREMENT_ID` | e.g. `G-XXXXXXXXXX` (optional) |
 
-Redeploy after adding or changing these so the frontend build runs again with the new values.
+2. **Build time** — The same names can be set before the build so they are baked into the frontend bundle. Redeploy after changing them so the build runs again.
 
 ## Notes
 

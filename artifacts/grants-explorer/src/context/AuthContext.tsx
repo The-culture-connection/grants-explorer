@@ -11,7 +11,7 @@ import {
   collection, query, where, getDocs,
   serverTimestamp,
 } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { auth, db, ensureFirebaseConfig, isFirebaseConfigured } from "@/lib/firebase";
 import { trackUserCreated } from "@/lib/events";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -96,96 +96,107 @@ async function loadOrCreateUser(firebaseUser: FirebaseUser): Promise<AuthUser> {
 // ─── Context ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-// Firebase may be unconfigured locally (empty env). Avoid blocking the UI forever.
-declare const __FIREBASE_CONFIG__: { apiKey?: string };
-const firebaseConfigured = typeof __FIREBASE_CONFIG__ !== "undefined" && !!__FIREBASE_CONFIG__?.apiKey?.trim();
+const AUTH_NOT_CONFIGURED_MSG =
+  "Auth is not configured. Add Firebase env vars (apiKey, authDomain, projectId, etc.) to .env or Railway Variables to enable sign-in.";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser]       = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [configured, setConfigured] = useState(false);
 
   useEffect(() => {
-    if (!firebaseConfigured) {
-      setLoading(false);
-      return;
-    }
-    if (typeof auth?.onAuthStateChanged !== "function") {
-      setLoading(false);
-      return;
-    }
-    let initialLoadDone = false;
-    const timeout = window.setTimeout(() => {
-      if (!initialLoadDone) {
-        initialLoadDone = true;
+    let cancelled = false;
+    let unsub: (() => void) | null = null;
+
+    (async () => {
+      await ensureFirebaseConfig();
+      if (cancelled) return;
+      const isConfigured = isFirebaseConfigured();
+      setConfigured(isConfigured);
+      if (!isConfigured) {
         setLoading(false);
+        return;
       }
-    }, 3000);
-    const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        try {
-          const authUser = await loadOrCreateUser(firebaseUser);
-          setUser(authUser);
-        } catch {
-          setUser(null);
+      if (typeof auth?.onAuthStateChanged !== "function") {
+        setLoading(false);
+        return;
+      }
+      let initialLoadDone = false;
+      const timeout = window.setTimeout(() => {
+        if (!initialLoadDone) {
+          initialLoadDone = true;
+          setLoading(false);
         }
-      } else {
-        setUser(null);
-      }
-      if (!initialLoadDone) {
-        initialLoadDone = true;
-        window.clearTimeout(timeout);
-      }
-      setLoading(false);
-    });
+      }, 3000);
+      unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (firebaseUser) {
+          try {
+            const authUser = await loadOrCreateUser(firebaseUser);
+            if (!cancelled) setUser(authUser);
+          } catch {
+            if (!cancelled) setUser(null);
+          }
+        } else {
+          if (!cancelled) setUser(null);
+        }
+        if (!initialLoadDone) {
+          initialLoadDone = true;
+          window.clearTimeout(timeout);
+        }
+        if (!cancelled) setLoading(false);
+      });
+    })();
+
     return () => {
-      initialLoadDone = true;
-      window.clearTimeout(timeout);
-      unsub();
+      cancelled = true;
+      unsub?.();
     };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    if (!firebaseConfigured) {
-      throw new Error("Auth is not configured. Add Firebase env vars (apiKey, authDomain, projectId, etc.) to .env to enable sign-in.");
-    }
+    if (!configured) throw new Error(AUTH_NOT_CONFIGURED_MSG);
     await signInWithEmailAndPassword(auth, email, password);
-  }, []);
+  }, [configured]);
 
   const signup = useCallback(async (email: string, password: string) => {
-    if (!firebaseConfigured) {
-      throw new Error("Auth is not configured. Add Firebase env vars (apiKey, authDomain, projectId, etc.) to .env to enable sign-in.");
-    }
+    if (!configured) throw new Error(AUTH_NOT_CONFIGURED_MSG);
     await createUserWithEmailAndPassword(auth, email, password);
-  }, []);
+  }, [configured]);
 
   const logout = useCallback(async () => {
-    if (!firebaseConfigured) {
+    if (!configured) {
       setUser(null);
       return;
     }
     await signOut(auth);
     setUser(null);
-  }, []);
+  }, [configured]);
 
-  const updateProfile = useCallback(async (profile: OrgProfileData) => {
-    if (!firebaseConfigured) throw new Error("Auth is not configured.");
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) throw new Error("Not authenticated");
-    const ref = doc(db, "users", firebaseUser.uid);
-    await updateDoc(ref, { org_profile: profile });
-    setUser((u) => (u ? { ...u, org_profile: profile } : u));
-  }, []);
+  const updateProfile = useCallback(
+    async (profile: OrgProfileData) => {
+      if (!configured) throw new Error("Auth is not configured.");
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) throw new Error("Not authenticated");
+      const ref = doc(db, "users", firebaseUser.uid);
+      await updateDoc(ref, { org_profile: profile });
+      setUser((u) => (u ? { ...u, org_profile: profile } : u));
+    },
+    [configured],
+  );
 
-  const addAdmin = useCallback(async (email: string) => {
-    if (!firebaseConfigured) throw new Error("Auth is not configured.");
-    const normalized = email.toLowerCase().trim();
-    const q = query(collection(db, "users"), where("email", "==", normalized));
-    const snap = await getDocs(q);
-    if (snap.empty) throw new Error("No account found with that email address");
-    const targetDoc = snap.docs[0];
-    if (targetDoc.data().is_admin) throw new Error("That user is already an admin");
-    await updateDoc(targetDoc.ref, { is_admin: true, role: "admin" });
-  }, []);
+  const addAdmin = useCallback(
+    async (email: string) => {
+      if (!configured) throw new Error("Auth is not configured.");
+      const normalized = email.toLowerCase().trim();
+      const q = query(collection(db, "users"), where("email", "==", normalized));
+      const snap = await getDocs(q);
+      if (snap.empty) throw new Error("No account found with that email address");
+      const targetDoc = snap.docs[0];
+      if (targetDoc.data().is_admin) throw new Error("That user is already an admin");
+      await updateDoc(targetDoc.ref, { is_admin: true, role: "admin" });
+    },
+    [configured],
+  );
 
   return (
     <AuthContext.Provider value={{ user, loading, login, signup, logout, updateProfile, addAdmin }}>
